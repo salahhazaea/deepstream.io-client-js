@@ -63,7 +63,6 @@ module.exports.set = function (data, path, value) {
       node = node[tokens[i]] = Object.create(null)
     }
   }
-
   return result
 }
 
