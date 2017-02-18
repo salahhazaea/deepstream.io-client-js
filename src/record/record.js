@@ -132,16 +132,12 @@ Record.prototype.whenReady = function () {
     return Promise.reject(new Error('discarded'))
   }
 
-  this.usages += 1
-
   return new Promise((resolve, reject) => {
     if (this.isReady) {
       resolve()
     } else {
       this.once('ready', resolve)
     }
-  }).then(() => {
-    this.usages = Math.max(0, this.usages - 1)
   })
 }
 
