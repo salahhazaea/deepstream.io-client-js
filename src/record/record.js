@@ -101,8 +101,6 @@ Record.prototype.subscribe = function (path, callback, triggerNow) {
 
   if (args.triggerNow && this._data) {
     args.callback(jsonPath.get(this._data, args.path))
-  } else {
-    this.whenReady().catch(err => this.emit('error', err))
   }
 }
 
