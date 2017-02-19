@@ -146,7 +146,7 @@ Record.prototype.discard = function () {
 }
 
 Record.prototype._$destroy = function () {
-  if (!this.isReady) {
+  if (this.usages > 0 || !this.isReady) {
     return false
   }
 

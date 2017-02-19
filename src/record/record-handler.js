@@ -35,7 +35,7 @@ RecordHandler.prototype._prune = function () {
       next: []
     }
 
-    setTimeout(this._prune, 10000)
+    setTimeout(this._prune, 5000)
   })
 }
 
