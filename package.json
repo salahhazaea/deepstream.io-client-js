@@ -12,9 +12,9 @@
     "component-emitter": "1.1.2",
     "invariant": "^2.2.2",
     "lz-string": "^1.4.4",
-    "rxjs": "^5.1.0",
+    "rxjs": "^5.1.1",
     "utf-8-validate": "^3.0.1",
-    "ws": "^2.0.3",
+    "ws": "^2.1.0",
     "xuid": "1.0.2"
   },
   "browser": {
