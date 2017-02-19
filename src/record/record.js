@@ -1,6 +1,6 @@
 const jsonPath = require('./json-path')
 const utils = require('../utils/utils')
-const EventEmitter = require('component-emitter')
+const EventEmitter = require('component-emitter2')
 const C = require('../constants/constants')
 const messageParser = require('../message/message-parser')
 const xuid = require('xuid')
@@ -239,12 +239,7 @@ Record.prototype._applyChange = function (newData) {
   const oldData = this._data
   this._data = utils.deepFreeze(newData)
 
-  if (!this._eventEmitter._callbacks) {
-    return
-  }
-
-  const paths = Object.keys(this._eventEmitter._callbacks)
-
+  const paths = this._eventEmitter.eventNames()
   for (let i = 0; i < paths.length; i++) {
     const newValue = jsonPath.get(newData, paths[i])
     const oldValue = jsonPath.get(oldData, paths[i])
