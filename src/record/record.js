@@ -146,6 +146,10 @@ Record.prototype.discard = function () {
 }
 
 Record.prototype._$destroy = function () {
+  if (!this.isReady) {
+    return false
+  }
+
   invariant(!this.isDestroyed, `"destroy" cannot use destroyed record ${this.name}`)
 
   if (this.isSubscribed) {
@@ -161,6 +165,8 @@ Record.prototype._$destroy = function () {
   this._eventEmitter.off()
 
   this.off()
+
+  return true
 }
 
 Record.prototype._$onMessage = function (message) {
