@@ -188,7 +188,7 @@ Record.prototype._$onMessage = function (message) {
 }
 
 Record.prototype._sendRead = function () {
-  if (this.isSubscribed) {
+  if (this.isSubscribed || this._connection.getState() !== C.CONNECTION_STATE.OPEN) {
     return
   }
   this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.READ, [this.name])
