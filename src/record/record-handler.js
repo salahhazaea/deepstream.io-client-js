@@ -8,8 +8,8 @@ const RecordHandler = function (options, connection, client) {
   this._options = options
   this._connection = connection
   this._client = client
-  this._records = new Map()
-  this._gc = { prev: [], next: [] }
+  this._recordsMap = new Map()
+  this._recordsVector = []
   this._listeners = new Map()
 
   this._prune = this._prune.bind(this)
@@ -17,35 +17,33 @@ const RecordHandler = function (options, connection, client) {
 }
 
 RecordHandler.prototype._prune = function () {
-  utils.requestIdleCallback(deadline => {
-    const { prev, next } = this._gc
-    let n = 0
-    let k = prev.length
-    while (n < k) {
-      if (prev[n].usages === 0 && prev[n]._$destroy()) {
-        this._records.delete(prev[n].name)
-        prev[n] = prev[--k]
+  utils.requestIdleCallback(() => {
+    let vec = this._recordsVector
+    let map = this._recordsMap
+
+    let i = 0
+    let j = vec.length
+    while (i < j) {
+      if (vec[i].usages === 0 && vec[i]._$destroy()) {
+        map.delete(vec[i].name)
+        vec[i] = vec[--j]
       } else {
-        ++n
+        ++i
       }
     }
-
-    this._gc = {
-      prev: prev.slice(0, n).concat(next),
-      next: []
-    }
+    vec.splice(i + 1)
 
     setTimeout(this._prune, 5000)
   })
 }
 
 RecordHandler.prototype.getRecord = function (recordName) {
-  let record = this._records.get(recordName)
+  let record = this._recordsMap.get(recordName)
 
   if (!record) {
     record = new Record(recordName, this._connection, this._client)
-    this._records.set(recordName, record)
-    this._gc.next.push(record)
+    this._recordsMap.set(recordName, record)
+    this._recordsVector.push(record)
   }
 
   record.usages += 1
@@ -172,7 +170,7 @@ RecordHandler.prototype._$handle = function (message) {
     recordName = message.data[0]
   }
 
-  const record = this._records.get(recordName)
+  const record = this._recordsMap.get(recordName)
   if (record) {
     record._$onMessage(message)
   }
