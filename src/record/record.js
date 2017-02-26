@@ -20,7 +20,6 @@ const Record = function (name, connection, client) {
   this.hasProvider = false
   this.version = null
 
-  this._sender = null
   this._connection = connection
   this._client = client
   this._eventEmitter = new EventEmitter()
@@ -28,7 +27,6 @@ const Record = function (name, connection, client) {
   this._data = undefined
   this._patchQueue = []
 
-  this._sendUpdate = this._sendUpdate.bind(this)
   this._handleConnectionStateChange = this._handleConnectionStateChange.bind(this)
 
   this._client.on('connectionStateChanged', this._handleConnectionStateChange)
@@ -76,8 +74,8 @@ Record.prototype.set = function (pathOrData, dataOrNil) {
 
   this._applyChange(newValue)
 
-  if (this.isReady && !this._sender) {
-    this._sender = utils.requestIdleCallback(this._sendUpdate)
+  if (this.isReady) {
+    this._sendUpdate()
   }
 
   return Promise.resolve()
@@ -149,14 +147,7 @@ Record.prototype.discard = function () {
 
 Record.prototype._$destroy = function () {
   invariant(!this.isDestroyed, `"destroy" cannot use destroyed record ${this.name}`)
-
-  if (this.usages > 0 || !this.isReady) {
-    return false
-  }
-
-  if (this._sender) {
-    this._sendUpdate()
-  }
+  invariant(this.usages === 0 && this.isReady, `destroy cannot use active or not ready record ${this.name}`)
 
   if (this.isSubscribed) {
     this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.UNSUBSCRIBE, [this.name])
@@ -165,8 +156,7 @@ Record.prototype._$destroy = function () {
 
   this.usages = 0
   this.isDestroyed = true
-  this._data = undefined
-  this._patchQueue = []
+
   this._client.off('connectionStateChanged', this._handleConnectionStateChange)
   this._eventEmitter.off()
 
@@ -211,7 +201,6 @@ Record.prototype._sendUpdate = function () {
     this.version
   ])
   this.version = version
-  this._sender = null
 }
 
 Record.prototype._onUpdate = function (message) {
@@ -219,10 +208,6 @@ Record.prototype._onUpdate = function (message) {
 
   if (utils.compareVersions(this.version, version)) {
     return
-  }
-
-  if (this._sender) {
-    this._sendUpdate()
   }
 
   this.version = version
