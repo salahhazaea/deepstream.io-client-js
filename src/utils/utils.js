@@ -1,7 +1,5 @@
 const URL = require('url')
 
-const OBJECT = 'object'
-
 const hasUrlProtocol = /^wss:|^ws:|^\/\//
 const unsupportedProtocol = /^http:|^https:/
 
@@ -14,7 +12,7 @@ exports.deepFreeze = function (o) {
     return o
   }
 
-  if (typeof o !== OBJECT) {
+  if (!o || typeof o !== 'object' || Object.isFrozen(o)) {
     return o
   }
 
@@ -22,13 +20,7 @@ exports.deepFreeze = function (o) {
 
   Object
     .getOwnPropertyNames(o)
-    .forEach(prop => {
-      if (o[prop] !== null &&
-          typeof o[prop] === OBJECT &&
-          !Object.isFrozen(o[prop])) {
-        exports.deepFreeze(o[prop])
-      }
-    })
+    .forEach(prop => exports.deepFreeze(o[prop]))
 
   return o
 }
@@ -64,7 +56,7 @@ exports.nextTick = function (fn) {
 exports.deepEquals = function (objA, objB) {
   if (objA === objB) {
     return true
-  } else if (typeof objA !== OBJECT || typeof objB !== OBJECT) {
+  } else if (typeof objA !== 'object' || typeof objB !== 'object') {
     return false
   } else {
     return JSON.stringify(objA) === JSON.stringify(objB)
@@ -72,7 +64,7 @@ exports.deepEquals = function (objA, objB) {
 }
 
 exports.deepCopy = function (obj) {
-  if (typeof obj === OBJECT) {
+  if (typeof obj === 'object') {
     return JSON.parse(JSON.stringify(obj))
   } else {
     return obj
@@ -84,7 +76,7 @@ exports.shallowCopy = function (obj) {
     return obj.slice(0)
   }
 
-  if (typeof obj === OBJECT) {
+  if (typeof obj === 'object') {
     const copy = Object.create(null)
     const props = Object.keys(obj)
     for (let i = 0; i < props.length; i++) {
@@ -130,11 +122,11 @@ exports.parseUrl = function (url, defaultPath) {
   return URL.format(serverUrl)
 }
 
-exports.requestIdleCallback = !exports.isNode && window.requestIdleCallback && window.requestIdleCallback.bind(window) ||
-  function (cb) {
+exports.requestIdleCallback = (!exports.isNode && window.requestIdleCallback && window.requestIdleCallback.bind(window)) ||
+  function (fn) {
     const start = Date.now()
     return setTimeout(function () {
-      cb({
+      fn({
         didTimeout: false,
         timeRemaining: function () {
           return Math.max(0, 50 - (Date.now() - start))
@@ -143,7 +135,7 @@ exports.requestIdleCallback = !exports.isNode && window.requestIdleCallback && w
     }, 1)
   }
 
-exports.cancelIdleCallback = !exports.isNode && window.cancelIdleCallback && window.cancelIdleCallback.bind(window) ||
+exports.cancelIdleCallback = (!exports.isNode && window.cancelIdleCallback && window.cancelIdleCallback.bind(window)) ||
   function (id) {
     clearTimeout(id)
   }
