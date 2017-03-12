@@ -41,14 +41,14 @@ module.exports = {
    * @param {Number} rpcAckTimeout               The number of milliseconds after which a rpc will
    *                                             create an error if no Ack-message has been received
    */
-  rpcAckTimeout: 6000,
+  rpcAckTimeout: 15000,
 
   /**
    * @param {Number} rpcResponseTimeout          The number of milliseconds after which a rpc will
    *                                             create an error if no response-message has been
    *                                             received
    */
-  rpcResponseTimeout: 10000,
+  rpcResponseTimeout: 15000,
 
   /**
    * @param {Number} subscriptionTimeout         The number of milliseconds that can pass after
