@@ -1,3 +1,5 @@
+'use strict'
+
 module.exports = {
   /**
    * @param {Number} heartBeatInterval           How often you expect the heartbeat to be sent.

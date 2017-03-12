@@ -1,3 +1,5 @@
+'use strict'
+
 const Record = require('./record')
 const Listener = require('../utils/listener')
 const C = require('../constants/constants')

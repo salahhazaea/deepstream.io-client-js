@@ -1,3 +1,5 @@
+'use strict'
+
 exports.CONNECTION_STATE = {}
 
 exports.CONNECTION_STATE.CLOSED = 'CLOSED'

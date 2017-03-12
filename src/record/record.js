@@ -1,3 +1,5 @@
+'use strict'
+
 const jsonPath = require('./json-path')
 const utils = require('../utils/utils')
 const EventEmitter = require('component-emitter2')

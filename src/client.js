@@ -1,3 +1,5 @@
+'use strict'
+
 const C = require('./constants/constants')
 const Emitter = require('component-emitter2')
 const Connection = require('./message/connection')
