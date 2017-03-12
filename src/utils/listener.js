@@ -39,7 +39,6 @@ Listener.prototype.sendDestroy = function () {
   this.destroyPending = true
   this._connection.sendMsg(this._topic, C.ACTIONS.UNLISTEN, [this._pattern])
   this._resubscribeNotifier.destroy()
-
 }
 
 /*

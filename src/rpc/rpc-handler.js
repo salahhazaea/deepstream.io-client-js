@@ -63,7 +63,7 @@ RpcHandler.prototype.provide = function (name, callback) {
   this._ackTimeoutRegistry.add({
     topic: C.TOPIC.RPC,
     name,
-    action: C.ACTIONS.SUBSCRIBE,
+    action: C.ACTIONS.SUBSCRIBE
   })
   this._providers[name] = callback
   this._connection.sendMsg(C.TOPIC.RPC, C.ACTIONS.SUBSCRIBE, [name])
@@ -87,7 +87,7 @@ RpcHandler.prototype.unprovide = function (name) {
     this._ackTimeoutRegistry.add({
       topic: C.TOPIC.RPC,
       name,
-      action: C.ACTIONS.UNSUBSCRIBE,
+      action: C.ACTIONS.UNSUBSCRIBE
     })
     this._connection.sendMsg(C.TOPIC.RPC, C.ACTIONS.UNSUBSCRIBE, [name])
   }
@@ -258,6 +258,5 @@ RpcHandler.prototype._reprovide = function () {
     this._connection.sendMsg(C.TOPIC.RPC, C.ACTIONS.SUBSCRIBE, [rpcName])
   }
 }
-
 
 module.exports = RpcHandler
