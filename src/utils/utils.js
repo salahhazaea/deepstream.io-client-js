@@ -55,24 +55,6 @@ exports.nextTick = function (fn) {
   }
 }
 
-exports.deepEquals = function (objA, objB) {
-  if (objA === objB) {
-    return true
-  } else if (typeof objA !== 'object' || typeof objB !== 'object') {
-    return false
-  } else {
-    return JSON.stringify(objA) === JSON.stringify(objB)
-  }
-}
-
-exports.deepCopy = function (obj) {
-  if (typeof obj === 'object') {
-    return JSON.parse(JSON.stringify(obj))
-  } else {
-    return obj
-  }
-}
-
 exports.shallowCopy = function (obj) {
   if (Array.isArray(obj)) {
     return obj.slice(0)
