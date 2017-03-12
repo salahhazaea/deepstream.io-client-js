@@ -1,5 +1,6 @@
-var C = require('../constants/constants'),
-  SEP = C.MESSAGE_PART_SEPERATOR
+const C = require('../constants/constants')
+
+const SEP = C.MESSAGE_PART_SEPERATOR
 
 /**
  * Creates a deepstream message string, based on the
@@ -15,15 +16,15 @@ exports.getMsg = function (topic, action, data) {
   if (data && !(data instanceof Array)) {
     throw new Error('data must be an array')
   }
-  var sendData = [ topic, action ],
-    i
+
+  const sendData = [topic, action]
 
   if (data) {
-    for (i = 0; i < data.length; i++) {
-      if (typeof data[ i ] === 'object') {
-        sendData.push(JSON.stringify(data[ i ]))
+    for (let i = 0; i < data.length; i++) {
+      if (typeof data[i] === 'object') {
+        sendData.push(JSON.stringify(data[i]))
       } else {
-        sendData.push(data[ i ])
+        sendData.push(data[i])
       }
     }
   }
@@ -43,7 +44,7 @@ exports.getMsg = function (topic, action, data) {
  * @returns {String} string representation of the value
  */
 exports.typed = function (value) {
-  var type = typeof value
+  const type = typeof value
 
   if (type === 'string') {
     return C.TYPES.STRING + value
@@ -73,5 +74,5 @@ exports.typed = function (value) {
     return C.TYPES.UNDEFINED
   }
 
-  throw new Error('Can\'t serialize type ' + value)
+  throw new Error(`Can't serialize type ${value}`)
 }

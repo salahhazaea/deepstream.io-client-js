@@ -170,7 +170,9 @@ Record.prototype._$onMessage = function (message) {
 
   if (this.isDestroyed) {
     return
-  } else if (message.action === C.ACTIONS.UPDATE) {
+  }
+
+  if (message.action === C.ACTIONS.UPDATE) {
     if (!this.isReady) {
       this._onRead(message)
     } else {
@@ -179,7 +181,6 @@ Record.prototype._$onMessage = function (message) {
   } else if (message.action === C.ACTIONS.SUBSCRIPTION_HAS_PROVIDER) {
     this.hasProvider = messageParser.convertTyped(message.data[1], this._client)
     this.emit('hasProviderChanged', this.hasProvider)
-    return
   }
 }
 

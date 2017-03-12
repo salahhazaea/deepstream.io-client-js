@@ -1,3 +1,5 @@
+'use strict'
+
 const C = require('../constants/constants')
 
 /**
@@ -44,7 +46,6 @@ ResubscribeNotifier.prototype._handleConnectionStateChanges = function () {
   if (state === C.CONNECTION_STATE.RECONNECTING && this._isReconnecting === false) {
     this._isReconnecting = true
   }
-
   if (state === C.CONNECTION_STATE.OPEN && this._isReconnecting === true) {
     this._isReconnecting = false
     this._resubscribe()

@@ -240,7 +240,7 @@ Connection.prototype._checkHeartBeat = function () {
     this._client._$onError(
       C.TOPIC.CONNECTION,
       C.EVENT.CONNECTION_ERROR,
-			'heartbeat not received in the last ' + heartBeatTolerance + ' milliseconds')
+      'heartbeat not received in the last ' + heartBeatTolerance + ' milliseconds')
     this._endpoint.close()
   }
 }

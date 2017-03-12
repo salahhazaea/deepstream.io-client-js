@@ -1,5 +1,7 @@
-var C = require('../constants/constants'),
-  messageParser = require('../message/message-parser')
+'use strict'
+
+const C = require('../constants/constants')
+const messageParser = require('../message/message-parser')
 
 /**
  * This class represents a single remote procedure
@@ -7,18 +9,33 @@ var C = require('../constants/constants'),
  * is to encapsulate the logic around timeouts and to convert the
  * incoming response data
  *
- * @param {Object}   options  deepstream client config
- * @param {Function} callback the function that will be called once the request is complete or failed
+ * @param {Object}   options           deepstream client config
+ * @param {Function} callback          the function that will be called once the request
+ *                                     is complete or failed
  * @param {Client} client
  *
  * @constructor
  */
-var Rpc = function (options, callback, client) {
+const Rpc = function (name, callback, options, client) {
   this._options = options
   this._callback = callback
   this._client = client
-  this._ackTimeout = setTimeout(this.error.bind(this, C.EVENT.ACK_TIMEOUT), this._options.rpcAckTimeout)
-  this._responseTimeout = setTimeout(this.error.bind(this, C.EVENT.RESPONSE_TIMEOUT), this._options.rpcResponseTimeout)
+  this._ackTimeoutRegistry = client._$getAckTimeoutRegistry()
+  this._ackTimeout = this._ackTimeoutRegistry.add({
+    topic: C.TOPIC.RPC,
+    action: C.ACTIONS.ACK,
+    name,
+    timeout: this._options.rpcAckTimeout,
+    callback: this.error.bind(this)
+  })
+  this._responseTimeout = this._ackTimeoutRegistry.add({
+    topic: C.TOPIC.RPC,
+    action: C.ACTIONS.REQUEST,
+    name,
+    event: C.EVENT.RESPONSE_TIMEOUT,
+    timeout: this._options.rpcResponseTimeout,
+    callback: this.error.bind(this)
+  })
 }
 
 /**
@@ -28,7 +45,9 @@ var Rpc = function (options, callback, client) {
  * @returns {void}
  */
 Rpc.prototype.ack = function () {
-  clearTimeout(this._ackTimeout)
+  this._ackTimeoutRegistry.remove({
+    ackId: this._ackTimeout
+  })
 }
 
 /**
@@ -41,7 +60,7 @@ Rpc.prototype.ack = function () {
  * @returns {void}
  */
 Rpc.prototype.respond = function (data) {
-  var convertedData = messageParser.convertTyped(data, this._client)
+  const convertedData = messageParser.convertTyped(data, this._client)
   this._callback(null, convertedData)
   this._complete()
 }
@@ -57,8 +76,8 @@ Rpc.prototype.respond = function (data) {
  * @public
  * @returns {void}
  */
-Rpc.prototype.error = function (errorMsg) {
-  this._callback(errorMsg)
+Rpc.prototype.error = function (timeout) {
+  this._callback(timeout.event || timeout)
   this._complete()
 }
 
@@ -70,8 +89,12 @@ Rpc.prototype.error = function (errorMsg) {
  * @returns {void}
  */
 Rpc.prototype._complete = function () {
-  clearTimeout(this._ackTimeout)
-  clearTimeout(this._responseTimeout)
+  this._ackTimeoutRegistry.remove({
+    ackId: this._ackTimeout
+  })
+  this._ackTimeoutRegistry.remove({
+    ackId: this._responseTimeout
+  })
 }
 
 module.exports = Rpc
