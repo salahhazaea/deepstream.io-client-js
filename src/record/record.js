@@ -80,7 +80,7 @@ Record.prototype.set = function (pathOrData, dataOrNil) {
     this._sendUpdate()
   }
 
-  return Promise.resolve()
+  return this.whenReady()
 }
 
 Record.prototype.subscribe = function (path, callback, triggerNow) {

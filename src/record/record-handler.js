@@ -27,8 +27,9 @@ RecordHandler.prototype._prune = function () {
     let j = vec.length
     while (i < j) {
       if (vec[i].usages === 0 && vec[i].isReady) {
-        map.delete(vec[i].name)
-        vec[i]._$destroy()
+        if (map.delete(vec[i].name)) {
+          vec[i]._$destroy()
+        }
         vec[i] = vec[--j]
       } else {
         ++i
