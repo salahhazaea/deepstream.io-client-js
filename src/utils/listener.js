@@ -2,6 +2,8 @@
 
 const C = require('../constants/constants')
 const ResubscribeNotifier = require('./resubscribe-notifier')
+const xuid = require('xuid')
+const lz = require('lz-string')
 
 /*
  * Creates a listener instance which is usedby deepstream Records and Events.
@@ -80,6 +82,14 @@ Listener.prototype.reject = function (name) {
   this._connection.sendMsg(this._topic, C.ACTIONS.LISTEN_REJECT, [this._pattern, name])
 }
 
+Listener.prototype.set = function (name, value) {
+  this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.UPDATE, [
+    name,
+    `0-${xuid()}`,
+    lz.compressToUTF16(JSON.stringify(value))
+  ])
+}
+
 /*
  * Wraps accept and reject as an argument for the callback function.
  *
@@ -89,7 +99,8 @@ Listener.prototype.reject = function (name) {
 Listener.prototype._createCallbackResponse = function (message) {
   return {
     accept: this.accept.bind(this, message.data[1]),
-    reject: this.reject.bind(this, message.data[1])
+    reject: this.reject.bind(this, message.data[1]),
+    set: this.set.bind(this, message.data[1])
   }
 }
 
