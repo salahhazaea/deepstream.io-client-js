@@ -31,6 +31,7 @@ const Listener = function (topic, pattern, callback, options, client, connection
     name: pattern,
     action: C.ACTIONS.LISTEN
   })
+  this._data = null
 
   this._resubscribeNotifier = new ResubscribeNotifier(client, this._sendListen.bind(this))
   this._sendListen()
@@ -82,12 +83,16 @@ Listener.prototype.reject = function (name) {
   this._connection.sendMsg(this._topic, C.ACTIONS.LISTEN_REJECT, [this._pattern, name])
 }
 
-Listener.prototype.set = function (name, value) {
-  this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.UPDATE, [
-    name,
-    `0-${xuid()}`,
-    lz.compressToUTF16(JSON.stringify(value))
-  ])
+Listener.prototype.set = function (name, context, data) {
+  const raw = JSON.stringify(data)
+  if (context.raw !== raw) {
+    context.raw = raw
+    this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.UPDATE, [
+      name,
+      `0-${xuid()}`,
+      lz.compressToUTF16(raw)
+    ])
+  }
 }
 
 /*
@@ -100,7 +105,7 @@ Listener.prototype._createCallbackResponse = function (message) {
   return {
     accept: this.accept.bind(this, message.data[1]),
     reject: this.reject.bind(this, message.data[1]),
-    set: this.set.bind(this, message.data[1])
+    set: this.set.bind(this, message.data[1], { })
   }
 }
 
