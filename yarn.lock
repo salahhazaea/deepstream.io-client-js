@@ -132,9 +132,9 @@ loose-envify@^1.0.0:
   dependencies:
     js-tokens "^3.0.0"
 
-lz-string@^1.4.4:
+"lz-string@github:nxtedition/lz-string#b7109d6a97ed6afb7b09228572a2488f565d0a47":
   version "1.4.4"
-  resolved "https://registry.yarnpkg.com/lz-string/-/lz-string-1.4.4.tgz#c0d8eaf36059f705796e1e344811cf4c498d3a26"
+  resolved "https://codeload.github.com/nxtedition/lz-string/tar.gz/b7109d6a97ed6afb7b09228572a2488f565d0a47"
 
 minimist@0.0.8:
   version "0.0.8"
