@@ -160,6 +160,35 @@ RecordHandler.prototype.observe = function (recordName) {
     })
 }
 
+RecordHandler.prototype.provide = function (match, provider) {
+  const subscriptions = new Map()
+  const onError = err => this._client._$onError(C.TOPIC.RECORD, match, err.message)
+  this.listen(match, (key, isSubscribed, response) => {
+    if (isSubscribed) {
+      try {
+        Promise
+          .resolve(provider(key))
+          .then(data$ => {
+            if (!data$) {
+              response.reject()
+            } else {
+              response.accept()
+              subscriptions.set(key, data$.subscribe(value => response.set(value)), onError)
+            }
+          })
+          .catch(onError)
+      } catch (err) {
+        response.reject()
+        onError(err)
+      }
+    } else {
+      const subscription = subscriptions.get(key)
+      subscription && subscription.unsubscribe()
+      subscriptions.delete(key)
+    }
+  })
+}
+
 RecordHandler.prototype._$handle = function (message) {
   if (message.action === C.ACTIONS.ERROR && message.data[0] !== C.EVENT.MESSAGE_DENIED) {
     message.processedError = true
