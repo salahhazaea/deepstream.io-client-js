@@ -156,23 +156,23 @@ RecordHandler.prototype.observe = function (recordName) {
     })
 }
 
-RecordHandler.prototype.provide = function (match, provider) {
+RecordHandler.prototype.provide = function (pattern, provider) {
   const subscriptions = new Map()
-  this.listen(match, (key, isSubscribed, response) => {
+  this.listen(pattern, (match, isSubscribed, response) => {
     if (isSubscribed) {
       const onError = err => {
-        this._client._$onError(C.TOPIC.RECORD, match, err.message)
+        this._client._$onError(C.TOPIC.RECORD, pattern, err.message)
         response.reject()
       }
       try {
         Promise
-          .resolve(provider(key))
+          .resolve(provider(match))
           .then(data$ => {
             if (!data$) {
               response.reject()
             } else {
               response.accept()
-              subscriptions.set(key, data$.subscribe(value => response.set(value)), onError)
+              subscriptions.set(match, data$.subscribe(value => response.set(value)), onError)
             }
           })
           .catch(onError)
@@ -180,9 +180,9 @@ RecordHandler.prototype.provide = function (match, provider) {
         onError(err)
       }
     } else {
-      const subscription = subscriptions.get(key)
+      const subscription = subscriptions.get(match)
       subscription && subscription.unsubscribe()
-      subscriptions.delete(key)
+      subscriptions.delete(match)
     }
   })
 }
