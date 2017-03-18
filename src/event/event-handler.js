@@ -6,6 +6,7 @@ const ResubscribeNotifier = require('../utils/resubscribe-notifier')
 const C = require('../constants/constants')
 const Listener = require('../utils/listener')
 const EventEmitter = require('component-emitter2')
+const Rx = require('rxjs')
 
 /**
  * This class handles incoming and outgoing messages in relation
@@ -86,6 +87,17 @@ EventHandler.prototype.unsubscribe = function (name, callback) {
     })
     this._connection.sendMsg(C.TOPIC.EVENT, C.ACTIONS.UNSUBSCRIBE, [name])
   }
+}
+
+EventHandler.prototype.observe = function (name) {
+  return Rx.Observable
+    .create(o => {
+      const onValue = value => o.next(value)
+      this.subscribe(name, onValue)
+      return () => {
+        this.unsubscribe(name, onValue)
+      }
+    })
 }
 
 /**
