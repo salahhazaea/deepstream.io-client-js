@@ -155,7 +155,7 @@ RecordHandler.prototype.observe = function (recordName) {
           record.discard()
         }
       } catch (err) {
-        o.next(err)
+        o.error(err)
       }
     })
 }
