@@ -354,7 +354,7 @@ xtend@4.0.1, xtend@^4.0.0:
   resolved "https://registry.yarnpkg.com/xtend/-/xtend-4.0.1.tgz#a5c6d532be656e23db820efb943a1f04998d63af"
 
 xuid@^1.1.7:
-  version "1.1.7"
-  resolved "https://registry.yarnpkg.com/xuid/-/xuid-1.1.7.tgz#94b09ffed1bd49f28e24f4bb707728b716057123"
+  version "1.2.0"
+  resolved "https://registry.yarnpkg.com/xuid/-/xuid-1.2.0.tgz#c54d2d415d220f41efa35b7763f109392f3dbd02"
   dependencies:
     randombytes "2.0.3"
