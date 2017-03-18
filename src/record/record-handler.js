@@ -143,28 +143,27 @@ RecordHandler.prototype.update = function (recordName, pathOrUpdater, updaterOrN
 RecordHandler.prototype.observe = function (recordName) {
   return Rx.Observable
     .create(o => {
-      try {
-        const record = this.getRecord(recordName)
-        const onValue = value => o.next(value)
-        const onError = error => o.error(error)
-        record.subscribe(onValue, true)
-        record.on('error', onError)
-        return () => {
-          record.unsubscribe(onValue)
-          record.off('error', onError)
-          record.discard()
-        }
-      } catch (err) {
-        o.error(err)
+      const record = this.getRecord(recordName)
+      const onValue = value => o.next(value)
+      const onError = error => o.error(error)
+      record.subscribe(onValue, true)
+      record.on('error', onError)
+      return () => {
+        record.unsubscribe(onValue)
+        record.off('error', onError)
+        record.discard()
       }
     })
 }
 
 RecordHandler.prototype.provide = function (match, provider) {
   const subscriptions = new Map()
-  const onError = err => this._client._$onError(C.TOPIC.RECORD, match, err.message)
   this.listen(match, (key, isSubscribed, response) => {
     if (isSubscribed) {
+      const onError = err => {
+        this._client._$onError(C.TOPIC.RECORD, match, err.message)
+        response.reject()
+      }
       try {
         Promise
           .resolve(provider(key))
@@ -178,7 +177,6 @@ RecordHandler.prototype.provide = function (match, provider) {
           })
           .catch(onError)
       } catch (err) {
-        response.reject()
         onError(err)
       }
     } else {
