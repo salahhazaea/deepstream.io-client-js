@@ -145,12 +145,9 @@ RecordHandler.prototype.observe = function (recordName) {
     .create(o => {
       const record = this.getRecord(recordName)
       const onValue = value => o.next(value)
-      const onError = error => o.error(error)
       record.subscribe(onValue, true)
-      record.on('error', onError)
       return () => {
         record.unsubscribe(onValue)
-        record.off('error', onError)
         record.discard()
       }
     })
