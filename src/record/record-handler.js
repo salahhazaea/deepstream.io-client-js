@@ -37,7 +37,7 @@ RecordHandler.prototype._prune = function () {
     }
     vec.splice(i)
 
-    setTimeout(this._prune, 10000)
+    setTimeout(this._prune, 5000)
   })
 }
 
