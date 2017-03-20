@@ -11,7 +11,7 @@
     "bufferutil": "^3.0.0",
     "component-emitter2": "^1.3.5",
     "invariant": "^2.2.2",
-    "lz-string": "github:nxtedition/lz-string#6ee6562a5daa25ee28f6243492226ff4ed5c1453",
+    "lz-string": "github:nxtedition/lz-string#d3d1ed806756980562fc383e14404326172f2949",
     "rxjs": "^5.2.0",
     "utf-8-validate": "^3.0.1",
     "ws": "^2.2.1",
