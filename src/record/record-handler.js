@@ -155,7 +155,7 @@ RecordHandler.prototype.observe = function (recordName) {
 
 RecordHandler.prototype.provide = function (pattern, provider) {
   const subscriptions = new Map()
-  this.listen(pattern, (match, isSubscribed, response) => {
+  const callback = (match, isSubscribed, response) => {
     if (isSubscribed) {
       const onError = err => {
         this._client._$onError(C.TOPIC.RECORD, pattern, err.message)
@@ -181,7 +181,9 @@ RecordHandler.prototype.provide = function (pattern, provider) {
       subscription && subscription.unsubscribe()
       subscriptions.delete(match)
     }
-  })
+  }
+  this.listen(pattern, callback)
+  return () => this.unlisten(pattern, callback)
 }
 
 RecordHandler.prototype._$handle = function (message) {
