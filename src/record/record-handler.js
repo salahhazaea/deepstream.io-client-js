@@ -157,6 +157,13 @@ RecordHandler.prototype.provide = function (pattern, provider) {
   const subscriptions = new Map()
   const callback = (match, isSubscribed, response) => {
     if (isSubscribed) {
+      const onNext = value => {
+        if (value) {
+          response.set(value)
+        } else {
+          response.reject()
+        }
+      }
       const onError = err => {
         this._client._$onError(C.TOPIC.RECORD, pattern, err.message)
         response.reject()
@@ -169,7 +176,7 @@ RecordHandler.prototype.provide = function (pattern, provider) {
               response.reject()
             } else {
               response.accept()
-              subscriptions.set(match, data$.subscribe(value => response.set(value)), onError)
+              subscriptions.set(match, data$.subscribe(onNext, onError))
             }
           })
           .catch(onError)
