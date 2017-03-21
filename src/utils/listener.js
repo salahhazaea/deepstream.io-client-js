@@ -93,7 +93,7 @@ Listener.prototype.set = function (name, context, value) {
 
   context.raw = raw
 
-  const version = `Infinity-${xuid()}`
+  const version = `INF-${xuid()}`
 
   this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.UPDATE, [ name, version, lz.compressToUTF16(raw) ])
   this._recordHandler._$handle({

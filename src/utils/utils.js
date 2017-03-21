@@ -29,7 +29,8 @@ exports.deepFreeze = function (o) {
 
 exports.splitRev = function (s) {
   const i = s.indexOf(`-`)
-  return [ parseFloat(s.slice(0, i)), s.slice(i + 1) ]
+  const ver = s.slice(0, i)
+  return [ ver === 'INF' ? Number.MAX_SAFE_INTEGER : parseInt(ver, 10), s.slice(i + 1) ]
 }
 
 exports.isSameOrNewer = function (a, b) {
