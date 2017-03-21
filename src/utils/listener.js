@@ -18,13 +18,14 @@ const lz = require('lz-string')
  *
  * @constructor
  */
-const Listener = function (topic, pattern, callback, options, client, connection) {
+const Listener = function (topic, pattern, callback, options, client, connection, recordHandler) {
   this._topic = topic
   this._callback = callback
   this._pattern = pattern
   this._options = options
   this._client = client
   this._connection = connection
+  this._recordHandler = recordHandler
   this._ackTimeoutRegistry = client._$getAckTimeoutRegistry()
   this._ackTimeoutRegistry.add({
     topic: this._topic,
@@ -83,16 +84,22 @@ Listener.prototype.reject = function (name) {
   this._connection.sendMsg(this._topic, C.ACTIONS.LISTEN_REJECT, [this._pattern, name])
 }
 
-Listener.prototype.set = function (name, context, data) {
-  const raw = JSON.stringify(data)
-  if (context.raw !== raw) {
-    context.raw = raw
-    this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.UPDATE, [
-      name,
-      `0-${xuid()}`,
-      lz.compressToUTF16(raw)
-    ])
+Listener.prototype.set = function (name, context, value) {
+  const raw = JSON.stringify(value)
+
+  if (context.raw === raw) {
+    return
   }
+
+  context.raw = raw
+
+  const version = `Infinity-${xuid()}`
+
+  this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.UPDATE, [ name, version, lz.compressToUTF16(raw) ])
+  this._recordHandler._$handle({
+    action: C.ACTIONS.UPDATE,
+    data: [ name, version, value ]
+  })
 }
 
 /*

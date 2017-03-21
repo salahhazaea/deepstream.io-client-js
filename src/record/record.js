@@ -209,16 +209,22 @@ Record.prototype._sendUpdate = function () {
 Record.prototype._onUpdate = function (message) {
   const version = message.data[1]
 
-  if (utils.compareVersions(this.version, version)) {
+  if (utils.isSameOrNewer(this.version, version)) {
     return
   }
 
+  const value = typeof message.data[2] === 'string'
+    ? JSON.parse(lz.decompressFromUTF16(message.data[2]))
+    : message.data[2]
+
   this.version = version
-  this._applyChange(jsonPath.set(this._data, undefined, JSON.parse(lz.decompressFromUTF16(message.data[2]))))
+  this._applyChange(jsonPath.set(this._data, undefined, value))
 }
 
 Record.prototype._onRead = function (message) {
-  let oldValue = JSON.parse(lz.decompressFromUTF16(message.data[2]))
+  let oldValue = typeof message.data[2] === 'string'
+    ? JSON.parse(lz.decompressFromUTF16(message.data[2]))
+    : message.data[2]
   let newValue = this._data || oldValue
 
   if (this._patchQueue) {

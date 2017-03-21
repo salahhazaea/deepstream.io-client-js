@@ -73,7 +73,7 @@ RecordHandler.prototype.listen = function (pattern, callback) {
     listener.destroy()
   }
 
-  this._listeners.set(pattern, new Listener(C.TOPIC.RECORD, pattern, callback, this._options, this._client, this._connection))
+  this._listeners.set(pattern, new Listener(C.TOPIC.RECORD, pattern, callback, this._options, this._client, this._connection, this))
 }
 
 RecordHandler.prototype.unlisten = function (pattern) {

@@ -28,23 +28,14 @@ exports.deepFreeze = function (o) {
 }
 
 exports.splitRev = function (s) {
-  if (!s) {
-    return []
-  }
-  const i = s.indexOf('-')
-  return [ s.slice(0, i), s.slice(i + 1) ]
+  const i = s.indexOf(`-`)
+  return [ parseFloat(s.slice(0, i)), s.slice(i + 1) ]
 }
 
-exports.compareVersions = function (a, b) {
-  if (!a) {
-    return false
-  }
-  if (!b) {
-    return true
-  }
-  const [av, ar] = exports.splitRev(a)
-  const [bv, br] = exports.splitRev(b)
-  return parseInt(av, 10) > parseInt(bv, 10) || (av === bv && ar >= br)
+exports.isSameOrNewer = function (a, b) {
+  const [ av, ar ] = a ? exports.splitRev(a) : [ 0, '00000000000000' ]
+  const [ bv, br ] = b ? exports.splitRev(b) : [ 0, '00000000000000' ]
+  return av > bv || (av === bv && ar >= br)
 }
 
 exports.nextTick = function (fn) {
