@@ -144,7 +144,7 @@ minimist@^1.2.0:
   version "1.2.0"
   resolved "https://registry.yarnpkg.com/minimist/-/minimist-1.2.0.tgz#a35008b20f41383eec1fb914f4cd5df79a264284"
 
-mkdirp@^0.5.0:
+mkdirp@^0.5.1:
   version "0.5.1"
   resolved "https://registry.yarnpkg.com/mkdirp/-/mkdirp-0.5.1.tgz#30057438eac6cf7f8c4767f38648d6697d75c903"
   dependencies:
@@ -292,11 +292,11 @@ symbol-observable@^1.0.1:
   resolved "https://registry.yarnpkg.com/symbol-observable/-/symbol-observable-1.0.4.tgz#29bf615d4aa7121bdd898b22d4b3f9bc4e2aa03d"
 
 tar-fs@^1.13.0:
-  version "1.15.1"
-  resolved "https://registry.yarnpkg.com/tar-fs/-/tar-fs-1.15.1.tgz#f4622f5d5e250742b3679a9a8463acfc12cdefd1"
+  version "1.15.2"
+  resolved "https://registry.yarnpkg.com/tar-fs/-/tar-fs-1.15.2.tgz#761f5b32932c7b39461a60d537faea0d8084830c"
   dependencies:
     chownr "^1.0.1"
-    mkdirp "^0.5.0"
+    mkdirp "^0.5.1"
     pump "^1.0.0"
     tar-stream "^1.1.2"
 
@@ -344,8 +344,8 @@ wrappy@1:
   resolved "https://registry.yarnpkg.com/wrappy/-/wrappy-1.0.2.tgz#b5243d8f3ec1aa35f1364605bc0d1036e30ab69f"
 
 ws@^2.2.1:
-  version "2.2.1"
-  resolved "https://registry.yarnpkg.com/ws/-/ws-2.2.1.tgz#f5ecbd4d47fb55a251d1a275223d47d693d3a8f2"
+  version "2.2.2"
+  resolved "https://registry.yarnpkg.com/ws/-/ws-2.2.2.tgz#aa26daf39c52b20ed716e3447f8641494a726b01"
   dependencies:
     ultron "~1.1.0"
 
@@ -354,7 +354,7 @@ xtend@4.0.1, xtend@^4.0.0:
   resolved "https://registry.yarnpkg.com/xtend/-/xtend-4.0.1.tgz#a5c6d532be656e23db820efb943a1f04998d63af"
 
 xuid@^1.1.7:
-  version "1.2.0"
-  resolved "https://registry.yarnpkg.com/xuid/-/xuid-1.2.0.tgz#c54d2d415d220f41efa35b7763f109392f3dbd02"
+  version "1.2.1"
+  resolved "https://registry.yarnpkg.com/xuid/-/xuid-1.2.1.tgz#e0ab30f802670e874596e38e782b8edc18faccef"
   dependencies:
     randombytes "2.0.3"
