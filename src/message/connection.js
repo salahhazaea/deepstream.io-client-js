@@ -121,8 +121,11 @@ Connection.prototype.sendMsg = function (topic, action, data) {
  */
 Connection.prototype.send = function (message) {
   this._queuedMessages.push(message)
-  if (!this._messageSender) {
-    this._queueNextPacket()
+  if (this._queuedMessages.length > 128) {
+    clearTimeout(this._messageSender)
+    this._sendQueuedMessages()
+  } else if (!this._messageSender) {
+    this._messageSender = setTimeout(this._sendQueuedMessages, 40)
   }
 }
 
@@ -177,17 +180,6 @@ Connection.prototype._sendQueuedMessages = function (deadline) {
   }
 
   this._messageSender = null
-}
-
-/**
- * Schedules the next packet whilst the connection is under
- * heavy load.
- *
- * @private
- * @returns {void}
- */
-Connection.prototype._queueNextPacket = function () {
-  this._messageSender = setTimeout(this._sendQueuedMessages, 40)
 }
 
 /**
