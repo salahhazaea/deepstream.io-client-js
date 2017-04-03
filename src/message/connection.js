@@ -45,11 +45,8 @@ const Connection = function (client, url, options) {
     options.rpcAckTimeout,
     options.rpcResponseTimeout,
     options.subscriptionTimeout,
-    options.recordReadAckTimeout,
-    options.recordReadTimeout,
-    options.recordDeleteTimeout,
     options.heartbeatInterval - 2000,
-    10000
+    1000
   ) || 1000) - 200
 
   this._state = C.CONNECTION_STATE.CLOSED
@@ -177,10 +174,6 @@ Connection.prototype._sendQueuedMessages = function (deadline) {
 
   while (this._queuedMessages.length > 0) {
     this._submit(this._queuedMessages.splice(0, this._options.maxMessagesPerPacket).join(''))
-
-    if (!deadline || deadline.timeRemaining() <= 4) {
-      return this._queueNextPacket()
-    }
   }
 
   this._messageSender = null
@@ -194,9 +187,7 @@ Connection.prototype._sendQueuedMessages = function (deadline) {
  * @returns {void}
  */
 Connection.prototype._queueNextPacket = function () {
-  this._messageSender = utils.requestIdleCallback(this._sendQueuedMessages, {
-    timeout: this._queuedMessages.length < this._options.maxMessagesPerPacket ? 1000 : 20
-  })
+  this._messageSender = setTimeout(this._sendQueuedMessages, 40)
 }
 
 /**
@@ -333,6 +324,7 @@ Connection.prototype._onMessage = function (message) {
 }
 
 Connection.prototype._handleMessages = function (deadline) {
+  const end = Date.now() + (deadline.timeRemaining() || 6)
   do {
     if (this._parsedMessages.length === 0) {
       var message = this._rawMessages.shift()
@@ -352,7 +344,7 @@ Connection.prototype._handleMessages = function (deadline) {
         this._client._$onMessage(parsedMessage)
       }
     }
-  } while (deadline.timeRemaining() > 4)
+  } while (end - Date.now() > 4)
 
   if ((this._parsedMessages.length > 0 || this._rawMessages.length > 0) && !this._deliberateClose) {
     this._messageHandler = utils.requestIdleCallback(this._handleMessages.bind(this), { timeout: this._idleTimeout })

@@ -12,6 +12,7 @@
     "component-emitter2": "^1.3.5",
     "invariant": "^2.2.2",
     "lz-string": "github:nxtedition/lz-string#d3d1ed806756980562fc383e14404326172f2949",
+    "deepstream.io-client-js": "github:nxtedition/deepstream.io-client-js#015a3b7cae3dbc3b9c806b5745b352a97be7c422",
     "rxjs": "^5.2.0",
     "utf-8-validate": "^3.0.1",
     "ws": "^2.2.1",
