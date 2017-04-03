@@ -324,7 +324,7 @@ Connection.prototype._onMessage = function (message) {
 }
 
 Connection.prototype._handleMessages = function (deadline) {
-  const end = Date.now() + (deadline.timeRemaining() || 6)
+  const end = Date.now() + (deadline.timeRemaining() || 8)
   do {
     if (this._parsedMessages.length === 0) {
       var message = this._rawMessages.shift()
