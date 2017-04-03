@@ -121,7 +121,7 @@ Connection.prototype.sendMsg = function (topic, action, data) {
  */
 Connection.prototype.send = function (message) {
   this._queuedMessages.push(message)
-  if (this._queuedMessages.length > 128) {
+  if (this._queuedMessages.length > this._options.maxMessagesPerPacket) {
     clearTimeout(this._messageSender)
     this._sendQueuedMessages()
   } else if (!this._messageSender) {
