@@ -339,7 +339,7 @@ Connection.prototype._handleMessages = function (deadline) {
   } while (end - Date.now() > 4)
 
   if ((this._parsedMessages.length > 0 || this._rawMessages.length > 0) && !this._deliberateClose) {
-    this._messageHandler = utils.requestIdleCallback(this._handleMessages.bind(this), { timeout: this._idleTimeout })
+    this._messageHandler = utils.requestIdleCallback(this._handleMessages, { timeout: this._idleTimeout })
   } else {
     this._messageHandler = null
   }
