@@ -63,17 +63,14 @@ RecordHandler.prototype.listen = function (pattern, callback) {
     throw new Error('invalid argument callback')
   }
 
-  const listener = this._listeners.get(pattern)
-
-  if (listener && !listener.destroyPending) {
-    return this._client._$onError(C.TOPIC.RECORD, C.EVENT.LISTENER_EXISTS, pattern)
+  if (this._listeners.has(pattern)) {
+    this._client._$onError(C.TOPIC.RECORD, C.EVENT.LISTENER_EXISTS, pattern)
+    return
   }
 
-  if (listener) {
-    listener.destroy()
-  }
+  const listener = new Listener(C.TOPIC.RECORD, pattern, callback, this._options, this._client, this._connection, this)
 
-  this._listeners.set(pattern, new Listener(C.TOPIC.RECORD, pattern, callback, this._options, this._client, this._connection, this))
+  this._listeners.set(pattern, listener)
 }
 
 RecordHandler.prototype.unlisten = function (pattern) {
@@ -82,9 +79,7 @@ RecordHandler.prototype.unlisten = function (pattern) {
   }
 
   const listener = this._listeners.get(pattern)
-  if (listener && !listener.destroyPending) {
-    listener.sendDestroy()
-  } else if (listener) {
+  if (listener) {
     listener.destroy()
     this._listeners.delete(pattern)
   } else {
