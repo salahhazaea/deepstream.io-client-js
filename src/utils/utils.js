@@ -36,7 +36,7 @@ exports.splitRev = function (s) {
 exports.isSameOrNewer = function (a, b) {
   const [ av, ar ] = a ? exports.splitRev(a) : [ 0, '00000000000000' ]
   const [ bv, br ] = b ? exports.splitRev(b) : [ 0, '00000000000000' ]
-  return av > bv || (av === bv && ar >= br)
+  return bv !== Number.MAX_SAFE_INTEGER && (av > bv || (av === bv && ar >= br))
 }
 
 exports.nextTick = function (fn) {
