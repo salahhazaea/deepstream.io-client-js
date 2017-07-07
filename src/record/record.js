@@ -132,13 +132,11 @@ Record.prototype.whenReady = function () {
     return Promise.reject(new Error('discarded'))
   }
 
-  return new Promise((resolve, reject) => {
-    if (this.isReady) {
-      resolve()
-    } else {
-      this.once('ready', resolve)
-    }
-  })
+  if (this.isReady) {
+    return Promise.resolve()
+  }
+
+  return new Promise(resolve => this.once('ready', resolve))
 }
 
 Record.prototype.discard = function () {
