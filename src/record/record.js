@@ -233,9 +233,9 @@ Record.prototype._onRead = function (message) {
     for (let i = 0; i < this._patchQueue.length; i++) {
       newValue = jsonPath.set(newValue, this._patchQueue[i].path, this._patchQueue[i].data)
     }
-    this._patchQueue = null
   }
 
+  this._patchQueue = null
   this.isReady = true
   this.version = message.data[1]
 
