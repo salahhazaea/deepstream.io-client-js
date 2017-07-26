@@ -223,10 +223,13 @@ Record.prototype._onRead = function (message) {
   let oldValue = typeof message.data[2] === 'string'
     ? JSON.parse(lz.decompressFromUTF16(message.data[2]))
     : message.data[2]
-  let newValue = this._data || oldValue
 
-  if (this._patchQueue) {
-    newValue = oldValue
+  let newValue = oldValue
+  if (this._data) {
+    newValue = JSON.stringify(this._data) === JSON.stringify(oldValue)
+      ? oldValue
+      : this._data
+  } else if (this._patchQueue) {
     for (let i = 0; i < this._patchQueue.length; i++) {
       newValue = jsonPath.set(newValue, this._patchQueue[i].path, this._patchQueue[i].data)
     }
