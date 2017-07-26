@@ -27,7 +27,7 @@ const Record = function (name, connection, client) {
   this._eventEmitter = new EventEmitter()
 
   this._data = undefined
-  this._patchQueue = []
+  this._patchQueue = null
 
   this._handleConnectionStateChange = this._handleConnectionStateChange.bind(this)
 
@@ -61,12 +61,6 @@ Record.prototype.set = function (pathOrData, dataOrNil) {
     throw new Error('invalid argument path')
   }
 
-  if (path && this._patchQueue !== null) {
-    this._patchQueue.push({ path, data })
-  } else {
-    this._patchQueue = null
-  }
-
   const oldValue = this._data
   const newValue = jsonPath.set(oldValue, path, data)
 
@@ -78,6 +72,9 @@ Record.prototype.set = function (pathOrData, dataOrNil) {
 
   if (this.isReady) {
     this._sendUpdate()
+  } else {
+    this._patchQueue = path && this._patchQueue || []
+    this._patchQueue.push(path, data)
   }
 
   return this.whenReady()
@@ -226,14 +223,10 @@ Record.prototype._onRead = function (message) {
 
   let newValue = oldValue
   if (this._patchQueue) {
-    for (let i = 0; i < this._patchQueue.length; i++) {
-      newValue = jsonPath.set(newValue, this._patchQueue[i].path, this._patchQueue[i].data)
+    for (let i = 0; i < this._patchQueue.length; i += 2) {
+      newValue = jsonPath.set(newValue, this._patchQueue[i + 0], this._patchQueue[i + 1])
     }
     this._patchQueue = null
-  } else if (this._data) {
-    newValue = JSON.stringify(this._data) === JSON.stringify(oldValue)
-      ? oldValue
-      : this._data
   }
 
   this.isReady = true
