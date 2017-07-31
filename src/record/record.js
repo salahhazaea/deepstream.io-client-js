@@ -7,7 +7,7 @@ const C = require('../constants/constants')
 const messageParser = require('../message/message-parser')
 const xuid = require('xuid')
 const invariant = require('invariant')
-const lz = require('lz-string')
+const lz = require('@nxtedition/lz-string')
 
 const Record = function (name, connection, client) {
   if (typeof name !== 'string' || name.length === 0) {

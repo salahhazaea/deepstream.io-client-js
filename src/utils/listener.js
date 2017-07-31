@@ -2,7 +2,7 @@
 
 const C = require('../constants/constants')
 const xuid = require('xuid')
-const lz = require('lz-string')
+const lz = require('@nxtedition/lz-string')
 
 const Listener = function (topic, pattern, callback, options, client, connection, recordHandler) {
   this._topic = topic
