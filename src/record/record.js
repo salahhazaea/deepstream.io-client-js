@@ -232,11 +232,11 @@ Record.prototype._onRead = function (message) {
   this.isReady = true
   this.version = message.data[1]
 
+  this._applyChange(newValue)
+
   if (newValue !== oldValue) {
     this._sendUpdate()
   }
-
-  this._applyChange(newValue)
 
   this.emit('ready')
 }
