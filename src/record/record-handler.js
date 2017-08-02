@@ -160,11 +160,11 @@ RecordHandler.prototype.provide = function (pattern, provider) {
       let isAccepted = false
       const onNext = value => {
         if (value) {
+          response.set(value)
           if (!isAccepted) {
             response.accept()
             isAccepted = true
           }
-          response.set(value)
         } else {
           response.reject()
           dispose(match)
