@@ -150,18 +150,30 @@ RecordHandler.prototype.observe = function (recordName) {
 
 RecordHandler.prototype.provide = function (pattern, provider) {
   const subscriptions = new Map()
+  const dispose = (key) => {
+    const subscription = subscriptions.get(key)
+    subscription && subscription.unsubscribe()
+    subscriptions.delete(key)
+  }
   const callback = (match, isSubscribed, response) => {
     if (isSubscribed) {
+      let isAccepted = false
       const onNext = value => {
         if (value) {
+          if (!isAccepted) {
+            response.accept()
+            isAccepted = true
+          }
           response.set(value)
         } else {
           response.reject()
+          dispose(match)
         }
       }
       const onError = err => {
         this._client._$onError(C.TOPIC.RECORD, pattern, err.message)
         response.reject()
+        dispose(match)
       }
       try {
         Promise
@@ -170,8 +182,10 @@ RecordHandler.prototype.provide = function (pattern, provider) {
             if (!data$) {
               response.reject()
             } else {
-              response.accept()
-              subscriptions.set(match, data$.subscribe(onNext, onError))
+              subscriptions.set(match, data$
+                .timeoutWith(10000, Rx.Observable.of(null))
+                .subscribe(onNext, onError, () => dispose(match))
+              )
             }
           })
           .catch(onError)
@@ -179,9 +193,7 @@ RecordHandler.prototype.provide = function (pattern, provider) {
         onError(err)
       }
     } else {
-      const subscription = subscriptions.get(match)
-      subscription && subscription.unsubscribe()
-      subscriptions.delete(match)
+      dispose(match)
     }
   }
   this.listen(pattern, callback)
