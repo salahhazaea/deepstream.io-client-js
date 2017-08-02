@@ -68,6 +68,9 @@ PresenceHandler.prototype._sendSubscribe = function () {
   if (this._emitter.hasListeners(C.TOPIC.PRESENCE)) {
     this._connection.sendMsg(C.TOPIC.PRESENCE, C.ACTIONS.SUBSCRIBE, [ C.ACTIONS.SUBSCRIBE ])
   }
+  if (this._emitter.hasListeners(C.ACTIONS.QUERY)) {
+    this._connection.sendMsg(C.TOPIC.PRESENCE, C.ACTIONS.QUERY, [ C.ACTIONS.QUERY ])
+  }
 }
 
 PresenceHandler.prototype._handleConnectionStateChange = function () {
