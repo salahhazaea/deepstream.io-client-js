@@ -184,7 +184,12 @@ RecordHandler.prototype.provide = function (pattern, provider) {
             } else {
               subscriptions.set(match, data$
                 .timeoutWith(10000, Rx.Observable.of(null))
-                .subscribe(onNext, onError, () => dispose(match))
+                .subscribe(onNext, onError, () => {
+                  if (!isAccepted) {
+                    response.reject()
+                  }
+                  dispose(match)
+                })
               )
             }
           })
