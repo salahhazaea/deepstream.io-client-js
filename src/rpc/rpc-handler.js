@@ -68,13 +68,13 @@ RpcHandler.prototype._respond = function (message) {
   const [ name, id, data ] = message.data
 
   const callback = this._providers.get(name)
+  const response = new RpcResponse(this._connection, name, id)
 
-  if (!callback) {
-    this._connection.sendMsg(C.TOPIC.RPC, C.ACTIONS.REJECTION, [ name, id ])
-    return
+  if (callback) {
+    callback(messageParser.convertTyped(data, this._client), response)
+  } else {
+    response.reject()
   }
-
-  callback(messageParser.convertTyped(data, this._client), new RpcResponse(this._connection, name, id))
 }
 
 RpcHandler.prototype._$handle = function (message) {
