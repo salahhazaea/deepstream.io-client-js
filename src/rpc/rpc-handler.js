@@ -40,7 +40,7 @@ RpcHandler.prototype.unprovide = function (name) {
   }
 
   if (!this._providers.has(name)) {
-    return
+    throw new Error(`RPC ${name} is not registered`)
   }
 
   this._providers.delete(name)
