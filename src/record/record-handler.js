@@ -157,7 +157,7 @@ RecordHandler.prototype.provide = function (pattern, provider) {
   }
   const callback = (match, isSubscribed, response) => {
     if (isSubscribed) {
-      let isAccepted = false
+      let isAccepted
       const onNext = value => {
         if (value) {
           response.set(value)
@@ -166,6 +166,7 @@ RecordHandler.prototype.provide = function (pattern, provider) {
             isAccepted = true
           }
         } else {
+          isAccepted = false
           response.reject()
           dispose(match)
         }
@@ -184,7 +185,7 @@ RecordHandler.prototype.provide = function (pattern, provider) {
             } else {
               subscriptions.set(match, data$
                 .subscribe(onNext, onError, () => {
-                  if (!isAccepted) {
+                  if (isAccepted === undefined) {
                     response.reject()
                   }
                   dispose(match)
