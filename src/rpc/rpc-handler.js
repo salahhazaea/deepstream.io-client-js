@@ -103,6 +103,7 @@ RpcHandler.prototype._$handle = function (message) {
   if (message.action === C.ACTIONS.RESPONSE) {
     rpc.callback(null, messageParser.convertTyped(data, this._client))
   } else if (message.action === C.ACTIONS.ERROR) {
+    message.processedError = true
     rpc.callback(data)
   }
 }
