@@ -38,19 +38,6 @@ module.exports = {
   maxReconnectAttempts: 5,
 
   /**
-   * @param {Number} rpcAckTimeout               The number of milliseconds after which a rpc will
-   *                                             create an error if no Ack-message has been received
-   */
-  rpcAckTimeout: 15000,
-
-  /**
-   * @param {Number} rpcResponseTimeout          The number of milliseconds after which a rpc will
-   *                                             create an error if no response-message has been
-   *                                             received
-   */
-  rpcResponseTimeout: 15000,
-
-  /**
    * @param {Number} subscriptionTimeout         The number of milliseconds that can pass after
    *                                             providing/unproviding a RPC or subscribing/
    *                                             unsubscribing/listening to a record before an

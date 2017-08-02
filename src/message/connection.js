@@ -42,8 +42,6 @@ const Connection = function (client, url, options) {
   this._originalUrl = utils.parseUrl(url, this._options.path)
   this._url = this._originalUrl
   this._idleTimeout = (Math.min(
-    options.rpcAckTimeout,
-    options.rpcResponseTimeout,
     options.subscriptionTimeout,
     options.heartbeatInterval - 2000,
     1000
