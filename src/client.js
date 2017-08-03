@@ -8,7 +8,6 @@ const RpcHandler = require('./rpc/rpc-handler')
 const RecordHandler = require('./record/record-handler')
 const PresenceHandler = require('./presence/presence-handler')
 const defaultOptions = require('./default-options')
-const AckTimeoutRegistry = require('./utils/ack-timeout-registry')
 const xuid = require('xuid')
 
 /**
@@ -32,7 +31,6 @@ const Client = function (url, options) {
   this._options = this._getOptions(options || {})
 
   this._connection = new Connection(this, this._url, this._options)
-  this._ackTimeoutRegistry = new AckTimeoutRegistry(this, this._options)
 
   this.nuid = xuid
   this.event = new EventHandler(this._options, this._connection, this)
@@ -120,18 +118,6 @@ Client.prototype.getUid = function () {
   const randomString = (Math.random() * 10000000000000000).toString(36).replace('.', '')
 
   return `${timestamp}-${randomString}`
-}
-
-/**
- * Package private ack timeout registry. This is how all classes can get access to
- * register timeouts.
- * (Well... that's the intention anyways)
- *
- * @package private
- * @returns {AckTimeoutRegistry}
- */
-Client.prototype._$getAckTimeoutRegistry = function () {
-  return this._ackTimeoutRegistry
 }
 
 /**
