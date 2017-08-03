@@ -116,7 +116,10 @@ RpcHandler.prototype._sendProviding = function () {
   for (const name of this._providers.keys()) {
     this._connection.sendMsg(C.TOPIC.RPC, C.ACTIONS.SUBSCRIBE, [ name ])
   }
-  // TODO: RPC response might have been lost?
+  for (const [ , rpc ] of this._rpcs) {
+    rpc.callback('DISCONNECTED')
+  }
+  this._rpcs.clear()
 }
 
 RpcHandler.prototype._handleConnectionStateChange = function () {
