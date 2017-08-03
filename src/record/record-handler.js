@@ -222,10 +222,6 @@ RecordHandler.prototype._$handle = function (message) {
   if (listener) {
     listener._$onMessage(message)
   }
-
-  if (message.action !== C.ACTIONS.ERROR && (!record || !listener)) {
-    this._client._$onError(C.TOPIC.RECORD, C.EVENT.UNSOLICITED_MESSAGE, message.action)
-  }
 }
 
 module.exports = RecordHandler

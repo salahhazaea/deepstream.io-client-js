@@ -93,10 +93,6 @@ RpcHandler.prototype._$handle = function (message) {
 
   const rpc = this._rpcs.get(id)
 
-  if (!rpc && message.action !== C.ACTIONS.ERROR) {
-    this._client._$onError(C.TOPIC.RECORD, C.EVENT.UNSOLICITED_MESSAGE, message.action)
-  }
-
   if (!rpc) {
     return
   }
@@ -108,8 +104,6 @@ RpcHandler.prototype._$handle = function (message) {
   } else if (message.action === C.ACTIONS.ERROR) {
     message.processedError = true
     rpc.callback(data)
-  } else {
-    this._client._$onError(C.TOPIC.RPC, C.EVENT.UNSOLICITED_MESSAGE, message.action)
   }
 }
 

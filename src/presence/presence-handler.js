@@ -56,8 +56,6 @@ PresenceHandler.prototype._$handle = function (message) {
   } else if (message.action === C.ACTIONS.ERROR) {
     message.processedError = true
     this._client._$onError(C.TOPIC.PRESENCE, C.EVENT.MESSAGE_DENIED, message.data[1])
-  } else {
-    this._client._$onError(C.TOPIC.PRESENCE, C.EVENT.UNSOLICITED_MESSAGE, message.action)
   }
 }
 
