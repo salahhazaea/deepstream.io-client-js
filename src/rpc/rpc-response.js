@@ -32,7 +32,7 @@ RpcResponse.prototype.error = function (error) {
   this._connection.sendMsg(
     C.TOPIC.RPC,
     C.ACTIONS.ERROR,
-    [ this._name, this._id, error.message || error ]
+    [ error.message || error, this._name, this._id ]
   )
 }
 

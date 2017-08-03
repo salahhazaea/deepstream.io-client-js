@@ -41,12 +41,12 @@ RecordHandler.prototype._prune = function () {
   })
 }
 
-RecordHandler.prototype.getRecord = function (recordName) {
-  let record = this._recordsMap.get(recordName)
+RecordHandler.prototype.getRecord = function (name) {
+  let record = this._recordsMap.get(name)
 
   if (!record) {
-    record = new Record(recordName, this._connection, this._client)
-    this._recordsMap.set(recordName, record)
+    record = new Record(name, this._connection, this._client)
+    this._recordsMap.set(name, record)
     this._recordsVec.push(record)
   }
 
@@ -80,15 +80,15 @@ RecordHandler.prototype.unlisten = function (pattern) {
 
   const listener = this._listeners.get(pattern)
   if (listener) {
-    listener.destroy()
+    listener._$destroy()
     this._listeners.delete(pattern)
   } else {
     this._client._$onError(C.TOPIC.RECORD, C.EVENT.NOT_LISTENING, pattern)
   }
 }
 
-RecordHandler.prototype.get = function (recordName, pathOrNil) {
-  const record = this.getRecord(recordName)
+RecordHandler.prototype.get = function (name, pathOrNil) {
+  const record = this.getRecord(name)
   return record
     .whenReady()
     .then(() => record.get(pathOrNil))
@@ -102,8 +102,8 @@ RecordHandler.prototype.get = function (recordName, pathOrNil) {
     })
 }
 
-RecordHandler.prototype.set = function (recordName, pathOrData, dataOrNil) {
-  const record = this.getRecord(recordName)
+RecordHandler.prototype.set = function (name, pathOrData, dataOrNil) {
+  const record = this.getRecord(name)
   const promise = arguments.length === 2
     ? record.set(pathOrData)
     : record.set(pathOrData, dataOrNil)
@@ -112,11 +112,11 @@ RecordHandler.prototype.set = function (recordName, pathOrData, dataOrNil) {
   return promise
 }
 
-RecordHandler.prototype.update = function (recordName, pathOrUpdater, updaterOrNil) {
+RecordHandler.prototype.update = function (name, pathOrUpdater, updaterOrNil) {
   const path = arguments.length === 2 ? undefined : pathOrUpdater
   const updater = arguments.length === 2 ? pathOrUpdater : updaterOrNil
 
-  const record = this.getRecord(recordName)
+  const record = this.getRecord(name)
   return record
     .whenReady()
     .then(() => updater(record.get(path)))
@@ -135,10 +135,10 @@ RecordHandler.prototype.update = function (recordName, pathOrUpdater, updaterOrN
     })
 }
 
-RecordHandler.prototype.observe = function (recordName) {
+RecordHandler.prototype.observe = function (name) {
   return Rx.Observable
     .create(o => {
-      const record = this.getRecord(recordName)
+      const record = this.getRecord(name)
       const onValue = value => o.next(value)
       record.subscribe(onValue, true)
       return () => {
@@ -206,32 +206,25 @@ RecordHandler.prototype.provide = function (pattern, provider) {
 }
 
 RecordHandler.prototype._$handle = function (message) {
-  if (message.action === C.ACTIONS.ERROR && message.data[0] !== C.EVENT.MESSAGE_DENIED) {
-    message.processedError = true
-    this._client._$onError(C.TOPIC.RECORD, message.data[0], message.data[1])
-    return
-  }
-
-  let recordName
-  if (message.action === C.ACTIONS.ACK || message.action === C.ACTIONS.ERROR) {
-    recordName = message.data[1]
+  let name
+  if (message.action === C.ACTIONS.ERROR) {
+    name = message.data[1]
   } else {
-    recordName = message.data[0]
+    name = message.data[0]
   }
 
-  const record = this._recordsMap.get(recordName)
+  const record = this._recordsMap.get(name)
   if (record) {
     record._$onMessage(message)
   }
 
-  const listener = this._listeners.get(recordName)
+  const listener = this._listeners.get(name)
   if (listener) {
-    if (message.action === C.ACTIONS.ACK && message.data[0] === C.ACTIONS.UNLISTEN && listener.destroyPending) {
-      listener.destroy()
-      this._listeners.delete(recordName)
-    } else {
-      listener._$onMessage(message)
-    }
+    listener._$onMessage(message)
+  }
+
+  if (message.action !== C.ACTIONS.ERROR && (!record || !listener)) {
+    this._client._$onError(C.TOPIC.RECORD, C.EVENT.UNSOLICITED_MESSAGE, message.action)
   }
 }
 

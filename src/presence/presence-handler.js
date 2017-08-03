@@ -47,15 +47,15 @@ PresenceHandler.prototype.unsubscribe = function (callback) {
 }
 
 PresenceHandler.prototype._$handle = function (message) {
-  if (message.action === C.ACTIONS.ERROR && message.data[0] === C.EVENT.MESSAGE_DENIED) {
-    message.processedError = true
-    this._client._$onError(C.TOPIC.PRESENCE, C.EVENT.MESSAGE_DENIED, message.data[1])
-  } else if (message.action === C.ACTIONS.PRESENCE_JOIN) {
+  if (message.action === C.ACTIONS.PRESENCE_JOIN) {
     this._emitter.emit(C.TOPIC.PRESENCE, message.data[0], true)
   } else if (message.action === C.ACTIONS.PRESENCE_LEAVE) {
     this._emitter.emit(C.TOPIC.PRESENCE, message.data[0], false)
   } else if (message.action === C.ACTIONS.QUERY) {
     this._emitter.emit(C.ACTIONS.QUERY, message.data)
+  } else if (message.action === C.ACTIONS.ERROR) {
+    message.processedError = true
+    this._client._$onError(C.TOPIC.PRESENCE, C.EVENT.MESSAGE_DENIED, message.data[1])
   } else {
     this._client._$onError(C.TOPIC.PRESENCE, C.EVENT.UNSOLICITED_MESSAGE, message.action)
   }

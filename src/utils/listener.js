@@ -12,7 +12,6 @@ const Listener = function (topic, pattern, callback, options, client, connection
   this._client = client
   this._connection = connection
   this._recordHandler = recordHandler
-  this._data = null
   this._isListening = false
 
   this._handleConnectionStateChange = this._handleConnectionStateChange.bind(this)
@@ -22,7 +21,7 @@ const Listener = function (topic, pattern, callback, options, client, connection
   this._sendListen()
 }
 
-Listener.prototype.destroy = function () {
+Listener.prototype._$destroy = function () {
   this._connection.sendMsg(this._topic, C.ACTIONS.UNLISTEN, [ this._pattern ])
 }
 

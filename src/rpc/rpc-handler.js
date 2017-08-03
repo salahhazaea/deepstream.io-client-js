@@ -78,7 +78,13 @@ RpcHandler.prototype._respond = function (message) {
 }
 
 RpcHandler.prototype._$handle = function (message) {
-  const [ , id, data ] = message.data
+  let id
+  let data
+  if (message.action === C.ACTIONS.ERROR) {
+    [ data, , id ] = message.data
+  } else {
+    [ , id, data ] = message.data
+  }
 
   if (message.action === C.ACTIONS.REQUEST) {
     this._respond(message)
@@ -86,9 +92,15 @@ RpcHandler.prototype._$handle = function (message) {
   }
 
   const rpc = this._rpcs.get(id)
+
+  if (!rpc && message.action !== C.ACTIONS.ERROR) {
+    this._client._$onError(C.TOPIC.RECORD, C.EVENT.UNSOLICITED_MESSAGE, message.action)
+  }
+
   if (!rpc) {
     return
   }
+
   this._rpcs.delete(id)
 
   if (message.action === C.ACTIONS.RESPONSE) {
@@ -96,6 +108,8 @@ RpcHandler.prototype._$handle = function (message) {
   } else if (message.action === C.ACTIONS.ERROR) {
     message.processedError = true
     rpc.callback(data)
+  } else {
+    this._client._$onError(C.TOPIC.RPC, C.EVENT.UNSOLICITED_MESSAGE, message.action)
   }
 }
 
