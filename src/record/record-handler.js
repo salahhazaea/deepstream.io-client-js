@@ -68,7 +68,15 @@ RecordHandler.prototype.listen = function (pattern, callback) {
     return
   }
 
-  const listener = new Listener(C.TOPIC.RECORD, pattern, callback, this._options, this._client, this._connection, this)
+  const listener = new Listener(
+    C.TOPIC.RECORD,
+    pattern,
+    callback,
+    this._options,
+    this._client,
+    this._connection,
+    this
+  )
 
   this._listeners.set(pattern, listener)
 }
