@@ -85,15 +85,6 @@ RpcHandler.prototype._$handle = function (message) {
     return
   }
 
-  if (message.action === C.ACTIONS.ERROR) {
-    if (message.data[0] === C.EVENT.MESSAGE_PERMISSION_ERROR) {
-      return
-    }
-    if (message.data[0] === C.EVENT.MESSAGE_DENIED && message.data[2] === C.ACTIONS.SUBSCRIBE) {
-      return
-    }
-  }
-
   const rpc = this._rpcs.get(id)
   if (!rpc) {
     return
