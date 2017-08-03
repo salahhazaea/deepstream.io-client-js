@@ -80,14 +80,14 @@ RpcHandler.prototype._respond = function (message) {
 }
 
 RpcHandler.prototype._$handle = function (message) {
-  const [ , id, data, error ] = message.action !== C.ACTIONS.ERROR
-    ? message.data
-    : message.data.slice(1).concat(message.data.slice(0, 1))
-
   if (message.action === C.ACTIONS.REQUEST) {
     this._respond(message)
     return
   }
+
+  const [ , id, data, error ] = message.action !== C.ACTIONS.ERROR
+    ? message.data
+    : message.data.slice(1).concat(message.data.slice(0, 1))
 
   const rpc = this._rpcs.get(id)
 
