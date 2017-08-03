@@ -114,6 +114,7 @@ RpcHandler.prototype._sendProviding = function () {
   for (const name of this._providers.keys()) {
     this._connection.sendMsg(C.TOPIC.RPC, C.ACTIONS.SUBSCRIBE, [ name ])
   }
+  // TODO: RPC response might have been lost?
 }
 
 RpcHandler.prototype._handleConnectionStateChange = function () {
