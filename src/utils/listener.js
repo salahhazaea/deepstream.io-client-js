@@ -61,7 +61,9 @@ Listener.prototype._$onMessage = function (message) {
     this._callback(message.data[1], true, {
       accept: this.accept.bind(this, message.data[1]),
       reject: this.reject.bind(this, message.data[1]),
-      set: this.set.bind(this, message.data[1], Object.create(null))
+      set: message.topic === C.TOPIC.RECORD
+        ? this.set.bind(this, message.data[1], Object.create(null))
+        : undefined
     })
   } else if (message.action === C.ACTIONS.SUBSCRIPTION_FOR_PATTERN_REMOVED) {
     this._callback(message.data[1], false)
