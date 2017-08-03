@@ -27,7 +27,8 @@ RpcHandler.prototype.provide = function (name, callback) {
   }
 
   if (this._providers.has(name)) {
-    throw new Error(`RPC ${name} already registered`)
+    this._client._$onError(C.TOPIC.RPC, C.EVENT.PROVIDER_EXISTS, name)
+    return
   }
 
   this._providers.set(name, callback)
@@ -40,7 +41,8 @@ RpcHandler.prototype.unprovide = function (name) {
   }
 
   if (!this._providers.has(name)) {
-    throw new Error(`RPC ${name} is not registered`)
+    this._client._$onError(C.TOPIC.RPC, C.EVENT.NOT_PROVIDING, name)
+    return
   }
 
   this._providers.delete(name)
