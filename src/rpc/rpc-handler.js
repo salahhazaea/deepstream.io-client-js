@@ -78,7 +78,7 @@ RpcHandler.prototype._respond = function (message) {
 }
 
 RpcHandler.prototype._$handle = function (message) {
-  const [ , id, data ] = message.action !== C.ACTIONS.ERROR
+  const [ , id, data, error ] = message.action !== C.ACTIONS.ERROR
     ? message.data
     : message.data.slice(1).concat(message.data.slice(0, 1))
 
@@ -96,7 +96,11 @@ RpcHandler.prototype._$handle = function (message) {
   this._rpcs.delete(id)
 
   if (message.action === C.ACTIONS.RESPONSE) {
-    rpc.callback(null, messageParser.convertTyped(data, this._client))
+    if (error) {
+      rpc.callback(error)
+    } else {
+      rpc.callback(null, messageParser.convertTyped(data, this._client))
+    }
   } else if (message.action === C.ACTIONS.ERROR) {
     message.processedError = true
     rpc.callback(data)
