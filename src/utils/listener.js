@@ -67,6 +67,8 @@ Listener.prototype._$onMessage = function (message) {
     })
   } else if (message.action === C.ACTIONS.SUBSCRIPTION_FOR_PATTERN_REMOVED) {
     this._callback(message.data[1], false)
+  } else if (message.action === C.ACTIONS.LISTEN_REJECT) {
+    this._callback(message.data[1], false)
   }
 }
 

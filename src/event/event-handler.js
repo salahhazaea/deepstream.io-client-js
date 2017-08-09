@@ -66,7 +66,7 @@ EventHandler.prototype.emit = function (name, data) {
     throw new Error('invalid argument name')
   }
 
-  this._connection.sendMsg(C.TOPIC.EVENT, C.ACTIONS.EVENT, [name, messageBuilder.typed(data)])
+  this._connection.sendMsg(C.TOPIC.EVENT, C.ACTIONS.EVENT, [ name, messageBuilder.typed(data) ])
   this._emitter.emit(name, data)
 }
 
