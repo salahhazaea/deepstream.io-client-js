@@ -13,6 +13,7 @@ const Listener = function (topic, pattern, callback, options, client, connection
   this._connection = connection
   this._recordHandler = recordHandler
   this._isListening = false
+  this._isProviding = false
 
   this._handleConnectionStateChange = this._handleConnectionStateChange.bind(this)
 
@@ -58,6 +59,7 @@ Listener.prototype.set = function (name, context, value) {
 
 Listener.prototype._$onMessage = function (message) {
   if (message.action === C.ACTIONS.SUBSCRIPTION_FOR_PATTERN_FOUND) {
+    this._isProviding = true
     this._callback(message.data[1], true, {
       accept: this.accept.bind(this, message.data[1]),
       reject: this.reject.bind(this, message.data[1]),
@@ -65,10 +67,14 @@ Listener.prototype._$onMessage = function (message) {
         ? this.set.bind(this, message.data[1], Object.create(null))
         : undefined
     })
-  } else if (message.action === C.ACTIONS.SUBSCRIPTION_FOR_PATTERN_REMOVED) {
-    this._callback(message.data[1], false)
-  } else if (message.action === C.ACTIONS.LISTEN_REJECT) {
-    this._callback(message.data[1], false)
+  } else if (
+    message.action === C.ACTIONS.SUBSCRIPTION_FOR_PATTERN_REMOVED ||
+    message.action === C.ACTIONS.LISTEN_REJECT
+  ) {
+    if (this._isProviding) {
+      this._callback(message.data[1], false)
+      this._isProviding = false
+    }
   }
 }
 
