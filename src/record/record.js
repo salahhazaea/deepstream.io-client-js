@@ -29,6 +29,8 @@ const Record = function (name, connection, client) {
   this._data = undefined
   this._patchQueue = null
 
+  this._deferred = null
+
   this._handleConnectionStateChange = this._handleConnectionStateChange.bind(this)
 
   this._client.on('connectionStateChanged', this._handleConnectionStateChange)
@@ -136,6 +138,22 @@ Record.prototype.whenReady = function () {
   return new Promise(resolve => this.once('ready', resolve))
 }
 
+Record.prototype.acquire = function () {
+  this.usages += 1
+
+  if (!this._deferred) {
+    return
+  }
+
+  if (!this.isReady) {
+    this._onRead(this._deferred)
+  } else {
+    this._onUpdate(this._deferred)
+  }
+
+  this._deferred = null
+}
+
 Record.prototype.discard = function () {
   invariant(this.usages !== 0, `"discard" cannot use discarded record ${this.name}`)
 
@@ -170,7 +188,9 @@ Record.prototype._$onMessage = function (message) {
   }
 
   if (message.action === C.ACTIONS.UPDATE) {
-    if (!this.isReady) {
+    if (this.usages === 0) {
+      this._deferred = message
+    } else if (!this.isReady) {
       this._onRead(message)
     } else {
       this._onUpdate(message)

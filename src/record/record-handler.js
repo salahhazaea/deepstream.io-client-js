@@ -50,7 +50,7 @@ RecordHandler.prototype.getRecord = function (name) {
     this._recordsVec.push(record)
   }
 
-  record.usages += 1
+  record.acquire()
 
   return record
 }
