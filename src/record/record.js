@@ -78,9 +78,8 @@ Record.prototype.set = function (pathOrData, dataOrNil) {
   } else {
     this._patchQueue = path && this._patchQueue || []
     this._patchQueue.push(path, data)
+    this._hasPendingUpdate = true
   }
-
-  this._hasPendingUpdate = true
 
   return this.whenReady()
 }
@@ -222,8 +221,6 @@ Record.prototype._sendUpdate = function () {
     this.version
   ])
   this.version = version
-
-  this._hasPendingUpdate = false
 }
 
 Record.prototype._onUpdate = function (message) {
@@ -262,6 +259,8 @@ Record.prototype._onRead = function (message) {
   if (newValue !== oldValue) {
     this._sendUpdate()
   }
+
+  this._hasPendingUpdate = false
 
   this.emit('ready')
 }
