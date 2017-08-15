@@ -323,17 +323,20 @@ Connection.prototype._handleMessages = function (deadline) {
   const end = Date.now() + deadline.timeRemaining()
   do {
     if (this._messages.length === 0) {
-      const rawMessage = this._rawMessages[this._rawMessagesIndex++]
-      if (rawMessage === undefined) {
+      const rawMessage = this._rawMessages[this._rawMessagesIndex]
+      this._rawMessages[this._rawMessagesIndex++] = undefined
+
+      if (!rawMessage) {
         this._rawMessages.length = 0
         this._rawMessagesIndex = 0
         break
       }
       this._messages = rawMessage.split(C.MESSAGE_SEPERATOR)
     } else {
-      const message = this._messages[this._messagesIndex++]
+      const message = this._messages[this._messagesIndex]
+      this._messages[this._messagesIndex++] = undefined
 
-      if (message === undefined) {
+      if (!message) {
         this._messages.length = 0
         this._messagesIndex = 0
         continue
