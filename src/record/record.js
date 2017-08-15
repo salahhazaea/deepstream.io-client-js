@@ -8,16 +8,15 @@ const messageParser = require('../message/message-parser')
 const xuid = require('xuid')
 const invariant = require('invariant')
 const lz = require('@nxtedition/lz-string')
-const LRU = require('lru-cache')
 
-const CACHE = new LRU({ max: 1e3 })
-
-const Record = function (name, connection, client) {
+const Record = function (name, connection, client, cache) {
   if (typeof name !== 'string' || name.length === 0) {
     throw new Error('invalid argument name')
   }
 
-  const [ version, _data ] = CACHE.get(name) || [ null, null ]
+  this._cache = cache
+
+  const [ version, _data ] = this._cache.get(name) || [ null, null ]
 
   this.name = name
   this.usages = 0
@@ -87,7 +86,7 @@ Record.prototype.set = function (pathOrData, dataOrNil) {
     this._hasPendingUpdate = true
   }
 
-  CACHE.set(this.name, [ this.version, this._data ])
+  this._cache.set(this.name, [ this.version, this._data ])
   this.isStale = false
 
   return this.whenReady()
@@ -239,7 +238,7 @@ Record.prototype._onUpdate = function (data) {
   this.version = version
   this._applyChange(jsonPath.set(this._data, undefined, value))
 
-  CACHE.set(this.name, [ this.version, this._data ])
+  this._cache.set(this.name, [ this.version, this._data ])
 }
 
 Record.prototype._onRead = function (data) {
@@ -268,7 +267,7 @@ Record.prototype._onRead = function (data) {
 
   this.emit('ready')
 
-  CACHE.set(this.name, [ this.version, this._data ])
+  this._cache.set(this.name, [ this.version, this._data ])
   this.isStale = false
 }
 

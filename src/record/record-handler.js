@@ -5,6 +5,7 @@ const Listener = require('../utils/listener')
 const C = require('../constants/constants')
 const Rx = require('rxjs')
 const utils = require('../utils/utils')
+const LRU = require('lru-cache')
 
 const RecordHandler = function (options, connection, client) {
   this._options = options
@@ -13,6 +14,7 @@ const RecordHandler = function (options, connection, client) {
   this._recordsMap = new Map()
   this._recordsVec = []
   this._listeners = new Map()
+  this._cache = new LRU({ max: 1e3 })
 
   this._prune = this._prune.bind(this)
   this._prune()
@@ -45,7 +47,7 @@ RecordHandler.prototype.getRecord = function (name) {
   let record = this._recordsMap.get(name)
 
   if (!record) {
-    record = new Record(name, this._connection, this._client)
+    record = new Record(name, this._connection, this._client, this._cache)
     this._recordsMap.set(name, record)
     this._recordsVec.push(record)
   }
