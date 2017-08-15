@@ -320,7 +320,6 @@ Connection.prototype._onMessage = function (message) {
 }
 
 Connection.prototype._handleMessages = function (deadline) {
-  const end = Date.now() + deadline.timeRemaining()
   do {
     if (this._messages.length === 0) {
       const rawMessage = this._rawMessages[this._rawMessagesIndex]
@@ -356,7 +355,7 @@ Connection.prototype._handleMessages = function (deadline) {
         this._client._$onMessage(this._message)
       }
     }
-  } while (end - Date.now() > 4)
+  } while (deadline.timeRemaining() > 0)
 
   if ((this._messages.length > 0 || this._rawMessages.length > 0) && !this._deliberateClose) {
     this._messageHandler = utils.requestIdleCallback(this._handleMessages, { timeout: this._idleTimeout })
