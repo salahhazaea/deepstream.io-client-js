@@ -184,11 +184,11 @@ Record.prototype._$onMessage = function (message) {
 
   if (message.action === C.ACTIONS.UPDATE) {
     if (this.usages === 0 && !this._hasPendingUpdate) {
-      this._deferred = message
+      this._deferred = message.data
     } else if (!this.isReady) {
-      this._onRead(message)
+      this._onRead(message.data)
     } else {
-      this._onUpdate(message)
+      this._onUpdate(message.data)
     }
   } else if (message.action === C.ACTIONS.SUBSCRIPTION_HAS_PROVIDER) {
     this.hasProvider = messageParser.convertTyped(message.data[1], this._client)
@@ -216,25 +216,25 @@ Record.prototype._sendUpdate = function () {
   this.version = version
 }
 
-Record.prototype._onUpdate = function (message) {
-  const version = message.data[1]
+Record.prototype._onUpdate = function (data) {
+  const version = data[1]
 
   if (utils.isSameOrNewer(this.version, version)) {
     return
   }
 
-  const value = typeof message.data[2] === 'string'
-    ? JSON.parse(lz.decompressFromUTF16(message.data[2]))
-    : message.data[2]
+  const value = typeof data[2] === 'string'
+    ? JSON.parse(lz.decompressFromUTF16(data[2]))
+    : data[2]
 
   this.version = version
   this._applyChange(jsonPath.set(this._data, undefined, value))
 }
 
-Record.prototype._onRead = function (message) {
-  let oldValue = typeof message.data[2] === 'string'
-    ? JSON.parse(lz.decompressFromUTF16(message.data[2]))
-    : message.data[2]
+Record.prototype._onRead = function (data) {
+  let oldValue = typeof data[2] === 'string'
+    ? JSON.parse(lz.decompressFromUTF16(data[2]))
+    : data[2]
 
   let newValue = oldValue
   if (this._patchQueue) {
@@ -245,7 +245,7 @@ Record.prototype._onRead = function (message) {
   }
 
   this.isReady = true
-  this.version = message.data[1]
+  this.version = data[1]
 
   this._applyChange(newValue)
 
