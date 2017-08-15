@@ -19,6 +19,7 @@ const Record = function (name, connection, client) {
   this.isDestroyed = false
   this.isSubscribed = false
   this.isReady = false
+  this._hasPendingUpdate = false
   this.hasProvider = false
   this.version = null
 
@@ -78,6 +79,8 @@ Record.prototype.set = function (pathOrData, dataOrNil) {
     this._patchQueue = path && this._patchQueue || []
     this._patchQueue.push(path, data)
   }
+
+  this._hasPendingUpdate = true
 
   return this.whenReady()
 }
@@ -188,7 +191,7 @@ Record.prototype._$onMessage = function (message) {
   }
 
   if (message.action === C.ACTIONS.UPDATE) {
-    if (this.usages === 0 && !this._patchQueue) {
+    if (this.usages === 0 && !this._hasPendingUpdate) {
       this._deferred = message
     } else if (!this.isReady) {
       this._onRead(message)
@@ -219,6 +222,8 @@ Record.prototype._sendUpdate = function () {
     this.version
   ])
   this.version = version
+
+  this._hasPendingUpdate = false
 }
 
 Record.prototype._onUpdate = function (message) {
