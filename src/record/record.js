@@ -188,7 +188,7 @@ Record.prototype._$onMessage = function (message) {
   }
 
   if (message.action === C.ACTIONS.UPDATE) {
-    if (this.usages === 0) {
+    if (this.usages === 0 && !this._patchQueue) {
       this._deferred = message
     } else if (!this.isReady) {
       this._onRead(message)
