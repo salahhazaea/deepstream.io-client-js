@@ -41,11 +41,7 @@ const Connection = function (client, url, options) {
 
   this._originalUrl = utils.parseUrl(url, this._options.path)
   this._url = this._originalUrl
-  this._idleTimeout = (Math.min(
-    options.subscriptionTimeout,
-    options.heartbeatInterval - 2000,
-    1000
-  ) || 1000) - 200
+  this._idleTimeout = this._options.maxIdleTime
 
   this._state = C.CONNECTION_STATE.CLOSED
   this._createEndpoint()
@@ -123,7 +119,7 @@ Connection.prototype.send = function (message) {
     clearTimeout(this._messageSender)
     this._sendQueuedMessages()
   } else if (!this._messageSender) {
-    this._messageSender = setTimeout(this._sendQueuedMessages, 40)
+    this._messageSender = setTimeout(this._sendQueuedMessages, this._options.sendDelay)
   }
 }
 
