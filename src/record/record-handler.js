@@ -143,14 +143,34 @@ RecordHandler.prototype.update = function (name, pathOrUpdater, updaterOrNil) {
     })
 }
 
-RecordHandler.prototype.observe = function (name) {
-  return Rx.Observable
+RecordHandler.prototype.observe = function (name, waitForProvider) {
+  let value$ = Rx.Observable
     .create(o => {
       const record = this.getRecord(name)
       const onValue = value => o.next(value)
       record.subscribe(onValue, true)
       return () => {
         record.unsubscribe(onValue)
+        record.discard()
+      }
+    })
+
+  if (waitForProvider) {
+    value$.combineLatest(this.hasProvider(name).first(x => x), value => value)
+  }
+
+  return value$
+}
+
+RecordHandler.prototype.hasProvider = function (name) {
+  return Rx.Observable
+    .create(o => {
+      const record = this.getRecord(name)
+      const onValue = value => o.next(value)
+      record.on('hasProviderChanged', onValue)
+      onValue(record.hasProvider)
+      return () => {
+        record.off('hasProviderChanged', onValue)
         record.discard()
       }
     })
