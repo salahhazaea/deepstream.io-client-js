@@ -262,11 +262,11 @@ Record.prototype._onRead = function (data) {
     this._sendUpdate()
   }
 
-  CACHE.set(this.name, [ this.version, this._data ])
-
   this._hasPendingUpdate = false
 
   this.emit('ready')
+
+  CACHE.set(this.name, [ this.version, this._data ])
 }
 
 Record.prototype._applyChange = function (newData) {
