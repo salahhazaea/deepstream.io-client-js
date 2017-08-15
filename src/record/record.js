@@ -143,17 +143,10 @@ Record.prototype.whenReady = function () {
 Record.prototype.acquire = function () {
   this.usages += 1
 
-  if (!this._deferred) {
-    return
-  }
-
-  if (!this.isReady) {
+  if (this._deferred) {
     this._onRead(this._deferred)
-  } else {
-    this._onUpdate(this._deferred)
+    this._deferred = null
   }
-
-  this._deferred = null
 }
 
 Record.prototype.discard = function () {
