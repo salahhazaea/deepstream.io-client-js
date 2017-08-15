@@ -313,7 +313,7 @@ Connection.prototype._onClose = function () {
  * @returns {void}
  */
 Connection.prototype._onMessage = function (message) {
-  this._rawMessages.push(message)
+  this._rawMessages.push(message.data)
   if (!this._messageHandler) {
     this._messageHandler = utils.requestIdleCallback(this._handleMessages)
   }
@@ -331,7 +331,7 @@ Connection.prototype._handleMessages = function (deadline) {
         this._rawMessagesIndex = 0
         break
       }
-      this._messages = rawMessage.data.split(C.MESSAGE_SEPERATOR)
+      this._messages = rawMessage.split(C.MESSAGE_SEPERATOR)
     } else {
       const message = this._messages[this._messagesIndex]
       this._messages[this._messagesIndex++] = undefined
