@@ -45,6 +45,8 @@ const Connection = function (client, url, options) {
 
   this._state = C.CONNECTION_STATE.CLOSED
   this._createEndpoint()
+
+  setInterval(() => this._handleMessages({ timeRemaining: () => 8 }), this._options.maxIdleTime)
 }
 
 /**
@@ -305,12 +307,12 @@ Connection.prototype._onClose = function () {
 Connection.prototype._onMessage = function (message) {
   this._rawMessages.push(message)
   if (!this._messageHandler) {
-    this._messageHandler = utils.requestIdleCallback(this._handleMessages, { timeout: this._idleTimeout })
+    this._messageHandler = utils.requestIdleCallback(this._handleMessages)
   }
 }
 
 Connection.prototype._handleMessages = function (deadline) {
-  const end = Date.now() + (deadline.timeRemaining() || 8)
+  const end = Date.now() + deadline.timeRemaining()
   do {
     if (this._parsedMessages.length === 0) {
       var message = this._rawMessages.shift()
