@@ -13,38 +13,6 @@ const MessageParser = function () {
 }
 
 /**
- * Main interface method. Receives a raw message
- * string, containing one or more messages
- * and returns an array of parsed message objects
- * or null for invalid messages
- *
- * @param   {String} message raw message
- *
- * @public
- *
- * @returns {Array} array of parsed message objects
- *                  following the format
- *                  {
- *                    raw: <original message string>
- *                    topic: <string>
- *                    action: <string - shortcode>
- *                    data: <array of strings>
- *                  }
- */
-MessageParser.prototype.parse = function (message, client) {
-  const parsedMessages = []
-  const rawMessages = message.split(C.MESSAGE_SEPERATOR)
-
-  for (let i = 0; i < rawMessages.length; i++) {
-    if (rawMessages[i].length > 2) {
-      parsedMessages.push(this._parseMessage(rawMessages[i], client))
-    }
-  }
-
-  return parsedMessages
-}
-
-/**
  * Deserializes values created by MessageBuilder.typed to
  * their original format
  *
@@ -122,9 +90,8 @@ MessageParser.prototype._getActions = function () {
  *
  * @returns {Object} parsedMessage
  */
-MessageParser.prototype._parseMessage = function (message, client) {
+MessageParser.prototype.parseMessage = function (message, client, result) {
   const parts = message.split(C.MESSAGE_PART_SEPERATOR)
-  const messageObject = {}
 
   if (parts.length < 2) {
     client._$onError(C.TOPIC.ERROR, C.EVENT.MESSAGE_PARSE_ERROR, 'Insufficiant message parts')
@@ -136,12 +103,10 @@ MessageParser.prototype._parseMessage = function (message, client) {
     return null
   }
 
-  messageObject.raw = message
-  messageObject.topic = parts[0]
-  messageObject.action = parts[1]
-  messageObject.data = parts.splice(2)
-
-  return messageObject
+  result.raw = message
+  result.topic = parts[0]
+  result.action = parts[1]
+  result.data = parts.splice(2)
 }
 
 module.exports = new MessageParser()

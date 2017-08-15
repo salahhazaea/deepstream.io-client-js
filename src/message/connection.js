@@ -27,8 +27,16 @@ const Connection = function (client, url, options) {
   this._connectionAuthenticationTimeout = false
   this._challengeDenied = false
   this._queuedMessages = []
-  this._parsedMessages = []
+  this._message = {
+    raw: null,
+    topic: null,
+    action: null,
+    data: null
+  }
+  this._messages = []
+  this._messagesIndex = 0
   this._rawMessages = []
+  this._rawMessagesIndex = 0
   this._reconnectTimeout = null
   this._reconnectionAttempt = 0
   this._messageSender = null
@@ -314,27 +322,40 @@ Connection.prototype._onMessage = function (message) {
 Connection.prototype._handleMessages = function (deadline) {
   const end = Date.now() + deadline.timeRemaining()
   do {
-    if (this._parsedMessages.length === 0) {
-      var message = this._rawMessages.shift()
-      if (!message) {
+    if (this._messages.length === 0) {
+      const rawMessage = this._rawMessages[this._rawMessagesIndex++]
+      if (rawMessage === undefined) {
+        this._rawMessages.length = 0
+        this._rawMessagesIndex = 0
         break
       }
-      this._parsedMessages = messageParser.parse(message.data, this._client)
+      this._messages = rawMessage.split(C.MESSAGE_SEPERATOR)
     } else {
-      var parsedMessage = this._parsedMessages.shift()
-      if (!parsedMessage) {
+      const message = this._messages[this._messagesIndex++]
+
+      if (message === undefined) {
+        this._messages.length = 0
+        this._messagesIndex = 0
         continue
-      } else if (parsedMessage.topic === C.TOPIC.CONNECTION) {
-        this._handleConnectionResponse(parsedMessage)
-      } else if (parsedMessage.topic === C.TOPIC.AUTH) {
-        this._handleAuthResponse(parsedMessage)
+      }
+
+      if (message.length <= 2) {
+        continue
+      }
+
+      messageParser.parseMessage(message, this._client, this._message)
+
+      if (this._message.topic === C.TOPIC.CONNECTION) {
+        this._handleConnectionResponse(this._message)
+      } else if (this._message.topic === C.TOPIC.AUTH) {
+        this._handleAuthResponse(this._message)
       } else {
-        this._client._$onMessage(parsedMessage)
+        this._client._$onMessage(this._message)
       }
     }
   } while (end - Date.now() > 4)
 
-  if ((this._parsedMessages.length > 0 || this._rawMessages.length > 0) && !this._deliberateClose) {
+  if ((this._messages.length > 0 || this._rawMessages.length > 0) && !this._deliberateClose) {
     this._messageHandler = utils.requestIdleCallback(this._handleMessages, { timeout: this._idleTimeout })
   } else {
     this._messageHandler = null
