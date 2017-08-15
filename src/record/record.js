@@ -24,10 +24,11 @@ const Record = function (name, connection, client) {
   this.isDestroyed = false
   this.isSubscribed = false
   this.isReady = false
-  this._hasPendingUpdate = false
+  this.isStale = true
   this.hasProvider = false
   this.version = version
 
+  this._hasPendingUpdate = false
   this._connection = connection
   this._client = client
   this._eventEmitter = new EventEmitter()
@@ -87,6 +88,7 @@ Record.prototype.set = function (pathOrData, dataOrNil) {
   }
 
   CACHE.set(this.name, [ this.version, this._data ])
+  this.isStale = false
 
   return this.whenReady()
 }
@@ -267,6 +269,7 @@ Record.prototype._onRead = function (data) {
   this.emit('ready')
 
   CACHE.set(this.name, [ this.version, this._data ])
+  this.isStale = false
 }
 
 Record.prototype._applyChange = function (newData) {
