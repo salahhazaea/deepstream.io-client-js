@@ -326,17 +326,17 @@ Connection.prototype._handleMessages = function (deadline) {
       const rawMessage = this._rawMessages[this._rawMessagesIndex]
       this._rawMessages[this._rawMessagesIndex++] = undefined
 
-      if (!rawMessage) {
+      if (rawMessage === undefined) {
         this._rawMessages.length = 0
         this._rawMessagesIndex = 0
         break
       }
-      this._messages = rawMessage.split(C.MESSAGE_SEPERATOR)
+      this._messages = rawMessage.data.split(C.MESSAGE_SEPERATOR)
     } else {
       const message = this._messages[this._messagesIndex]
       this._messages[this._messagesIndex++] = undefined
 
-      if (!message) {
+      if (message === undefined) {
         this._messages.length = 0
         this._messagesIndex = 0
         continue
