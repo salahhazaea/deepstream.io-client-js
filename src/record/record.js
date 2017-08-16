@@ -92,7 +92,7 @@ Record.prototype.set = function (pathOrData, dataOrNil) {
 }
 
 Record.prototype.patch = function (data) {
-  const newValue = jsonPath.set(newValue, undefined, data)
+  const newValue = jsonPath.set(this._data, undefined, data)
 
   if (newValue === this._data) {
     return Promise.resolve()
