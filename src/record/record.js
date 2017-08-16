@@ -92,7 +92,7 @@ Record.prototype.set = function (pathOrData, dataOrNil) {
 }
 
 Record.prototype.merge = function (data) {
-  const newValue = this._data
+  let newValue = this._data
 
   for (const key of Object.keys(data)) {
     newValue = jsonPath.set(newValue, key, data[key])
