@@ -118,7 +118,13 @@ RecordHandler.prototype.set = function (name, pathOrData, dataOrNil) {
     ? record.set(pathOrData)
     : record.set(pathOrData, dataOrNil)
   record.discard()
+  return promise
+}
 
+RecordHandler.prototype.merge = function (name, data) {
+  const record = this.getRecord(name)
+  const promise = record.merge(data)
+  record.discard()
   return promise
 }
 
