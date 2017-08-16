@@ -91,8 +91,12 @@ Record.prototype.set = function (pathOrData, dataOrNil) {
   return this.whenReady()
 }
 
-Record.prototype.patch = function (data) {
-  const newValue = jsonPath.set(this._data, undefined, data)
+Record.prototype.merge = function (data) {
+  let newValue = this._data
+
+  for (const key of Object.keys(data)) {
+    newValue = jsonPath.set(newValue, key, data[key])
+  }
 
   if (newValue === this._data) {
     return Promise.resolve()
@@ -104,7 +108,9 @@ Record.prototype.patch = function (data) {
     this._sendUpdate()
   } else {
     this._patchQueue = this._patchQueue || []
-    this._patchQueue.push(undefined, data)
+    for (const key of Object.keys(data)) {
+      this._patchQueue.push(key, data[key])
+    }
     this._hasPendingUpdate = true
   }
 
