@@ -69,10 +69,9 @@ Record.prototype.set = function (pathOrData, dataOrNil) {
     throw new Error('invalid argument path')
   }
 
-  const oldValue = this._data
-  const newValue = jsonPath.set(oldValue, path, data)
+  const newValue = jsonPath.set(this._data, path, data)
 
-  if (oldValue === newValue) {
+  if (newValue === this._data) {
     return Promise.resolve()
   }
 
@@ -83,6 +82,37 @@ Record.prototype.set = function (pathOrData, dataOrNil) {
   } else {
     this._patchQueue = path && this._patchQueue || []
     this._patchQueue.push(path, data)
+    this._hasPendingUpdate = true
+  }
+
+  this._cache.set(this.name, [ this.version, this._data ])
+  this.isStale = false
+
+  return this.whenReady()
+}
+
+Record.prototype.merge = function (data) {
+  const newValue = this._data
+
+  for (const key of Object.keys(data)) {
+    jsonPath.set(newValue, key, data[key])
+  }
+
+  if (newValue === this._data) {
+    return Promise.resolve()
+  }
+
+  this._applyChange(newValue)
+
+  if (this.isReady) {
+    this._sendUpdate()
+  } else {
+    this._patchQueue = this._patchQueue || []
+
+    for (const key of Object.keys(data)) {
+      this._patchQueue.push(key, data[key])
+    }
+
     this._hasPendingUpdate = true
   }
 
