@@ -89,7 +89,8 @@ EventHandler.prototype.listen = function (pattern, callback) {
     callback,
     this._options,
     this._client,
-    this._connection
+    this._connection,
+    this
   )
 
   this._listeners.set(pattern, listener)
