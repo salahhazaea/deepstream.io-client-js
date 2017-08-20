@@ -41,6 +41,9 @@ Listener.prototype._$onMessage = function (message) {
     Promise
       .resolve(this._callback(name))
       .then(value$ => {
+        if (!value$) {
+          return
+        }
         const provider = this._providers.get(name)
         if (provider) {
           provider.value$ = value$
@@ -51,6 +54,10 @@ Listener.prototype._$onMessage = function (message) {
         this._client._$onError(this._topic, C.EVENT.LISTENER_ERROR, [ this._pattern, err.message || err ])
       })
   } else if (message.action === C.ACTIONS.LISTEN_ACCEPT) {
+    if (!provider || !provider.value$) {
+      this._connection.sendMsg(this._topic, C.ACTIONS.LISTEN_REJECT, [ this._pattern, name ])
+      return
+    }
     provider.subscription = provider.value$.subscribe({
       next: value => {
         if (this._topic === C.TOPIC.EVENT) {
