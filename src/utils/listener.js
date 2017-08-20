@@ -31,30 +31,30 @@ Listener.prototype._$destroy = function () {
 Listener.prototype._$onMessage = function (message) {
   const [ , name ] = message.data
 
-  const provider = this._providers.get(name)
+  let provider = this._providers.get(name)
 
   if (message.action === C.ACTIONS.SUBSCRIPTION_FOR_PATTERN_FOUND) {
     if (provider) {
-      this._connection.sendMsg(this._topic, C.ACTIONS.LISTEN_ACCEPT, [ this._pattern, name ])
-    } else {
-      const provider = {
-        value$: null,
-        subscription: Observable
-          .defer(() => Promise.resolve(this._callback(name)))
-          .filter(x => x)
-          .take(1)
-          .subscribe({
-            next: value$ => {
-              provider.value$ = value$
-              this._connection.sendMsg(this._topic, C.ACTIONS.LISTEN_ACCEPT, [ this._pattern, name ])
-            },
-            error: err => {
-              this._client._$onError(this._topic, C.EVENT.LISTENER_ERROR, [ this._pattern, err.message || err ])
-            }
-          })
-      }
-      this._providers.set(name, provider)
+      provider.subscription.unsubscribe()
     }
+
+    provider = {
+      value$: null,
+      subscription: Observable
+        .defer(() => Promise.resolve(this._callback(name)))
+        .filter(x => x)
+        .take(1)
+        .subscribe({
+          next: value$ => {
+            provider.value$ = value$
+            this._connection.sendMsg(this._topic, C.ACTIONS.LISTEN_ACCEPT, [ this._pattern, name ])
+          },
+          error: err => {
+            this._client._$onError(this._topic, C.EVENT.LISTENER_ERROR, [ this._pattern, err.message || err ])
+          }
+        })
+    }
+    this._providers.set(name, provider)
   } else if (message.action === C.ACTIONS.LISTEN_ACCEPT) {
     provider.subscription.unsubscribe()
     provider.subscription = provider.value$.subscribe({
