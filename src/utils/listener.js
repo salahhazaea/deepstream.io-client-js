@@ -109,7 +109,7 @@ Listener.prototype._handleConnectionStateChange = function () {
 }
 
 Listener.prototype._reset = function () {
-  for (const provider of this._providers) {
+  for (const provider of this._providers.values()) {
     provider.subscription.unsubscribe()
   }
   this._providers.clear()
