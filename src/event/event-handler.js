@@ -93,20 +93,9 @@ EventHandler.prototype.listen = function (pattern, callback) {
   )
 
   this._listeners.set(pattern, listener)
-}
-
-EventHandler.prototype.unlisten = function (pattern) {
-  if (typeof pattern !== 'string' || pattern.length === 0) {
-    throw new Error('invalid argument pattern')
-  }
-
-  const listener = this._listeners.get(pattern)
-
-  if (listener) {
+  return () => {
     listener.destroy()
     this._listeners.delete(pattern)
-  } else {
-    this._client._$onError(C.TOPIC.RECORD, C.EVENT.NOT_LISTENING, pattern)
   }
 }
 

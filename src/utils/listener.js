@@ -4,13 +4,14 @@ const C = require('../constants/constants')
 const xuid = require('xuid')
 const lz = require('@nxtedition/lz-string')
 
-const Listener = function (topic, pattern, callback, options, client, connection) {
+const Listener = function (topic, pattern, callback, options, client, connection, handler) {
   this._topic = topic
   this._callback = callback
   this._pattern = pattern
   this._options = options
   this._client = client
   this._connection = connection
+  this._handler = handler
   this._isListening = false
   this._providers = new Map()
 
@@ -26,9 +27,8 @@ Listener.prototype._$destroy = function () {
   this._reset()
 }
 
-Listener.prototype._$onMessage = async function (message) {
+Listener.prototype._$onMessage = function (message) {
   const [ , name ] = message.data
-
   const provider = this._providers.get(name)
 
   if (message.action === C.ACTIONS.SUBSCRIPTION_FOR_PATTERN_FOUND) {
@@ -36,64 +36,60 @@ Listener.prototype._$onMessage = async function (message) {
       provider.subscription.unsubscribe()
     }
 
-    const value$ = await this._callback(name)
+    this._providers.set(name, {})
 
-    if (!this._isListening) {
-      return
-    }
-
-    if (value$) {
-      this._connection.sendMsg(this._topic, C.ACTIONS.LISTEN_ACCEPT, message.data)
-      this._providers.set(name, {
-        value$,
-        raw: null,
-        subscription: null
+    Promise
+      .resolve(this._callback(name))
+      .then(value$ => {
+        const provider = this._providers.get(name)
+        if (provider) {
+          provider.value$ = value$
+          this._connection.sendMsg(this._topic, C.ACTIONS.LISTEN_ACCEPT, [ this._pattern, name ])
+        }
       })
-    } else {
-      this._connection.sendMsg(this._topic, C.ACTIONS.LISTEN_REJECT, message.data)
-    }
+      .catch(err => {
+        this._client._$onError(this._topic, C.EVENT.LISTENER_ERROR, [ this._pattern, err.message || err ])
+      })
   } else if (message.action === C.ACTIONS.LISTEN_ACCEPT) {
-    if (!provider) {
-      return
-    }
-
     provider.subscription = provider.value$.subscribe({
       next: value => {
-        const raw = JSON.stringify(value)
+        if (this._topic === C.TOPIC.EVENT) {
+          this._handler.emit(name, value)
+        } else if (this._topic === C.TOPIC.RECORD) {
+          const raw = JSON.stringify(value)
 
-        if (provider.raw === raw) {
-          return
+          if (provider.raw === raw) {
+            return
+          }
+
+          provider.raw = raw
+
+          const version = `INF-${xuid()}`
+
+          this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.UPDATE, [
+            name,
+            version,
+            lz.compressToUTF16(raw)
+          ])
+
+          this._handler._$handle({
+            action: C.ACTIONS.UPDATE,
+            data: [ name, version, value ]
+          })
         }
-
-        provider.raw = raw
-
-        const version = `INF-${xuid()}`
-
-        this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.UPDATE, [
-          name,
-          version,
-          lz.compressToUTF16(raw)
-        ])
-
-        this._recordHandler._$handle({
-          action: C.ACTIONS.UPDATE,
-          data: [ name, version, value ]
-        })
       },
       error: err => {
-        this._client._$onError(this._topic, C.EVENT.PROVIDER_ERROR, [ this._pattern, err.message || err ])
-        this._connection.sendMsg(this._topic, C.ACTIONS.LISTEN_REJECT, message.data)
+        this._client._$onError(this._topic, C.EVENT.LISTENER_ERROR, [ this._pattern, err.message || err ])
+        this._connection.sendMsg(this._topic, C.ACTIONS.LISTEN_REJECT, [ this._pattern, name ])
       }
     })
   } else if (
     message.action === C.ACTIONS.SUBSCRIPTION_FOR_PATTERN_REMOVED ||
     message.action === C.ACTIONS.LISTEN_REJECT
   ) {
-    if (!provider) {
-      return
+    if (provider && provider.subscription) {
+      provider.subscription.unsubscribe()
     }
-
-    provider.subscription.unsubscribe()
   }
 }
 
@@ -111,13 +107,12 @@ Listener.prototype._handleConnectionStateChange = function () {
   if (state === C.CONNECTION_STATE.OPEN) {
     this._sendListen()
   } else if (state === C.CONNECTION_STATE.RECONNECTING) {
+    this._isListening = false
     this._reset()
   }
 }
 
 Listener.prototype._reset = function () {
-  this._isListening = false
-
   for (const provider of this._providers) {
     if (provider.subscription) {
       provider.subscription.unsubscribe()

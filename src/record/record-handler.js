@@ -57,7 +57,7 @@ RecordHandler.prototype.getRecord = function (name) {
   return record
 }
 
-RecordHandler.prototype.listen = function (pattern, callback) {
+RecordHandler.prototype.provide = function (pattern, callback) {
   if (typeof pattern !== 'string' || pattern.length === 0) {
     throw new Error('invalid argument pattern')
   }
@@ -80,19 +80,9 @@ RecordHandler.prototype.listen = function (pattern, callback) {
   )
 
   this._listeners.set(pattern, listener)
-}
-
-RecordHandler.prototype.unlisten = function (pattern) {
-  if (typeof pattern !== 'string' || pattern.length === 0) {
-    throw new Error('invalid argument pattern')
-  }
-
-  const listener = this._listeners.get(pattern)
-  if (listener) {
+  return () => {
     listener._$destroy()
     this._listeners.delete(pattern)
-  } else {
-    this._client._$onError(C.TOPIC.RECORD, C.EVENT.NOT_LISTENING, pattern)
   }
 }
 
@@ -181,11 +171,6 @@ RecordHandler.prototype.hasProvider = function (name) {
         record.discard()
       }
     })
-}
-
-RecordHandler.prototype.provide = function (pattern, callback) {
-  this.listen(pattern, callback)
-  return () => this.unlisten(pattern, callback)
 }
 
 RecordHandler.prototype._$handle = function (message) {
