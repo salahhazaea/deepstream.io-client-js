@@ -3,6 +3,7 @@
 const C = require('../constants/constants')
 const xuid = require('xuid')
 const lz = require('@nxtedition/lz-string')
+const { Observable } = require('rxjs')
 
 const Listener = function (topic, pattern, callback, options, client, connection, handler) {
   this._topic = topic
@@ -29,35 +30,27 @@ Listener.prototype._$destroy = function () {
 
 Listener.prototype._$onMessage = function (message) {
   const [ , name ] = message.data
-  const provider = this._providers.get(name)
-
   if (message.action === C.ACTIONS.SUBSCRIPTION_FOR_PATTERN_FOUND) {
-    if (provider && provider.subscription) {
-      provider.subscription.unsubscribe()
+    const provider = {
+      value$: null,
+      subscription: Observable
+        .defer(() => Promise.resolve(this._callback(name)))
+        .filter(x => x)
+        .take(1)
+        .subscribe({
+          next: value$ => {
+            provider.value$ = value$
+            this._connection.sendMsg(this._topic, C.ACTIONS.LISTEN_ACCEPT, [ this._pattern, name ])
+          },
+          error: err => {
+            this._client._$onError(this._topic, C.EVENT.LISTENER_ERROR, [ this._pattern, err.message || err ])
+          }
+        })
     }
-
-    this._providers.set(name, {})
-
-    Promise
-      .resolve(this._callback(name))
-      .then(value$ => {
-        if (!value$) {
-          return
-        }
-        const provider = this._providers.get(name)
-        if (provider) {
-          provider.value$ = value$
-          this._connection.sendMsg(this._topic, C.ACTIONS.LISTEN_ACCEPT, [ this._pattern, name ])
-        }
-      })
-      .catch(err => {
-        this._client._$onError(this._topic, C.EVENT.LISTENER_ERROR, [ this._pattern, err.message || err ])
-      })
+    this._providers.set(name, provider)
   } else if (message.action === C.ACTIONS.LISTEN_ACCEPT) {
-    if (!provider || !provider.value$) {
-      this._connection.sendMsg(this._topic, C.ACTIONS.LISTEN_REJECT, [ this._pattern, name ])
-      return
-    }
+    const provider = this._providers.get(name)
+    provider.subscription.unsubscribe()
     provider.subscription = provider.value$.subscribe({
       next: value => {
         if (this._topic === C.TOPIC.EVENT) {
@@ -87,16 +80,12 @@ Listener.prototype._$onMessage = function (message) {
       },
       error: err => {
         this._client._$onError(this._topic, C.EVENT.LISTENER_ERROR, [ this._pattern, err.message || err ])
-        this._connection.sendMsg(this._topic, C.ACTIONS.LISTEN_REJECT, [ this._pattern, name ])
       }
     })
-  } else if (
-    message.action === C.ACTIONS.SUBSCRIPTION_FOR_PATTERN_REMOVED ||
-    message.action === C.ACTIONS.LISTEN_REJECT
-  ) {
-    if (provider && provider.subscription) {
-      provider.subscription.unsubscribe()
-    }
+  } else if (message.action === C.ACTIONS.SUBSCRIPTION_FOR_PATTERN_REMOVED) {
+    const provider = this._providers.get(name)
+    provider.subscription.unsubscribe()
+    this._providers.delete(name)
   }
 }
 
@@ -121,9 +110,7 @@ Listener.prototype._handleConnectionStateChange = function () {
 
 Listener.prototype._reset = function () {
   for (const provider of this._providers) {
-    if (provider.subscription) {
-      provider.subscription.unsubscribe()
-    }
+    provider.subscription.unsubscribe()
   }
   this._providers.clear()
 }
