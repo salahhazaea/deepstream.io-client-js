@@ -70,7 +70,7 @@ EventHandler.prototype.emit = function (name, data) {
   this._emitter.emit(name, data)
 }
 
-EventHandler.prototype.listen = function (pattern, callback) {
+EventHandler.prototype.provide = function (pattern, callback) {
   if (typeof pattern !== 'string' || pattern.length === 0) {
     throw new Error('invalid argument pattern')
   }
