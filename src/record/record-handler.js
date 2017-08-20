@@ -76,8 +76,7 @@ RecordHandler.prototype.listen = function (pattern, callback) {
     callback,
     this._options,
     this._client,
-    this._connection,
-    this
+    this._connection
   )
 
   this._listeners.set(pattern, listener)
@@ -184,59 +183,7 @@ RecordHandler.prototype.hasProvider = function (name) {
     })
 }
 
-RecordHandler.prototype.provide = function (pattern, provider) {
-  const subscriptions = new Map()
-  const dispose = (key) => {
-    const subscription = subscriptions.get(key)
-    subscription && subscription.unsubscribe()
-    subscriptions.delete(key)
-  }
-  const callback = (match, isSubscribed, response) => {
-    if (isSubscribed) {
-      let isAccepted
-      const onNext = value => {
-        if (value) {
-          response.set(value)
-          if (!isAccepted) {
-            response.accept()
-            isAccepted = true
-          }
-        } else {
-          isAccepted = false
-          response.reject()
-          dispose(match)
-        }
-      }
-      const onError = err => {
-        this._client._$onError(C.TOPIC.RECORD, pattern, err.message)
-        response.reject()
-        dispose(match)
-      }
-      try {
-        Promise
-          .resolve(provider(match))
-          .then(data$ => {
-            if (!data$) {
-              response.reject()
-            } else {
-              subscriptions.set(match, data$
-                .subscribe(onNext, onError, () => {
-                  if (isAccepted === undefined) {
-                    response.reject()
-                  }
-                  dispose(match)
-                })
-              )
-            }
-          })
-          .catch(onError)
-      } catch (err) {
-        onError(err)
-      }
-    } else {
-      dispose(match)
-    }
-  }
+RecordHandler.prototype.provide = function (pattern, callback) {
   this.listen(pattern, callback)
   return () => this.unlisten(pattern, callback)
 }

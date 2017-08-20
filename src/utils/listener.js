@@ -4,16 +4,15 @@ const C = require('../constants/constants')
 const xuid = require('xuid')
 const lz = require('@nxtedition/lz-string')
 
-const Listener = function (topic, pattern, callback, options, client, connection, recordHandler) {
+const Listener = function (topic, pattern, callback, options, client, connection) {
   this._topic = topic
   this._callback = callback
   this._pattern = pattern
   this._options = options
   this._client = client
   this._connection = connection
-  this._recordHandler = recordHandler
   this._isListening = false
-  this._isProviding = false
+  this._providers = new Map()
 
   this._handleConnectionStateChange = this._handleConnectionStateChange.bind(this)
 
@@ -24,57 +23,77 @@ const Listener = function (topic, pattern, callback, options, client, connection
 
 Listener.prototype._$destroy = function () {
   this._connection.sendMsg(this._topic, C.ACTIONS.UNLISTEN, [ this._pattern ])
+  this._reset()
 }
 
-Listener.prototype.accept = function (name) {
-  this._connection.sendMsg(this._topic, C.ACTIONS.LISTEN_ACCEPT, [ this._pattern, name ])
-}
+Listener.prototype._$onMessage = async function (message) {
+  const [ , name ] = message.data
 
-Listener.prototype.reject = function (name) {
-  this._connection.sendMsg(this._topic, C.ACTIONS.LISTEN_REJECT, [ this._pattern, name ])
-}
+  const provider = this._providers.get(name)
 
-Listener.prototype.set = function (name, context, value) {
-  const raw = JSON.stringify(value)
-
-  if (context.raw === raw) {
-    return
-  }
-
-  context.raw = raw
-
-  const version = `INF-${xuid()}`
-
-  this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.UPDATE, [
-    name,
-    version,
-    lz.compressToUTF16(raw)
-  ])
-
-  this._recordHandler._$handle({
-    action: C.ACTIONS.UPDATE,
-    data: [ name, version, value ]
-  })
-}
-
-Listener.prototype._$onMessage = function (message) {
   if (message.action === C.ACTIONS.SUBSCRIPTION_FOR_PATTERN_FOUND) {
-    this._isProviding = true
-    this._callback(message.data[1], true, {
-      accept: this.accept.bind(this, message.data[1]),
-      reject: this.reject.bind(this, message.data[1]),
-      set: message.topic === C.TOPIC.RECORD
-        ? this.set.bind(this, message.data[1], Object.create(null))
-        : undefined
+    if (provider && provider.subscription) {
+      provider.subscription.unsubscribe()
+    }
+
+    const value$ = await this._callback(name)
+
+    if (!this._isListening) {
+      return
+    }
+
+    if (value$) {
+      this._connection.sendMsg(this._topic, C.ACTIONS.LISTEN_ACCEPT, message.data)
+      this._providers.set(name, {
+        value$,
+        raw: null,
+        subscription: null
+      })
+    } else {
+      this._connection.sendMsg(this._topic, C.ACTIONS.LISTEN_REJECT, message.data)
+    }
+  } else if (message.action === C.ACTIONS.LISTEN_ACCEPT) {
+    if (!provider) {
+      return
+    }
+
+    provider.subscription = provider.value$.subscribe({
+      next: value => {
+        const raw = JSON.stringify(value)
+
+        if (provider.raw === raw) {
+          return
+        }
+
+        provider.raw = raw
+
+        const version = `INF-${xuid()}`
+
+        this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.UPDATE, [
+          name,
+          version,
+          lz.compressToUTF16(raw)
+        ])
+
+        this._recordHandler._$handle({
+          action: C.ACTIONS.UPDATE,
+          data: [ name, version, value ]
+        })
+      },
+      error: err => {
+        this._client._$onError(this._topic, C.EVENT.PROVIDER_ERROR, [ this._pattern, err.message || err ])
+        this._connection.sendMsg(this._topic, C.ACTIONS.LISTEN_REJECT, message.data)
+      }
     })
   } else if (
     message.action === C.ACTIONS.SUBSCRIPTION_FOR_PATTERN_REMOVED ||
     message.action === C.ACTIONS.LISTEN_REJECT
   ) {
-    if (this._isProviding) {
-      this._callback(message.data[1], false)
-      this._isProviding = false
+    if (!provider) {
+      return
     }
+
+    provider.subscription.unsubscribe()
   }
 }
 
@@ -92,8 +111,19 @@ Listener.prototype._handleConnectionStateChange = function () {
   if (state === C.CONNECTION_STATE.OPEN) {
     this._sendListen()
   } else if (state === C.CONNECTION_STATE.RECONNECTING) {
-    this._isListening = false
+    this._reset()
   }
+}
+
+Listener.prototype._reset = function () {
+  this._isListening = false
+
+  for (const provider of this._providers) {
+    if (provider.subscription) {
+      provider.subscription.unsubscribe()
+    }
+  }
+  this._providers.clear()
 }
 
 module.exports = Listener
