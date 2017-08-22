@@ -56,6 +56,11 @@ Listener.prototype._$onMessage = function (message) {
     }
     this._providers.set(name, provider)
   } else if (message.action === C.ACTIONS.LISTEN_ACCEPT) {
+    if (!provider) {
+      this._connection.sendMsg(this._topic, C.ACTIONS.LISTEN_REJECT, [ this._pattern, name ])
+      this._client._$onError(this._topic, C.EVENT.NOT_PROVIDING, [ this._pattern, name ])
+      return
+    }
     provider.subscription.unsubscribe()
     provider.subscription = provider.value$.subscribe({
       next: value => {
@@ -85,10 +90,15 @@ Listener.prototype._$onMessage = function (message) {
         }
       },
       error: err => {
+        this._connection.sendMsg(this._topic, C.ACTIONS.LISTEN_REJECT, [ this._pattern, name ])
         this._client._$onError(this._topic, C.EVENT.LISTENER_ERROR, [ this._pattern, err.message || err ])
       }
     })
   } else if (message.action === C.ACTIONS.SUBSCRIPTION_FOR_PATTERN_REMOVED) {
+    if (!provider) {
+      this._client._$onError(this._topic, C.EVENT.NOT_PROVIDING, [ this._pattern, name ])
+      return
+    }
     provider.subscription.unsubscribe()
     this._providers.delete(name)
   }
