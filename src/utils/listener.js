@@ -90,6 +90,7 @@ Listener.prototype._$onMessage = function (message) {
         }
       },
       error: err => {
+        this._providers.delete(name)
         this._connection.sendMsg(this._topic, C.ACTIONS.LISTEN_REJECT, [ this._pattern, name ])
         this._client._$onError(this._topic, C.EVENT.LISTENER_ERROR, [ this._pattern, err.message || err ])
       }

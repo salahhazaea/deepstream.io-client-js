@@ -262,7 +262,8 @@ Connection.prototype._onOpen = function () {
  * @returns {void}
  */
 Connection.prototype._onError = function (error) {
-  clearInterval(this._heartbeatInterval)
+  this._reset()
+
   this._setState(C.CONNECTION_STATE.ERROR)
 
   /*
@@ -292,7 +293,7 @@ Connection.prototype._onError = function (error) {
  * @returns {void}
  */
 Connection.prototype._onClose = function () {
-  clearInterval(this._heartbeatInterval)
+  this._reset()
 
   if (this._redirecting === true) {
     this._redirecting = false
@@ -316,6 +317,30 @@ Connection.prototype._onMessage = function (message) {
   this._rawMessages.push(message.data)
   if (!this._messageHandler) {
     this._messageHandler = utils.requestIdleCallback(this._handleMessages)
+  }
+}
+
+Connection.prototype._reset = function () {
+  if (this._heartbeatInterval) {
+    clearInterval(this._heartbeatInterval)
+    this._heartbeatInterval = null
+    this._lastHeartBeat = null
+  }
+
+  if (this._messageSender) {
+    clearTimeout(this._messageSender)
+    this._messageSender = null
+    // TODO: This will send SUBSCRIBE/READ msgs...
+    // this._queuedMessages.length = 0
+  }
+
+  if (this._messageHandler) {
+    this._handleMessages()
+    utils.cancelIdleCallback(this._messageHandler)
+    this._messageHandler = null
+    this._messages.length = 0
+    this._rawMessages.length = 0
+    this._rawMessagesIndex = 0
   }
 }
 
