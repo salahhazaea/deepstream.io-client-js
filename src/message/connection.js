@@ -330,8 +330,7 @@ Connection.prototype._reset = function () {
   if (this._messageSender) {
     clearTimeout(this._messageSender)
     this._messageSender = null
-    // TODO: This will send SUBSCRIBE/READ msgs...
-    // this._queuedMessages.length = 0
+    this._queuedMessages.length = 0
   }
 
   if (this._messageHandler) {
