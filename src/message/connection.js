@@ -142,12 +142,10 @@ Connection.prototype.send = function (message) {
  * @returns {void}
  */
 Connection.prototype.close = function () {
-  clearInterval(this._heartbeatInterval)
+  this._sendQueuedMessages()
+  this._reset()
   this._deliberateClose = true
   this._endpoint.close()
-  if (this._messageHandler) {
-    utils.cancelIdleCallback(this._messageHandler)
-  }
 }
 
 /**
