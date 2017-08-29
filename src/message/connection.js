@@ -377,7 +377,7 @@ Connection.prototype._handleMessages = function (deadline) {
         this._client._$onMessage(this._message)
       }
     }
-  } while (deadline.timeRemaining() > 0)
+  } while (!deadline || deadline.timeRemaining() > 0) // eslint-disable-line
 
   if ((this._messages.length > 0 || this._rawMessages.length > 0) && !this._deliberateClose) {
     this._messageHandler = utils.requestIdleCallback(this._handleMessages, { timeout: this._idleTimeout })
