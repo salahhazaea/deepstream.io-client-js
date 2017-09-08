@@ -56,7 +56,11 @@ Listener.prototype._$onMessage = function (message) {
     }
     this._providers.set(name, provider)
   } else if (message.action === C.ACTIONS.LISTEN_ACCEPT) {
-    if (!provider) {
+    if (!provider || !provider.value$) {
+      if (provider) {
+        this._providers.delete(name)
+        provider.subscription.unsubscribe()
+      }
       this._connection.sendMsg(this._topic, C.ACTIONS.LISTEN_REJECT, [ this._pattern, name ])
       this._client._$onError(this._topic, C.EVENT.NOT_PROVIDING, [ this._pattern, name ])
       return
