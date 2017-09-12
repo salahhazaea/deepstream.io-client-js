@@ -38,89 +38,88 @@ Listener.prototype._$onMessage = function (message) {
       return
     }
 
-    provider = {
-      state: 'idle',
-      value$: null,
-      stop: () => {
-        provider.valueSubscription && provider.valueSubscription.unsubscribe()
-      },
-      start: () => {
-        provider.valueSubscription && provider.valueSubscription.unsubscribe()
-        provider.valueSubscription = provider.value$.subscribe({
-          next: value => {
-            if (this._topic === C.TOPIC.EVENT) {
-              this._handler.emit(name, value)
-            } else if (this._topic === C.TOPIC.RECORD) {
-              const raw = JSON.stringify(value)
-
-              if (provider.raw === raw) {
-                return
-              }
-
-              provider.raw = raw
-
-              const version = `INF-${xuid()}`
-
-              this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.UPDATE, [
-                name,
-                version,
-                lz.compressToUTF16(raw)
-              ])
-
-              this._handler._$handle({
-                action: C.ACTIONS.UPDATE,
-                data: [ name, version, value ]
-              })
-            }
-          },
-          error: err => {
-            provider.dispose()
-            this._client._$onError(this._topic, C.EVENT.LISTENER_ERROR, [ this._pattern, err.message || err ])
-          }
-        })
-      },
-      dispose: () => {
-        if (provider.state !== 'idle') {
-          this._connection.sendMsg(this._topic, C.ACTIONS.LISTEN_REJECT, [ this._pattern, name ])
-        }
-        provider.patternSubscription && provider.patternSubscription.unsubscribe()
-        provider.valueSubscription && provider.valueSubscription.unsubscribe()
-        this._providers.delete(name)
-      },
-      patternSubscription: Observable
-        .defer(() => {
-          const val = this._callback(name)
-          return val && val.subscribe ? val : Promise.resolve(val)
-        })
-        .switchMap(val => val && val.subscribe ? val : Observable.of(val))
-        .distinctUntilChanged()
-        .subscribe({
-          next: value$ => {
-            provider.value$ = value$
-            if (!provider.value$) {
-              if (provider.state !== 'idle') {
-                this._connection.sendMsg(this._topic, C.ACTIONS.LISTEN_REJECT, [ this._pattern, name ])
-                provider.stop()
-                provider.state = 'idle'
-              }
-            } else {
-              if (provider.state === 'idle') {
-                this._connection.sendMsg(this._topic, C.ACTIONS.LISTEN_ACCEPT, [ this._pattern, name ])
-                provider.state = 'waiting'
-              } else if (provider.state === 'active') {
-                provider.stop()
-                provider.state = 'idle'
-                provider.start()
-                provider.state = 'active'
-              }
-            }
-          },
-          error: err => {
-            provider.dispose()
-            this._client._$onError(this._topic, C.EVENT.LISTENER_ERROR, [ this._pattern, err.message || err ])
-          }
-        })
+    provider = {}
+    provider.state = 'idle'
+    provider.value$ = null
+    provider.stop = () => {
+      provider.valueSubscription && provider.valueSubscription.unsubscribe()
     }
+    provider.start = () => {
+      provider.valueSubscription && provider.valueSubscription.unsubscribe()
+      provider.valueSubscription = provider.value$.subscribe({
+        next: value => {
+          if (this._topic === C.TOPIC.EVENT) {
+            this._handler.emit(name, value)
+          } else if (this._topic === C.TOPIC.RECORD) {
+            const raw = JSON.stringify(value)
+
+            if (provider.raw === raw) {
+              return
+            }
+
+            provider.raw = raw
+
+            const version = `INF-${xuid()}`
+
+            this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.UPDATE, [
+              name,
+              version,
+              lz.compressToUTF16(raw)
+            ])
+
+            this._handler._$handle({
+              action: C.ACTIONS.UPDATE,
+              data: [ name, version, value ]
+            })
+          }
+        },
+        error: err => {
+          provider.dispose()
+          this._client._$onError(this._topic, C.EVENT.LISTENER_ERROR, [ this._pattern, err.message || err ])
+        }
+      })
+    }
+    provider.dispose = () => {
+      if (provider.state !== 'idle') {
+        this._connection.sendMsg(this._topic, C.ACTIONS.LISTEN_REJECT, [ this._pattern, name ])
+      }
+      provider.patternSubscription && provider.patternSubscription.unsubscribe()
+      provider.valueSubscription && provider.valueSubscription.unsubscribe()
+      this._providers.delete(name)
+    }
+    provider.patternSubscription = Observable
+      .defer(() => {
+        const val = this._callback(name)
+        return val && val.subscribe ? val : Promise.resolve(val)
+      })
+      .map(val => val && val.subscribe ? val : Observable.of(val))
+      .distinctUntilChanged()
+      .subscribe({
+        next: value$ => {
+          provider.value$ = value$
+          if (!provider.value$) {
+            if (provider.state !== 'idle') {
+              this._connection.sendMsg(this._topic, C.ACTIONS.LISTEN_REJECT, [ this._pattern, name ])
+              provider.stop()
+              provider.state = 'idle'
+            }
+          } else {
+            if (provider.state === 'idle') {
+              this._connection.sendMsg(this._topic, C.ACTIONS.LISTEN_ACCEPT, [ this._pattern, name ])
+              provider.state = 'waiting'
+            } else if (provider.state === 'active') {
+              provider.stop()
+              provider.state = 'idle'
+              provider.start()
+              provider.state = 'active'
+            }
+          }
+        },
+        error: err => {
+          provider.dispose()
+          this._client._$onError(this._topic, C.EVENT.LISTENER_ERROR, [ this._pattern, err.message || err ])
+        }
+      })
     this._providers.set(name, provider)
   } else if (message.action === C.ACTIONS.LISTEN_ACCEPT) {
     if (provider.state === 'idle' || !provider) {
