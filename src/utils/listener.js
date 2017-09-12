@@ -35,77 +35,111 @@ Listener.prototype._$onMessage = function (message) {
 
   if (message.action === C.ACTIONS.SUBSCRIPTION_FOR_PATTERN_FOUND) {
     if (provider) {
-      provider.subscription.unsubscribe()
+      return
     }
 
     provider = {
+      state: 'idle',
       value$: null,
-      subscription: Observable
-        .defer(() => Promise.resolve(this._callback(name)))
-        .filter(x => x)
-        .take(1)
+      stop: () => {
+        provider.valueSubscription && provider.valueSubscription.unsubscribe()
+      },
+      start: () => {
+        provider.valueSubscription && provider.valueSubscription.unsubscribe()
+        provider.valueSubscription = provider.value$.subscribe({
+          next: value => {
+            if (this._topic === C.TOPIC.EVENT) {
+              this._handler.emit(name, value)
+            } else if (this._topic === C.TOPIC.RECORD) {
+              const raw = JSON.stringify(value)
+
+              if (provider.raw === raw) {
+                return
+              }
+
+              provider.raw = raw
+
+              const version = `INF-${xuid()}`
+
+              this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.UPDATE, [
+                name,
+                version,
+                lz.compressToUTF16(raw)
+              ])
+
+              this._handler._$handle({
+                action: C.ACTIONS.UPDATE,
+                data: [ name, version, value ]
+              })
+            }
+          },
+          error: err => {
+            provider.dispose()
+            this._client._$onError(this._topic, C.EVENT.LISTENER_ERROR, [ this._pattern, err.message || err ])
+          }
+        })
+      },
+      dispose: () => {
+        if (provider.state !== 'idle') {
+          this._connection.sendMsg(this._topic, C.ACTIONS.LISTEN_REJECT, [ this._pattern, name ])
+        }
+        provider.patternSubscription && provider.patternSubscription.unsubscribe()
+        provider.valueSubscription && provider.valueSubscription.unsubscribe()
+        this._providers.delete(name)
+      },
+      patternSubscription: Observable
+        .defer(() => {
+          const val = this._callback(name)
+          return val && val.subscribe ? val : Promise.resolve(val)
+        })
+        .switchMap(val => val && val.subscribe ? val : Observable.of(val))
+        .distinctUntilChanged()
         .subscribe({
           next: value$ => {
             provider.value$ = value$
-            this._connection.sendMsg(this._topic, C.ACTIONS.LISTEN_ACCEPT, [ this._pattern, name ])
+            if (!provider.value$) {
+              if (provider.state !== 'idle') {
+                this._connection.sendMsg(this._topic, C.ACTIONS.LISTEN_REJECT, [ this._pattern, name ])
+                provider.stop()
+                provider.state = 'idle'
+              }
+            } else {
+              if (provider.state === 'idle') {
+                this._connection.sendMsg(this._topic, C.ACTIONS.LISTEN_ACCEPT, [ this._pattern, name ])
+                provider.state = 'waiting'
+              } else if (provider.state === 'active') {
+                provider.stop()
+                provider.state = 'idle'
+                provider.start()
+                provider.state = 'active'
+              }
+            }
           },
           error: err => {
+            provider.dispose()
             this._client._$onError(this._topic, C.EVENT.LISTENER_ERROR, [ this._pattern, err.message || err ])
           }
         })
     }
     this._providers.set(name, provider)
   } else if (message.action === C.ACTIONS.LISTEN_ACCEPT) {
-    if (!provider || !provider.value$) {
-      if (provider) {
-        this._providers.delete(name)
-        provider.subscription.unsubscribe()
-      }
+    if (provider.state === 'idle' || !provider) {
       this._connection.sendMsg(this._topic, C.ACTIONS.LISTEN_REJECT, [ this._pattern, name ])
       this._client._$onError(this._topic, C.EVENT.NOT_PROVIDING, [ this._pattern, name ])
-      return
-    }
-    provider.subscription.unsubscribe()
-    provider.subscription = provider.value$.subscribe({
-      next: value => {
-        if (this._topic === C.TOPIC.EVENT) {
-          this._handler.emit(name, value)
-        } else if (this._topic === C.TOPIC.RECORD) {
-          const raw = JSON.stringify(value)
-
-          if (provider.raw === raw) {
-            return
-          }
-
-          provider.raw = raw
-
-          const version = `INF-${xuid()}`
-
-          this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.UPDATE, [
-            name,
-            version,
-            lz.compressToUTF16(raw)
-          ])
-
-          this._handler._$handle({
-            action: C.ACTIONS.UPDATE,
-            data: [ name, version, value ]
-          })
-        }
-      },
-      error: err => {
-        this._providers.delete(name)
-        this._connection.sendMsg(this._topic, C.ACTIONS.LISTEN_REJECT, [ this._pattern, name ])
-        this._client._$onError(this._topic, C.EVENT.LISTENER_ERROR, [ this._pattern, err.message || err ])
+      if (provider) {
+        provider.dispose()
       }
-    })
+    } else if (provider.state === 'waiting') {
+      provider.start()
+      provider.state = 'active'
+    }
   } else if (message.action === C.ACTIONS.SUBSCRIPTION_FOR_PATTERN_REMOVED) {
     if (!provider) {
       this._client._$onError(this._topic, C.EVENT.NOT_PROVIDING, [ this._pattern, name ])
-      return
+    } else {
+      provider.state = 'idle'
+      provider.dispose()
     }
-    provider.subscription.unsubscribe()
-    this._providers.delete(name)
   }
 }
 
