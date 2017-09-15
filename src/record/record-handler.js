@@ -57,7 +57,7 @@ RecordHandler.prototype.getRecord = function (name) {
   return record
 }
 
-RecordHandler.prototype.provide = function (pattern, callback) {
+RecordHandler.prototype.provide = function (pattern, callback, recursive = false) {
   if (typeof pattern !== 'string' || pattern.length === 0) {
     throw new Error('invalid argument pattern')
   }
@@ -77,7 +77,8 @@ RecordHandler.prototype.provide = function (pattern, callback) {
     this._options,
     this._client,
     this._connection,
-    this
+    this,
+    recursive
   )
 
   this._listeners.set(pattern, listener)

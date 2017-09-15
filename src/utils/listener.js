@@ -5,7 +5,7 @@ const xuid = require('xuid')
 const lz = require('@nxtedition/lz-string')
 const { Observable } = require('rxjs')
 
-const Listener = function (topic, pattern, callback, options, client, connection, handler) {
+const Listener = function (topic, pattern, callback, options, client, connection, handler, recursive) {
   this._topic = topic
   this._callback = callback
   this._pattern = pattern
@@ -15,6 +15,7 @@ const Listener = function (topic, pattern, callback, options, client, connection
   this._handler = handler
   this._isListening = false
   this._providers = new Map()
+  this.recursive = recursive
 
   this._handleConnectionStateChange = this._handleConnectionStateChange.bind(this)
 
@@ -40,33 +41,9 @@ Listener.prototype._$onMessage = function (message) {
 
     provider = {
       value$: null,
-      subscription: Observable
-        .defer(() => Promise.resolve(this._callback(name)))
-        .filter(x => x)
-        .take(1)
-        .subscribe({
-          next: value$ => {
-            provider.value$ = value$
-            this._connection.sendMsg(this._topic, C.ACTIONS.LISTEN_ACCEPT, [ this._pattern, name ])
-          },
-          error: err => {
-            this._client._$onError(this._topic, C.EVENT.LISTENER_ERROR, [ this._pattern, err.message || err ])
-          }
-        })
+      raw: null
     }
-    this._providers.set(name, provider)
-  } else if (message.action === C.ACTIONS.LISTEN_ACCEPT) {
-    if (!provider || !provider.value$) {
-      if (provider) {
-        this._providers.delete(name)
-        provider.subscription.unsubscribe()
-      }
-      this._connection.sendMsg(this._topic, C.ACTIONS.LISTEN_REJECT, [ this._pattern, name ])
-      this._client._$onError(this._topic, C.EVENT.NOT_PROVIDING, [ this._pattern, name ])
-      return
-    }
-    provider.subscription.unsubscribe()
-    provider.subscription = provider.value$.subscribe({
+    provider.observer = {
       next: value => {
         if (this._topic === C.TOPIC.EVENT) {
           this._handler.emit(name, value)
@@ -94,16 +71,71 @@ Listener.prototype._$onMessage = function (message) {
         }
       },
       error: err => {
+        provider.value$ = null
         this._connection.sendMsg(this._topic, C.ACTIONS.LISTEN_REJECT, [ this._pattern, name ])
         this._client._$onError(this._topic, C.EVENT.LISTENER_ERROR, [ this._pattern, err.message || err ])
       }
-    })
-  } else if (message.action === C.ACTIONS.SUBSCRIPTION_FOR_PATTERN_REMOVED) {
-    if (!provider) {
-      this._client._$onError(this._topic, C.EVENT.NOT_PROVIDING, [ this._pattern, name ])
+    }
+    provider.patternSubscription = Observable
+      .defer(() => {
+        const value$ = this._callback(name)
+        return this.recursive ? value$ : Promise.resolve(value$)
+      })
+      .map(value$ => value$ && value$.subscribe && value$)
+      .subscribe({
+        next: value$ => {
+          if (value$) {
+            if (!provider.value$) {
+              this._connection.sendMsg(this._topic, C.ACTIONS.LISTEN_ACCEPT, [ this._pattern, name ])
+            }
+
+            if (provider.valueSubscription) {
+              provider.valueSubscription.unsubscribe()
+              provider.valueSubscription = value$.subscribe(provider.observer)
+            }
+          } else {
+            if (provider.value$) {
+              this._connection.sendMsg(this._topic, C.ACTIONS.LISTEN_REJECT, [ this._pattern, name ])
+            }
+
+            if (provider.valueSubscription) {
+              provider.valueSubscription.unsubscribe()
+              provider.valueSubscription = null
+            }
+          }
+          provider.value$ = value$
+        },
+        error: err => {
+          provider.value$ = null
+          this._connection.sendMsg(this._topic, C.ACTIONS.LISTEN_REJECT, [ this._pattern, name ])
+          this._client._$onError(this._topic, C.EVENT.LISTENER_ERROR, [ this._pattern, err.message || err ])
+        }
+      })
+
+    this._providers.set(name, provider)
+  } else if (message.action === C.ACTIONS.LISTEN_ACCEPT) {
+    if (!provider || !provider.value$) {
+      this._connection.sendMsg(this._topic, C.ACTIONS.LISTEN_REJECT, [ this._pattern, name ])
       return
     }
-    provider.subscription.unsubscribe()
+
+    if (!provider.valueSubscription) {
+      provider.valueSubscription = provider.value$.subscribe(provider.observer)
+    }
+  } else if (message.action === C.ACTIONS.SUBSCRIPTION_FOR_PATTERN_REMOVED) {
+    if (!provider) {
+      return
+    }
+
+    provider.value$ = null
+    if (provider.patternSubscription) {
+      provider.patternSubscription.unsubscribe()
+      provider.patternSubscription = null
+    }
+    if (provider.valueSubscription) {
+      provider.valueSubscription.unsubscribe()
+      provider.valueSubscription = null
+    }
     this._providers.delete(name)
   }
 }
@@ -129,7 +161,7 @@ Listener.prototype._handleConnectionStateChange = function () {
 
 Listener.prototype._reset = function () {
   for (const provider of this._providers.values()) {
-    provider.subscription.unsubscribe()
+    provider.dispose()
   }
   this._providers.clear()
 }
