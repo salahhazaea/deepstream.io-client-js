@@ -35,7 +35,7 @@ Listener.prototype._$onMessage = function (message) {
 
   if (message.action === C.ACTIONS.SUBSCRIPTION_FOR_PATTERN_FOUND) {
     if (provider) {
-      provider.subscription.unsubscribe()
+      return
     }
 
     provider = {
@@ -94,7 +94,6 @@ Listener.prototype._$onMessage = function (message) {
         }
       },
       error: err => {
-        this._providers.delete(name)
         this._connection.sendMsg(this._topic, C.ACTIONS.LISTEN_REJECT, [ this._pattern, name ])
         this._client._$onError(this._topic, C.EVENT.LISTENER_ERROR, [ this._pattern, err.message || err ])
       }
