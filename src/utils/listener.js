@@ -43,6 +43,17 @@ Listener.prototype._$onMessage = function (message) {
       value$: null,
       raw: null
     }
+    provider.dispose = () => {
+      provider.value$ = null
+      if (provider.patternSubscription) {
+        provider.patternSubscription.unsubscribe()
+        provider.patternSubscription = null
+      }
+      if (provider.valueSubscription) {
+        provider.valueSubscription.unsubscribe()
+        provider.valueSubscription = null
+      }
+    }
     provider.observer = {
       next: value => {
         if (this._topic === C.TOPIC.EVENT) {
@@ -127,15 +138,7 @@ Listener.prototype._$onMessage = function (message) {
       return
     }
 
-    provider.value$ = null
-    if (provider.patternSubscription) {
-      provider.patternSubscription.unsubscribe()
-      provider.patternSubscription = null
-    }
-    if (provider.valueSubscription) {
-      provider.valueSubscription.unsubscribe()
-      provider.valueSubscription = null
-    }
+    provider.dispose()
     this._providers.delete(name)
   }
 }
