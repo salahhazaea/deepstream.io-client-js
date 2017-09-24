@@ -80,12 +80,11 @@ Record.prototype.set = function (pathOrData, dataOrNil) {
   if (this.isReady) {
     this._sendUpdate()
   } else {
-    this._patchQueue = path && this._patchQueue || []
+    this._patchQueue = (path && this._patchQueue) || []
     this._patchQueue.push(path, data)
     this._hasPendingUpdate = true
   }
 
-  this._cache.set(this.name, [ this.version, this._data ])
   this.isStale = false
 
   return this.whenReady()
@@ -114,7 +113,6 @@ Record.prototype.merge = function (data) {
     this._hasPendingUpdate = true
   }
 
-  this._cache.set(this.name, [ this.version, this._data ])
   this.isStale = false
 
   return this.whenReady()
@@ -189,6 +187,8 @@ Record.prototype.discard = function () {
   invariant(this.usages !== 0, `"discard" cannot use discarded record ${this.name}`)
 
   this.usages = Math.max(0, this.usages - 1)
+
+  this._cache.set(this.name, [ this.version, this._data ])
 }
 
 Record.prototype._$destroy = function () {
@@ -265,8 +265,6 @@ Record.prototype._onUpdate = function (data) {
 
   this.version = version
   this._applyChange(jsonPath.set(this._data, undefined, value))
-
-  this._cache.set(this.name, [ this.version, this._data ])
 }
 
 Record.prototype._onRead = function (data) {
@@ -295,7 +293,6 @@ Record.prototype._onRead = function (data) {
 
   this.emit('ready')
 
-  this._cache.set(this.name, [ this.version, this._data ])
   this.isStale = false
 }
 

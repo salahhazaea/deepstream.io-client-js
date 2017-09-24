@@ -155,7 +155,7 @@ RecordHandler.prototype.observe = function (name, waitForProvider) {
     })
 
   if (waitForProvider) {
-    value$.combineLatest(this.hasProvider(name).first(x => x), value => value)
+    return value$.combineLatest(this.hasProvider(name).first(x => x), value => value)
   }
 
   return value$
