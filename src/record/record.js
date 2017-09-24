@@ -231,7 +231,7 @@ Record.prototype._sendRead = function () {
   if (this.isSubscribed || this._connection.getState() !== C.CONNECTION_STATE.OPEN) {
     return
   }
-  this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.READ, [this.name])
+  this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.READ, [ this.name, this.version ])
   this.isSubscribed = true
 }
 
@@ -250,7 +250,7 @@ Record.prototype._sendUpdate = function () {
 Record.prototype._onUpdate = function (data) {
   const version = data[1]
 
-  if (utils.isSameOrNewer(this.version, version)) {
+  if (!version || utils.isSameOrNewer(this.version, version)) {
     return
   }
 
@@ -265,7 +265,7 @@ Record.prototype._onUpdate = function (data) {
 Record.prototype._onRead = function (data) {
   const oldValue = typeof data[2] === 'string'
     ? JSON.parse(lz.decompressFromUTF16(data[2]))
-    : data[2]
+    : (data[2] || this._data)
 
   let newValue = oldValue
   if (this._patchQueue) {
@@ -276,7 +276,7 @@ Record.prototype._onRead = function (data) {
   }
 
   this.isReady = true
-  this.version = data[1]
+  this.version = data[1] || this.version
 
   this._applyChange(newValue)
 
