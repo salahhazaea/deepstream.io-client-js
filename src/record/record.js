@@ -263,7 +263,7 @@ Record.prototype._onUpdate = function (data) {
 }
 
 Record.prototype._onRead = function (data) {
-  let oldValue = typeof data[2] === 'string'
+  const oldValue = typeof data[2] === 'string'
     ? JSON.parse(lz.decompressFromUTF16(data[2]))
     : data[2]
 
