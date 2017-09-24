@@ -23,7 +23,6 @@ const Record = function (name, connection, client, cache) {
   this.isDestroyed = false
   this.isSubscribed = false
   this.isReady = false
-  this.isStale = true
   this.hasProvider = false
   this.version = version
 
@@ -85,8 +84,6 @@ Record.prototype.set = function (pathOrData, dataOrNil) {
     this._hasPendingUpdate = true
   }
 
-  this.isStale = false
-
   return this.whenReady()
 }
 
@@ -112,8 +109,6 @@ Record.prototype.merge = function (data) {
     }
     this._hasPendingUpdate = true
   }
-
-  this.isStale = false
 
   return this.whenReady()
 }
@@ -292,8 +287,6 @@ Record.prototype._onRead = function (data) {
   this._hasPendingUpdate = false
 
   this.emit('ready')
-
-  this.isStale = false
 }
 
 Record.prototype._applyChange = function (newData) {
