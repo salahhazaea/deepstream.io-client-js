@@ -14,7 +14,7 @@ const RecordHandler = function (options, connection, client) {
   this._recordsMap = new Map()
   this._recordsVec = []
   this._listeners = new Map()
-  this._cache = new LRU({ max: 2e3 })
+  this._cache = new LRU({ max: options.cacheSize || 512 })
 
   this._prune = this._prune.bind(this)
   this._prune()
