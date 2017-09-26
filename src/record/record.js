@@ -71,14 +71,14 @@ Record.prototype.set = function (pathOrData, dataOrNil) {
     return Promise.resolve()
   }
 
-  this._applyChange(newValue)
-
   if (this.isReady) {
-    this._sendUpdate()
+    this._sendUpdate(newValue)
   } else {
     this._patchQueue = (path && this._patchQueue) || []
     this._patchQueue.push(path, data)
   }
+
+  this._applyChange(newValue)
 
   return this.whenReady()
 }
@@ -94,16 +94,16 @@ Record.prototype.merge = function (data) {
     return Promise.resolve()
   }
 
-  this._applyChange(newValue)
-
   if (this.isReady) {
-    this._sendUpdate()
+    this._sendUpdate(newValue)
   } else {
     this._patchQueue = this._patchQueue || []
     for (const key of Object.keys(data)) {
       this._patchQueue.push(key, data[key])
     }
   }
+
+  this._applyChange(newValue)
 
   return this.whenReady()
 }
@@ -221,13 +221,13 @@ Record.prototype._sendRead = function () {
   this.isSubscribed = true
 }
 
-Record.prototype._sendUpdate = function () {
+Record.prototype._sendUpdate = function (newValue) {
   const start = this.version ? parseInt(this.version.split('-', 1)[0]) : 0
   const version = `${start + 1}-${xuid()}`
   this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.UPDATE, [
     this.name,
     version,
-    lz.compressToUTF16(JSON.stringify(this._data)),
+    lz.compressToUTF16(JSON.stringify(newValue)),
     this.version
   ])
   this.version = version
@@ -264,11 +264,11 @@ Record.prototype._onRead = function (data) {
   this.isReady = true
   this.version = data[1]
 
-  this._applyChange(newValue)
-
   if (newValue !== oldValue) {
-    this._sendUpdate()
+    this._sendUpdate(newValue)
   }
+
+  this._applyChange(newValue)
 
   this.emit('ready')
 }
