@@ -124,7 +124,7 @@ EventHandler.prototype._sendSubcribe = function () {
   if (this._isSubscribed || this._connection.getState() !== C.CONNECTION_STATE.OPEN) {
     return
   }
-  for (const eventName in this._emitter.eventNames()) {
+  for (const eventName of this._emitter.eventNames()) {
     this._connection.sendMsg(C.TOPIC.EVENT, C.ACTIONS.SUBSCRIBE, [ eventName ])
   }
 }
