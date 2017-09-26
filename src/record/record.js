@@ -231,7 +231,7 @@ Record.prototype._sendRead = function () {
   if (this.isSubscribed || this._connection.getState() !== C.CONNECTION_STATE.OPEN) {
     return
   }
-  this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.READ, [ this.name, this.version || '' ])
+  this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.READ, [ this.name ])
   this.isSubscribed = true
 }
 
@@ -265,7 +265,7 @@ Record.prototype._onUpdate = function (data) {
 Record.prototype._onRead = function (data) {
   const oldValue = typeof data[2] === 'string'
     ? JSON.parse(lz.decompressFromUTF16(data[2]))
-    : (data[2] || this._data)
+    : data[2]
 
   let newValue = oldValue
   if (this._patchQueue) {
@@ -276,7 +276,7 @@ Record.prototype._onRead = function (data) {
   }
 
   this.isReady = true
-  this.version = data[1] || this.version
+  this.version = data[1]
 
   this._applyChange(newValue)
 
