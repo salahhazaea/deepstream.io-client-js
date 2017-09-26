@@ -26,7 +26,6 @@ const Record = function (name, connection, client, cache) {
   this.hasProvider = false
   this.version = version
 
-  this._hasPendingUpdate = false
   this._connection = connection
   this._client = client
   this._eventEmitter = new EventEmitter()
@@ -79,7 +78,6 @@ Record.prototype.set = function (pathOrData, dataOrNil) {
   } else {
     this._patchQueue = (path && this._patchQueue) || []
     this._patchQueue.push(path, data)
-    this._hasPendingUpdate = true
   }
 
   return this.whenReady()
@@ -105,7 +103,6 @@ Record.prototype.merge = function (data) {
     for (const key of Object.keys(data)) {
       this._patchQueue.push(key, data[key])
     }
-    this._hasPendingUpdate = true
   }
 
   return this.whenReady()
@@ -195,8 +192,6 @@ Record.prototype._$destroy = function () {
   this._eventEmitter.off()
 
   this.off()
-
-  return true
 }
 
 Record.prototype._$onMessage = function (message) {
@@ -274,8 +269,6 @@ Record.prototype._onRead = function (data) {
   if (newValue !== oldValue) {
     this._sendUpdate()
   }
-
-  this._hasPendingUpdate = false
 
   this.emit('ready')
 }
