@@ -34,8 +34,6 @@ const Record = function (name, connection, client, cache) {
   this._data = _data
   this._patchQueue = null
 
-  this._deferred = null
-
   this._handleConnectionStateChange = this._handleConnectionStateChange.bind(this)
 
   this._client.on('connectionStateChanged', this._handleConnectionStateChange)
@@ -171,11 +169,6 @@ Record.prototype.whenReady = function () {
 
 Record.prototype.acquire = function () {
   this.usages += 1
-
-  if (this._deferred) {
-    this._onRead(this._deferred)
-    this._deferred = null
-  }
 }
 
 Record.prototype.discard = function () {
@@ -214,9 +207,7 @@ Record.prototype._$onMessage = function (message) {
   }
 
   if (message.action === C.ACTIONS.UPDATE) {
-    if (this.usages === 0 && !this._hasPendingUpdate) {
-      this._deferred = message.data
-    } else if (!this.isReady) {
+    if (!this.isReady) {
       this._onRead(message.data)
     } else {
       this._onUpdate(message.data)
