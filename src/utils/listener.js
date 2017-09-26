@@ -88,11 +88,17 @@ Listener.prototype._$onMessage = function (message) {
       }
     }
     provider.patternSubscription = Observable
-      .defer(() => {
-        const value$ = this._callback(name)
-        return this.recursive ? value$ : Promise.resolve(value$)
-      })
-      .map(value$ => value$ && value$.subscribe && value$)
+      .defer(() => Promise.resolve(this._callback(name)))
+      // recursive=false: Observable<T>|value|null
+      // recursive=true: Observable< Observable<T>|value|null >
+      .map(value => value == null || value.subscribe ? value : Observable.of(value))
+      // recursive=false: Observable<T|value>|null
+      // recursive=true: Observable< Observable<T>|value|null >
+      .switchMap(value$ => recursive ? value$ : Observable.of(value$))
+      // recursive=false: Observable<T|value|null>
+      // recursive=true: Observable<T>|value|null
+      .map(value$ => value$ == null || value$.subscribe ? value$ : Observable.of(value$))
+      // Observable<T|value>|null
       .subscribe({
         next: value$ => {
           if (value$) {
