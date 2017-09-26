@@ -94,7 +94,7 @@ Listener.prototype._$onMessage = function (message) {
       .map(value => value == null || value.subscribe ? value : Observable.of(value))
       // recursive=false: Observable<T|value>|null
       // recursive=true: Observable< Observable<T>|value|null >
-      .switchMap(value$ => recursive ? value$ : Observable.of(value$))
+      .switchMap(value$ => this.recursive ? value$ : Observable.of(value$))
       // recursive=false: Observable<T|value|null>
       // recursive=true: Observable<T>|value|null
       .map(value$ => value$ == null || value$.subscribe ? value$ : Observable.of(value$))
