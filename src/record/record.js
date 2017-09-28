@@ -30,6 +30,7 @@ const Record = function (name, connection, client, cache) {
   this._client = client
   this._eventEmitter = new EventEmitter()
 
+  this._stale = null
   this._data = _data
   this._patchQueue = null
 
@@ -217,7 +218,12 @@ Record.prototype._sendRead = function () {
   if (this.isSubscribed || this._connection.getState() !== C.CONNECTION_STATE.OPEN) {
     return
   }
-  this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.READ, [ this.name ])
+  if (this.version) {
+    this._stale = this._data
+    this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.READ, [ this.name, this.version ])
+  } else {
+    this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.READ, [ this.name ])
+  }
   this.isSubscribed = true
 }
 
@@ -249,9 +255,16 @@ Record.prototype._onUpdate = function (data) {
 }
 
 Record.prototype._onRead = function (data) {
-  const oldValue = typeof data[2] === 'string'
-    ? JSON.parse(lz.decompressFromUTF16(data[2]))
-    : data[2]
+  let oldValue
+  if (!data[1]) {
+    oldValue = this._stale
+    this._stale = null
+  } else {
+    oldValue = typeof data[2] === 'string'
+      ? JSON.parse(lz.decompressFromUTF16(data[2]))
+      : data[2]
+    this.version = data[1]
+  }
 
   let newValue = oldValue
   if (this._patchQueue) {
@@ -262,7 +275,6 @@ Record.prototype._onRead = function (data) {
   }
 
   this.isReady = true
-  this.version = data[1]
 
   if (newValue !== oldValue) {
     this._sendUpdate(newValue)
