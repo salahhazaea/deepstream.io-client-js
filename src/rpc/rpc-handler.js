@@ -116,10 +116,6 @@ RpcHandler.prototype._sendProviding = function () {
   for (const name of this._providers.keys()) {
     this._connection.sendMsg(C.TOPIC.RPC, C.ACTIONS.SUBSCRIBE, [ name ])
   }
-  for (const [ , rpc ] of this._rpcs) {
-    rpc.callback('DISCONNECTED')
-  }
-  this._rpcs.clear()
 }
 
 RpcHandler.prototype._handleConnectionStateChange = function () {
@@ -128,6 +124,11 @@ RpcHandler.prototype._handleConnectionStateChange = function () {
   if (state === C.CONNECTION_STATE.OPEN) {
     this._sendProviding()
   } else if (state === C.CONNECTION_STATE.RECONNECTING) {
+    // TODO How should we handle this?
+    for (const [ , rpc ] of this._rpcs) {
+      rpc.callback('DISCONNECTED')
+    }
+    this._rpcs.clear()
     this._isProviding = false
   }
 }
