@@ -54,7 +54,10 @@ const Connection = function (client, url, options) {
   this._state = C.CONNECTION_STATE.CLOSED
   this._createEndpoint()
 
-  setInterval(() => this._handleMessages({ timeRemaining: () => 8 }), this._options.maxIdleTime)
+  setInterval(() => {
+    const end = Date.now() + 8
+    this._handleMessages({ timeRemaining: () => Math.max(0, end - Date.now()) })
+  }, this._options.maxIdleTime)
 }
 
 /**
