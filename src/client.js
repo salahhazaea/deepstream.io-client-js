@@ -6,7 +6,6 @@ const Connection = require('./message/connection')
 const EventHandler = require('./event/event-handler')
 const RpcHandler = require('./rpc/rpc-handler')
 const RecordHandler = require('./record/record-handler')
-const PresenceHandler = require('./presence/presence-handler')
 const defaultOptions = require('./default-options')
 const xuid = require('xuid')
 
@@ -36,13 +35,11 @@ const Client = function (url, options) {
   this.event = new EventHandler(this._options, this._connection, this)
   this.rpc = new RpcHandler(this._options, this._connection, this)
   this.record = new RecordHandler(this._options, this._connection, this)
-  this.presence = new PresenceHandler(this._options, this._connection, this)
 
   this._messageCallbacks = {}
   this._messageCallbacks[C.TOPIC.EVENT] = this.event._$handle.bind(this.event)
   this._messageCallbacks[C.TOPIC.RPC] = this.rpc._$handle.bind(this.rpc)
   this._messageCallbacks[C.TOPIC.RECORD] = this.record._$handle.bind(this.record)
-  this._messageCallbacks[C.TOPIC.PRESENCE] = this.presence._$handle.bind(this.presence)
   this._messageCallbacks[C.TOPIC.ERROR] = this._onErrorMessage.bind(this)
 }
 

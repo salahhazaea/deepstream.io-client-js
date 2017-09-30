@@ -234,7 +234,7 @@ Record.prototype._sendUpdate = function (newValue) {
     this.name,
     version,
     lz.compressToUTF16(JSON.stringify(newValue)),
-    this.version
+    this.version || ''
   ])
   this.version = version
 }
