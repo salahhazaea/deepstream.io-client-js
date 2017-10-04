@@ -174,7 +174,9 @@ Record.prototype.discard = function () {
 
   this.usages = Math.max(0, this.usages - 1)
 
-  this._cache.set(this.name, [ this.version, this._data ])
+  if (this.version) {
+    this._cache.set(this.name, [ this.version, this._data ])
+  }
 }
 
 Record.prototype._$destroy = function () {
