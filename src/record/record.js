@@ -220,7 +220,7 @@ Record.prototype._sendRead = function () {
   if (this.isSubscribed || this._connection.getState() !== C.CONNECTION_STATE.OPEN) {
     return
   }
-  if (this.version) {
+  if (this.version && parseInt(this.version.split('-', 1)[0]) > 0) {
     this._stale = this._data
     this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.READ, [ this.name, this.version ])
   } else {
