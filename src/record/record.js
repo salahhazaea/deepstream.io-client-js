@@ -228,8 +228,11 @@ Record.prototype._sendRead = function () {
 }
 
 Record.prototype._sendUpdate = function (newValue) {
-  const start = this.version ? parseInt(this.version.split('-', 1)[0]) : 0
-  const version = `${start + 1}-${xuid()}`
+  let start = this.version ? parseInt(this.version.split('-', 1)[0]) : 0
+
+  invariant(start >= 0, 'invalid version')
+
+  const version = `${start >= 0 ? start + 1 : 1}-${xuid()}`
   this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.UPDATE, [
     this.name,
     version,
