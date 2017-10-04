@@ -174,7 +174,7 @@ Record.prototype.discard = function () {
 
   this.usages = Math.max(0, this.usages - 1)
 
-  if (this.version) {
+  if (this._hasVersion()) {
     this._cache.set(this.name, [ this.version, this._data ])
   }
 }
@@ -216,11 +216,15 @@ Record.prototype._$onMessage = function (message) {
   }
 }
 
+Record.prototype._hasVersion = function () {
+  return this.version && parseInt(this.version.split('-', 1)[0]) > 0
+}
+
 Record.prototype._sendRead = function () {
   if (this.isSubscribed || this._connection.getState() !== C.CONNECTION_STATE.OPEN) {
     return
   }
-  if (this.version && parseInt(this.version.split('-', 1)[0]) > 0) {
+  if (this._hasVersion()) {
     this._stale = this._data
     this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.READ, [ this.name, this.version ])
   } else {
