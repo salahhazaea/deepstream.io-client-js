@@ -256,7 +256,7 @@ Record.prototype._onUpdate = function (data) {
 
 Record.prototype._onRead = function (data) {
   let oldValue
-  if (!data[1]) {
+  if (data[1] == null) {
     oldValue = this._stale
     this._stale = null
   } else {
