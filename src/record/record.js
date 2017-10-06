@@ -196,6 +196,17 @@ Record.prototype._hasVersion = function () {
   return this.version && parseInt(this.version.split('-', 1)[0]) > 0
 }
 
+Record.prototype._invariantVersion = function (opaque) {
+  invariant(this.version && typeof this.version === 'string', `${this.name} invalid version ${this.version} ${opaque}`)
+
+  if (!this.version || typeof this.version !== 'string') {
+    this.version = '0-0000000000'
+  }
+
+  const [start, rev] = this.version.split('-')
+  invariant((start === 'INF' || parseInt(start, 10) >= 0) && rev && rev.length === 14, `${this.name} invalid version ${this.version} ${opaque}`)
+}
+
 Record.prototype._sendRead = function () {
   if (this.isSubscribed || this._connection.getState() !== C.CONNECTION_STATE.OPEN) {
     return
@@ -211,12 +222,10 @@ Record.prototype._sendRead = function () {
 
 Record.prototype._sendUpdate = function (newValue) {
   invariant(this.isReady, `${this.name}  cannot update non-ready record`)
-  invariant(this.version && typeof this.version === 'string', `${this.name} invalid version ${this.version}`)
+
+  this._invariantVersion()
 
   let [start, rev] = this.version.split('-')
-
-  invariant(rev && rev.length === 14, `${this.name} invalid version ${this.version}`)
-  invariant(start !== 'INF' && !this.hasProvider, `${this.name} cannot update provided record`)
 
   if (start === 'INF' || this.hasProvider) {
     return
@@ -238,17 +247,8 @@ Record.prototype._sendUpdate = function (newValue) {
   ])
 
   this.version = version
-}
 
-Record.prototype._invariant = function (opaque) {
-  invariant(this.version && typeof this.version === 'string', `${this.name} invalid version ${this.version} ${opaque}`)
-
-  if (!this.version || typeof this.version !== 'string') {
-    this.version = '0-0000000000'
-  }
-
-  const [start, rev] = this.version.split('-')
-  invariant((start === 'INF' || parseInt(start, 10) >= 0) && rev && rev.length === 14, `${this.name} invalid version ${this.version} ${opaque}`)
+  this._invariantVersion()
 }
 
 Record.prototype._onUpdate = function (data) {
@@ -264,7 +264,7 @@ Record.prototype._onUpdate = function (data) {
 
   this.version = version
 
-  this._invariant()
+  this._invariantVersion()
 
   this._applyChange(jsonPath.set(this._data, undefined, value))
 }
@@ -281,7 +281,7 @@ Record.prototype._onRead = function (data) {
     this.version = data[1]
   }
 
-  this._invariant(`[${data}]`)
+  this._invariantVersion(`[${data}]`)
 
   let newValue = oldValue
   if (this._patchQueue) {
