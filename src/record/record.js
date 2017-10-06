@@ -213,7 +213,7 @@ Record.prototype._sendUpdate = function (newValue) {
   invariant(this.isReady, `cannot update non-ready record ${this.name}`)
   invariant(this.version && typeof this.version === 'string', `invalid version ${this.version}`)
 
-  let [ start, rev ] = this.version.split('-', 1)
+  let [ start, rev ] = this.version.split('-')
 
   invariant(rev.length === 14, `invalid version ${this.version}`)
   invariant(start !== 'INF' && !this.hasProvider, `cannot update provided record ${this.name}`)
@@ -273,8 +273,8 @@ Record.prototype._onRead = function (data) {
     this.version = '0-0000000000'
   }
 
-  const [ start, rev ] = this.version.split('-', 1)
-  invariant(parseInt(start, 10) >= 0 && rev.length === 14, `invalid version ${this.version}`)
+  const [ start, rev ] = this.version.split('-')
+  invariant(parseInt(start, 10) >= 0 && rev && rev.length === 14, `invalid version ${this.version}`)
 
   let newValue = oldValue
   if (this._patchQueue) {
