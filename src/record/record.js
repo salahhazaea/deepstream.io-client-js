@@ -254,7 +254,7 @@ Record.prototype._sendUpdate = function (newValue) {
 Record.prototype._onUpdate = function (data) {
   const version = data[1]
 
-  if (!version || utils.isSameOrNewer(this.version, version)) {
+  if (typeof version !== 'string' || utils.isSameOrNewer(this.version, version)) {
     return
   }
 
@@ -264,7 +264,7 @@ Record.prototype._onUpdate = function (data) {
 
   this.version = version
 
-  this._invariantVersion()
+  this._invariantVersion(`[${data}]`)
 
   this._applyChange(jsonPath.set(this._data, undefined, value))
 }
