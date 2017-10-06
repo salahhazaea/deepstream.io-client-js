@@ -224,7 +224,7 @@ Record.prototype._sendUpdate = function (newValue) {
 
   start = start >= 0 ? start : 0
 
-  let version = `${start + 1}-${xuid()}`
+  const version = `${start + 1}-${xuid()}`
 
   this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.UPDATE, [
     this.name,
