@@ -215,7 +215,7 @@ Record.prototype._sendUpdate = function (newValue) {
 
   let [ start, rev ] = this.version.split('-')
 
-  invariant(rev.length === 14, `invalid version ${this.version}`)
+  invariant(rev && rev.length === 14, `invalid version ${this.version}`)
   invariant(start !== 'INF' && !this.hasProvider, `cannot update provided record ${this.name}`)
 
   if (start === 'INF' || this.hasProvider) {
