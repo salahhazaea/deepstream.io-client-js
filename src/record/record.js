@@ -16,7 +16,7 @@ const Record = function (name, connection, client, cache) {
 
   this._cache = cache
 
-  const [ version, _data ] = this._cache.get(name) || [ null, null ]
+  const [version, _data] = this._cache.get(name) || [null, null]
 
   this.name = name
   this.usages = 0
@@ -151,7 +151,7 @@ Record.prototype.discard = function () {
   this.usages = Math.max(0, this.usages - 1)
 
   if (this._hasVersion()) {
-    this._cache.set(this.name, [ this.version, this._data ])
+    this._cache.set(this.name, [this.version, this._data])
   }
 }
 
@@ -202,9 +202,9 @@ Record.prototype._sendRead = function () {
   }
   if (this._hasVersion()) {
     this._stale = this._data
-    this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.READ, [ this.name, this.version ])
+    this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.READ, [this.name, this.version])
   } else {
-    this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.READ, [ this.name ])
+    this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.READ, [this.name])
   }
   this.isSubscribed = true
 }
@@ -213,7 +213,7 @@ Record.prototype._sendUpdate = function (newValue) {
   invariant(this.isReady, `cannot update non-ready record ${this.name}`)
   invariant(this.version && typeof this.version === 'string', `invalid version ${this.version}`)
 
-  let [ start, rev ] = this.version.split('-')
+  let [start, rev] = this.version.split('-')
 
   invariant(rev && rev.length === 14, `invalid version ${this.version}`)
   invariant(start !== 'INF' && !this.hasProvider, `cannot update provided record ${this.name}`)
