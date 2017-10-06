@@ -214,7 +214,7 @@ Record.prototype._sendUpdate = function (newValue) {
 
   invariant(start !== 'INF' && !this.hasProvider, `cannot update provided record ${this.name}`)
 
-  if (start === 'INF') {
+  if (start === 'INF' || this.hasProvider) {
     return
   }
 
