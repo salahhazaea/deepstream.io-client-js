@@ -218,7 +218,7 @@ Record.prototype._sendUpdate = function (newValue) {
     return
   }
 
-  start = parseInt(version, 10)
+  start = parseInt(start, 10)
 
   invariant(start >= 0, `invalid version ${start}`)
 
