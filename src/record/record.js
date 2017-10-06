@@ -210,7 +210,7 @@ Record.prototype._sendRead = function () {
 }
 
 Record.prototype._sendUpdate = function (newValue) {
-  let start = this.version.split('-', 1)[0]
+  let start = this.version ? this.version.split('-', 1)[0] : 0
 
   invariant(start !== 'INF' && !this.hasProvider, `cannot update provided record ${this.name}`)
 
