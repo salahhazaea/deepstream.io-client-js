@@ -274,7 +274,7 @@ Record.prototype._onRead = function (data) {
   }
 
   const [ start, rev ] = this.version.split('-')
-  invariant(parseInt(start, 10) >= 0 && rev && rev.length === 14, `invalid version ${this.version}`)
+  invariant((start === 'INF' || parseInt(start, 10) >= 0) && rev && rev.length === 14, `invalid version ${this.version}`)
 
   let newValue = oldValue
   if (this._patchQueue) {
