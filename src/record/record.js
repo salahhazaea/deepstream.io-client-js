@@ -240,6 +240,17 @@ Record.prototype._sendUpdate = function (newValue) {
   this.version = version
 }
 
+Record.prototype._invariant = function () {
+  invariant(this.version && typeof this.version === 'string', `invalid version ${this.version}`)
+
+  if (!this.version || typeof this.version !== 'string') {
+    this.version = '0-0000000000'
+  }
+
+  const [start, rev] = this.version.split('-')
+  invariant((start === 'INF' || parseInt(start, 10) >= 0) && rev && rev.length === 14, `invalid version ${this.version}`)
+}
+
 Record.prototype._onUpdate = function (data) {
   const version = data[1]
 
@@ -252,6 +263,9 @@ Record.prototype._onUpdate = function (data) {
     : data[2]
 
   this.version = version
+
+  this._invariant()
+
   this._applyChange(jsonPath.set(this._data, undefined, value))
 }
 
@@ -267,14 +281,7 @@ Record.prototype._onRead = function (data) {
     this.version = data[1]
   }
 
-  invariant(this.version && typeof this.version === 'string', `invalid version ${this.version}`)
-
-  if (!this.version || typeof this.version !== 'string') {
-    this.version = '0-0000000000'
-  }
-
-  const [ start, rev ] = this.version.split('-')
-  invariant((start === 'INF' || parseInt(start, 10) >= 0) && rev && rev.length === 14, `invalid version ${this.version}`)
+  this._invariant()
 
   let newValue = oldValue
   if (this._patchQueue) {
