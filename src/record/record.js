@@ -51,6 +51,7 @@ Record.prototype.get = function (path) {
 
 Record.prototype.set = function (pathOrData, dataOrNil) {
   invariant(this.usages !== 0, `"set" cannot use discarded record ${this.name}`)
+  invariant(!this.hasProvider, `"set" cannot be called on provided record ${this.name}`)
 
   if (this.usages === 0) {
     return Promise.resolve()
@@ -77,31 +78,6 @@ Record.prototype.set = function (pathOrData, dataOrNil) {
   } else {
     this._patchQueue = (path && this._patchQueue) || []
     this._patchQueue.push(path, data)
-  }
-
-  this._applyChange(newValue)
-
-  return this.whenReady()
-}
-
-Record.prototype.merge = function (data) {
-  let newValue = this._data
-
-  for (const key of Object.keys(data)) {
-    newValue = jsonPath.set(newValue, key, data[key])
-  }
-
-  if (newValue === this._data) {
-    return Promise.resolve()
-  }
-
-  if (this.isReady) {
-    this._sendUpdate(newValue)
-  } else {
-    this._patchQueue = this._patchQueue || []
-    for (const key of Object.keys(data)) {
-      this._patchQueue.push(key, data[key])
-    }
   }
 
   this._applyChange(newValue)
@@ -234,17 +210,29 @@ Record.prototype._sendRead = function () {
 }
 
 Record.prototype._sendUpdate = function (newValue) {
-  let start = this.version ? parseInt(this.version.split('-', 1)[0]) : 0
+  let start = this.version.split('-', 1)[0]
 
-  invariant(start >= 0, 'invalid version')
+  invariant(start !== 'INF' && !this.hasProvider, `cannot update provided record ${this.name}`)
 
-  const version = `${start >= 0 ? start + 1 : 1}-${xuid()}`
+  if (start === 'INF') {
+    return
+  }
+
+  start = parseInt(version, 10)
+
+  invariant(start >= 0, `invalid version ${start}`)
+
+  start = start >= 0 ? start : 0
+
+  let version = `${start + 1}-${xuid()}`
+
   this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.UPDATE, [
     this.name,
     version,
     lz.compressToUTF16(JSON.stringify(newValue)),
     this.version || ''
   ])
+
   this.version = version
 }
 
