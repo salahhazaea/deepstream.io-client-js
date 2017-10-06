@@ -1,11 +1,10 @@
-'use strict'
-
 const Record = require('./record')
 const Listener = require('../utils/listener')
 const C = require('../constants/constants')
 const Rx = require('rxjs')
 const utils = require('../utils/utils')
 const LRU = require('lru-cache')
+const invariant = require('invariant')
 
 const RecordHandler = function (options, connection, client) {
   this._options = options
@@ -44,6 +43,8 @@ RecordHandler.prototype._prune = function () {
 }
 
 RecordHandler.prototype.getRecord = function (name) {
+  invariant(typeof name === 'string' && name.length > 0 && !name.includes('[object Object]'), `invalid name ${name}`)
+
   let record = this._recordsMap.get(name)
 
   if (!record) {
@@ -145,12 +146,16 @@ RecordHandler.prototype.update = function (name, pathOrUpdater, updaterOrNil) {
 RecordHandler.prototype.observe = function (name, waitForProvider) {
   let value$ = Rx.Observable
     .create(o => {
-      const record = this.getRecord(name)
-      const onValue = value => o.next(value)
-      record.subscribe(onValue, true)
-      return () => {
-        record.unsubscribe(onValue)
-        record.discard()
+      try {
+        const record = this.getRecord(name)
+        const onValue = value => o.next(value)
+        record.subscribe(onValue, true)
+        return () => {
+          record.unsubscribe(onValue)
+          record.discard()
+        }
+      } catch (err) {
+        o.error(err)
       }
     })
 
@@ -164,13 +169,17 @@ RecordHandler.prototype.observe = function (name, waitForProvider) {
 RecordHandler.prototype.hasProvider = function (name) {
   return Rx.Observable
     .create(o => {
-      const record = this.getRecord(name)
-      const onValue = value => o.next(value)
-      record.on('hasProviderChanged', onValue)
-      onValue(record.hasProvider)
-      return () => {
-        record.off('hasProviderChanged', onValue)
-        record.discard()
+      try {
+        const record = this.getRecord(name)
+        const onValue = value => o.next(value)
+        record.on('hasProviderChanged', onValue)
+        onValue(record.hasProvider)
+        return () => {
+          record.off('hasProviderChanged', onValue)
+          record.discard()
+        }
+      } catch (err) {
+        o.error(err)
       }
     })
 }

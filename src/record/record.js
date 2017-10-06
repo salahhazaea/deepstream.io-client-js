@@ -10,7 +10,7 @@ const invariant = require('invariant')
 const lz = require('@nxtedition/lz-string')
 
 const Record = function (name, connection, client, cache) {
-  if (typeof name !== 'string' || name.length === 0) {
+  if (typeof name !== 'string' || name.length === 0 || name.includes('[object Object]')) {
     throw new Error('invalid argument name')
   }
 
@@ -44,16 +44,16 @@ const Record = function (name, connection, client, cache) {
 EventEmitter(Record.prototype)
 
 Record.prototype.get = function (path) {
-  invariant(this.usages !== 0, `"get" cannot use discarded record ${this.name}`)
+  invariant(this.usages !== 0, `${this.name} "get" cannot use discarded record`)
 
   return jsonPath.get(this._data, path)
 }
 
 Record.prototype.set = function (pathOrData, dataOrNil) {
-  invariant(this.usages !== 0, `"set" cannot use discarded record ${this.name}`)
-  invariant(!this.hasProvider, `"set" cannot be called on provided record ${this.name}`)
+  invariant(this.usages !== 0, `${this.name} "set" cannot use discarded record`)
+  invariant(!this.hasProvider, `${this.name} "set" cannot be called on provided record`)
 
-  if (this.usages === 0) {
+  if (this.usages === 0 || this.hasProvider) {
     return Promise.resolve()
   }
 
@@ -86,7 +86,7 @@ Record.prototype.set = function (pathOrData, dataOrNil) {
 }
 
 Record.prototype.subscribe = function (path, callback, triggerNow) {
-  invariant(this.usages !== 0, `"subscribe" cannot use discarded record ${this.name}`)
+  invariant(this.usages !== 0, `${this.name} "subscribe" cannot use discarded record`)
 
   if (this.usages === 0) {
     return
@@ -109,7 +109,7 @@ Record.prototype.subscribe = function (path, callback, triggerNow) {
 }
 
 Record.prototype.unsubscribe = function (pathOrCallback, callback) {
-  invariant(this.usages !== 0, `"unsubscribe" cannot use discarded record ${this.name}`)
+  invariant(this.usages !== 0, `${this.name} "unsubscribe" cannot use discarded record`)
 
   if (this.usages === 0) {
     return
@@ -128,7 +128,7 @@ Record.prototype.unsubscribe = function (pathOrCallback, callback) {
 }
 
 Record.prototype.whenReady = function () {
-  invariant(this.usages !== 0, `"whenReady" cannot use discarded record ${this.name}`)
+  invariant(this.usages !== 0, `${this.name} "whenReady" cannot use discarded record`)
 
   if (this.usages === 0) {
     return Promise.reject(new Error('discarded'))
@@ -146,7 +146,7 @@ Record.prototype.acquire = function () {
 }
 
 Record.prototype.discard = function () {
-  invariant(this.usages !== 0, `"discard" cannot use discarded record ${this.name}`)
+  invariant(this.usages !== 0, `${this.name} "discard" cannot use discarded record`)
 
   this.usages = Math.max(0, this.usages - 1)
 
@@ -156,8 +156,8 @@ Record.prototype.discard = function () {
 }
 
 Record.prototype._$destroy = function () {
-  invariant(!this.isDestroyed, `"destroy" cannot use destroyed record ${this.name}`)
-  invariant(this.usages === 0 && this.isReady, `destroy cannot use active or not ready record ${this.name}`)
+  invariant(!this.isDestroyed, `${this.name} "destroy" cannot use destroyed record`)
+  invariant(this.usages === 0 && this.isReady, `${this.name} destroy cannot use active or not ready record`)
 
   if (this.isSubscribed) {
     this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.UNSUBSCRIBE, [this.name])
@@ -174,7 +174,7 @@ Record.prototype._$destroy = function () {
 }
 
 Record.prototype._$onMessage = function (message) {
-  invariant(!this.isDestroyed, `"_$onMessage" cannot use destroyed record ${this.name}`)
+  invariant(!this.isDestroyed, `${this.name} "_$onMessage" cannot use destroyed record`)
 
   if (this.isDestroyed) {
     return
@@ -210,13 +210,13 @@ Record.prototype._sendRead = function () {
 }
 
 Record.prototype._sendUpdate = function (newValue) {
-  invariant(this.isReady, `cannot update non-ready record ${this.name}`)
-  invariant(this.version && typeof this.version === 'string', `invalid version ${this.version}`)
+  invariant(this.isReady, `${this.name}  cannot update non-ready record`)
+  invariant(this.version && typeof this.version === 'string', `${this.name} invalid version ${this.version}`)
 
   let [start, rev] = this.version.split('-')
 
-  invariant(rev && rev.length === 14, `invalid version ${this.version}`)
-  invariant(start !== 'INF' && !this.hasProvider, `cannot update provided record ${this.name}`)
+  invariant(rev && rev.length === 14, `${this.name} invalid version ${this.version}`)
+  invariant(start !== 'INF' && !this.hasProvider, `${this.name} cannot update provided record`)
 
   if (start === 'INF' || this.hasProvider) {
     return
@@ -240,15 +240,15 @@ Record.prototype._sendUpdate = function (newValue) {
   this.version = version
 }
 
-Record.prototype._invariant = function () {
-  invariant(this.version && typeof this.version === 'string', `invalid version ${this.version}`)
+Record.prototype._invariant = function (opaque) {
+  invariant(this.version && typeof this.version === 'string', `${this.name} invalid version ${this.version} ${opaque}`)
 
   if (!this.version || typeof this.version !== 'string') {
     this.version = '0-0000000000'
   }
 
   const [start, rev] = this.version.split('-')
-  invariant((start === 'INF' || parseInt(start, 10) >= 0) && rev && rev.length === 14, `invalid version ${this.version}`)
+  invariant((start === 'INF' || parseInt(start, 10) >= 0) && rev && rev.length === 14, `${this.name} invalid version ${this.version} ${opaque}`)
 }
 
 Record.prototype._onUpdate = function (data) {
@@ -281,7 +281,7 @@ Record.prototype._onRead = function (data) {
     this.version = data[1]
   }
 
-  this._invariant()
+  this._invariant(`[${data}]`)
 
   let newValue = oldValue
   if (this._patchQueue) {

@@ -1,5 +1,3 @@
-'use strict'
-
 const C = require('../constants/constants')
 const xuid = require('xuid')
 const lz = require('@nxtedition/lz-string')
