@@ -6,7 +6,7 @@ module.exports = {
   maxReconnectInterval: 120000,
   maxReconnectAttempts: Infinity,
   maxMessagesPerPacket: 128,
-  sendDelay: 10,
+  sendDelay: 5,
   maxIdleTime: 500,
   path: '/deepstream'
 }
