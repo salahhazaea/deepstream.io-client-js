@@ -100,18 +100,14 @@ exports.parseUrl = function (url, defaultPath) {
 
 exports.requestIdleCallback = (!exports.isNode && window.requestIdleCallback && window.requestIdleCallback.bind(window)) ||
   function (fn) {
-    const start = Date.now()
-    return setTimeout(function () {
-      fn({
-        didTimeout: false,
-        timeRemaining: function () {
-          return Math.max(0, 50 - (Date.now() - start))
-        }
-      })
-    }, 1)
+    fn({
+      didTimeout: false,
+      timeRemaining: function () {
+        return Number.Infinity
+      }
+    })
   }
 
 exports.cancelIdleCallback = (!exports.isNode && window.cancelIdleCallback && window.cancelIdleCallback.bind(window)) ||
   function (id) {
-    clearTimeout(id)
   }
