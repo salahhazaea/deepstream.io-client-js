@@ -5,7 +5,7 @@ const messageParser = require('../message/message-parser')
 const C = require('../constants/constants')
 const Listener = require('../utils/listener')
 const EventEmitter = require('component-emitter2')
-const Rx = require('rxjs')
+const { Observable } = require('rxjs/Observable')
 
 const EventHandler = function (options, connection, client) {
   this._options = options
@@ -51,7 +51,7 @@ EventHandler.prototype.unsubscribe = function (name, callback) {
 }
 
 EventHandler.prototype.observe = function (name) {
-  return Rx.Observable
+  return Observable
     .create(o => {
       const onValue = value => o.next(value)
       this.subscribe(name, onValue)

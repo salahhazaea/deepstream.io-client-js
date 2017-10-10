@@ -1,7 +1,7 @@
 const Record = require('./record')
 const Listener = require('../utils/listener')
 const C = require('../constants/constants')
-const Rx = require('rxjs')
+const { Observable } = require('rxjs/Observable')
 const utils = require('../utils/utils')
 const LRU = require('lru-cache')
 const invariant = require('invariant')
@@ -144,7 +144,7 @@ RecordHandler.prototype.update = function (name, pathOrUpdater, updaterOrNil) {
 }
 
 RecordHandler.prototype.observe = function (name, waitForProvider) {
-  let value$ = Rx.Observable
+  let value$ = Observable
     .create(o => {
       try {
         const record = this.getRecord(name)
