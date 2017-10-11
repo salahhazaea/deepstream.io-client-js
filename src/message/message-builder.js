@@ -14,7 +14,7 @@ const SEP = C.MESSAGE_PART_SEPERATOR
  *
  * @returns {String} deepstream message string
  */
-exports.getMsg = function (topic, action, data) {
+module.exports.getMsg = function (topic, action, data) {
   if (data && !(data instanceof Array)) {
     throw new Error('data must be an array')
   }
@@ -45,7 +45,7 @@ exports.getMsg = function (topic, action, data) {
  * @public
  * @returns {String} string representation of the value
  */
-exports.typed = function (value) {
+module.exports.typed = function (value) {
   const type = typeof value
 
   if (type === 'string') {

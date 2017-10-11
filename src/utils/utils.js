@@ -7,9 +7,9 @@ const unsupportedProtocol = /^http:|^https:/
 
 const NODE_ENV = process.env.NODE_ENV
 
-exports.isNode = typeof process !== 'undefined' && process.toString() === '[object process]'
+module.exports.isNode = typeof process !== 'undefined' && process.toString() === '[object process]'
 
-exports.deepFreeze = function (o) {
+module.exports.deepFreeze = function (o) {
   if (NODE_ENV === 'production') {
     return o
   }
@@ -22,32 +22,32 @@ exports.deepFreeze = function (o) {
 
   Object
     .getOwnPropertyNames(o)
-    .forEach(prop => exports.deepFreeze(o[prop]))
+    .forEach(prop => module.exports.deepFreeze(o[prop]))
 
   return o
 }
 
-exports.splitRev = function (s) {
+module.exports.splitRev = function (s) {
   const i = s.indexOf(`-`)
   const ver = s.slice(0, i)
   return [ ver === 'INF' ? Number.MAX_SAFE_INTEGER : parseInt(ver, 10), s.slice(i + 1) ]
 }
 
-exports.isSameOrNewer = function (a, b) {
-  const [ av, ar ] = a ? exports.splitRev(a) : [ 0, '00000000000000' ]
-  const [ bv, br ] = b ? exports.splitRev(b) : [ 0, '00000000000000' ]
+module.exports.isSameOrNewer = function (a, b) {
+  const [ av, ar ] = a ? module.exports.splitRev(a) : [ 0, '00000000000000' ]
+  const [ bv, br ] = b ? module.exports.splitRev(b) : [ 0, '00000000000000' ]
   return bv !== Number.MAX_SAFE_INTEGER && (av > bv || (av === bv && ar >= br))
 }
 
-exports.nextTick = function (fn) {
-  if (exports.isNode) {
+module.exports.nextTick = function (fn) {
+  if (module.exports.isNode) {
     process.nextTick(fn)
   } else {
     setTimeout(fn, 0)
   }
 }
 
-exports.shallowCopy = function (obj) {
+module.exports.shallowCopy = function (obj) {
   if (Array.isArray(obj)) {
     return obj.slice(0)
   }
@@ -64,7 +64,7 @@ exports.shallowCopy = function (obj) {
   return obj
 }
 
-exports.setTimeout = function (callback, timeoutDuration) {
+module.exports.setTimeout = function (callback, timeoutDuration) {
   if (timeoutDuration !== null) {
     return setTimeout(callback, timeoutDuration)
   } else {
@@ -72,7 +72,7 @@ exports.setTimeout = function (callback, timeoutDuration) {
   }
 }
 
-exports.setInterval = function (callback, intervalDuration) {
+module.exports.setInterval = function (callback, intervalDuration) {
   if (intervalDuration !== null) {
     return setInterval(callback, intervalDuration)
   } else {
@@ -80,7 +80,7 @@ exports.setInterval = function (callback, intervalDuration) {
   }
 }
 
-exports.parseUrl = function (url, defaultPath) {
+module.exports.parseUrl = function (url, defaultPath) {
   if (unsupportedProtocol.test(url)) {
     throw new Error('Only ws and wss are supported')
   }
@@ -98,7 +98,7 @@ exports.parseUrl = function (url, defaultPath) {
   return URL.format(serverUrl)
 }
 
-exports.requestIdleCallback = (!exports.isNode && window.requestIdleCallback && window.requestIdleCallback.bind(window)) ||
+module.exports.requestIdleCallback = (!module.exports.isNode && window.requestIdleCallback && window.requestIdleCallback.bind(window)) ||
   function (fn) {
     fn({
       didTimeout: false,
@@ -108,6 +108,6 @@ exports.requestIdleCallback = (!exports.isNode && window.requestIdleCallback && 
     })
   }
 
-exports.cancelIdleCallback = (!exports.isNode && window.cancelIdleCallback && window.cancelIdleCallback.bind(window)) ||
+module.exports.cancelIdleCallback = (!module.exports.isNode && window.cancelIdleCallback && window.cancelIdleCallback.bind(window)) ||
   function (id) {
   }
