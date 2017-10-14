@@ -69,11 +69,10 @@ Record.prototype.set = function (pathOrData, dataOrNil) {
 
   const newValue = jsonPath.set(this._data, path, data)
 
-  if (newValue === this._data) {
-    return Promise.resolve()
-  }
-
   if (this.isReady) {
+    if (newValue === this._data) {
+      return Promise.resolve()
+    }
     this._sendUpdate(newValue)
   } else {
     this._patchQueue = (path && this._patchQueue) || []
