@@ -225,7 +225,7 @@ Record.prototype._sendUpdate = function (newValue) {
 
   this._invariantVersion()
 
-  let [start, rev] = this.version.split('-')
+  let [ start ] = this.version.split('-')
 
   if (start === 'INF' || this.hasProvider) {
     return

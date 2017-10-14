@@ -113,13 +113,6 @@ RecordHandler.prototype.set = function (name, pathOrData, dataOrNil) {
   return promise
 }
 
-RecordHandler.prototype.merge = function (name, data) {
-  const record = this.getRecord(name)
-  const promise = record.merge(data)
-  record.discard()
-  return promise
-}
-
 RecordHandler.prototype.update = function (name, pathOrUpdater, updaterOrNil) {
   const path = arguments.length === 2 ? undefined : pathOrUpdater
   const updater = arguments.length === 2 ? pathOrUpdater : updaterOrNil
