@@ -16,7 +16,7 @@ const Record = function (name, connection, client, cache) {
 
   this._cache = cache
 
-  const [version, _data] = this._cache.get(name) || [null, null]
+  const [ version, _data ] = this._cache.get(name) || [null, null]
 
   this.name = name
   this.usages = 0
@@ -263,7 +263,7 @@ Record.prototype._onUpdate = function (data) {
 
   this.version = version
 
-  this._invariantVersion(`[${data}]`)
+  this._invariantVersion(`[${JSON.stringify(data)}]`)
 
   this._applyChange(jsonPath.set(this._data, undefined, value))
 }
@@ -280,7 +280,7 @@ Record.prototype._onRead = function (data) {
     this.version = data[1]
   }
 
-  this._invariantVersion(`[${data}]`)
+  this._invariantVersion(`[${JSON.stringify(data)}]`)
 
   let newValue = oldValue
   if (this._patchQueue) {
