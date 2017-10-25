@@ -327,7 +327,7 @@ Record.prototype._handleConnectionStateChange = function () {
 }
 
 Record.prototype._normalizeArguments = function (args) {
-  const result = Object.create(null)
+  const result = {}
 
   for (let i = 0; i < args.length; i++) {
     if (typeof args[i] === 'string') {

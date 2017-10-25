@@ -53,7 +53,7 @@ module.exports.shallowCopy = function (obj) {
   }
 
   if (typeof obj === 'object') {
-    const copy = Object.create(null)
+    const copy = {}
     const props = Object.keys(obj)
     for (let i = 0; i < props.length; i++) {
       copy[props[i]] = obj[props[i]]

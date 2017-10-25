@@ -4,7 +4,7 @@ const utils = require('../utils/utils')
 const PARTS_REG_EXP = /([^.[\]\s]+)/g
 
 const cache = new Map()
-const EMPTY = Object.create(null)
+const EMPTY = {}
 
 module.exports.get = function (data, path) {
   const tokens = module.exports.tokenize(path)
@@ -38,7 +38,7 @@ module.exports.set = function (data, path, value) {
     return data
   }
 
-  const result = data ? utils.shallowCopy(data) : Object.create(null)
+  const result = data ? utils.shallowCopy(data) : {}
 
   let node = result
   for (let i = 0; i < tokens.length; i++) {
@@ -49,7 +49,7 @@ module.exports.set = function (data, path, value) {
     } else if (tokens[i + 1] && !isNaN(tokens[i + 1])) {
       node = node[tokens[i]] = []
     } else {
-      node = node[tokens[i]] = Object.create(null)
+      node = node[tokens[i]] = {}
     }
   }
   return result
@@ -83,7 +83,7 @@ module.exports.patch = function (oldValue, newValue) {
         if (value === oldValue[props[i]]) {
           continue
         }
-        obj = Object.create(null)
+        obj = {}
         for (let j = 0; j < i; ++j) {
           obj[props[j]] = oldValue[props[j]]
         }
