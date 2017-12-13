@@ -10,8 +10,7 @@ const RecordHandler = function (options, connection, client) {
   this._options = options
   this._connection = connection
   this._client = client
-  this._recordsMap = new Map()
-  this._recordsVec = []
+  this._records = new Map()
   this._listeners = new Map()
   this._cache = new LRU({ max: options.cacheSize || 512 })
 
@@ -21,22 +20,21 @@ const RecordHandler = function (options, connection, client) {
 
 RecordHandler.prototype._prune = function () {
   utils.requestIdleCallback(() => {
-    let vec = this._recordsVec
-    let map = this._recordsMap
+    let now = Date.now()
 
-    let i = 0
-    let j = vec.length
-    while (i < j) {
-      if (vec[i].usages === 0 && vec[i].isReady) {
-        if (map.delete(vec[i].name)) {
-          vec[i]._$destroy()
+    for (const record of this._records.values()) {
+      if (record.usages === 0 && record.isReady) {
+        if (!record.timestamp) {
+          record.timestamp = now
+        } else if (now - record.timestamp > 2000) {
+          if (this._records.delete(record.name)) {
+            record._$destroy()
+          }
         }
-        vec[i] = vec[--j]
       } else {
-        ++i
+        record.timestamp = null
       }
     }
-    vec.splice(i)
 
     setTimeout(this._prune, 2000)
   })
@@ -45,12 +43,11 @@ RecordHandler.prototype._prune = function () {
 RecordHandler.prototype.getRecord = function (name) {
   invariant(typeof name === 'string' && name.length > 0 && !name.includes('[object Object]'), `invalid name ${name}`)
 
-  let record = this._recordsMap.get(name)
+  let record = this._records.get(name)
 
   if (!record) {
     record = new Record(name, this._connection, this._client, this._cache)
-    this._recordsMap.set(name, record)
-    this._recordsVec.push(record)
+    this._records.set(name, record)
   }
 
   record.acquire()
@@ -179,7 +176,7 @@ RecordHandler.prototype._$handle = function (message) {
     name = message.data[0]
   }
 
-  const record = this._recordsMap.get(name)
+  const record = this._records.get(name)
   if (record) {
     record._$onMessage(message)
   }
