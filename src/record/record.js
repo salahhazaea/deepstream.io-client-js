@@ -148,15 +148,15 @@ Record.prototype.discard = function () {
   invariant(this.usages !== 0, `${this.name} "discard" cannot use discarded record`)
 
   this.usages = Math.max(0, this.usages - 1)
-
-  if (this._hasVersion()) {
-    this._cache.set(this.name, [this.version, this._data])
-  }
 }
 
 Record.prototype._$destroy = function () {
   invariant(!this.isDestroyed, `${this.name} "destroy" cannot use destroyed record`)
   invariant(this.usages === 0 && this.isReady, `${this.name} destroy cannot use active or not ready record`)
+
+  if (this._hasVersion()) {
+    this._cache.set(this.name, [this.version, this._data])
+  }
 
   if (this.isSubscribed) {
     this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.UNSUBSCRIBE, [this.name])
@@ -192,7 +192,8 @@ Record.prototype._$onMessage = function (message) {
 }
 
 Record.prototype._hasVersion = function () {
-  return this.version && parseInt(this.version.split('-', 1)[0]) > 0
+  const version = this.version && this.version.split('-', 1)[0]
+  return version && (version === 'INF' || parseInt(version) > 0)
 }
 
 Record.prototype._invariantVersion = function () {
