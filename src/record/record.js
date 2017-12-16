@@ -9,12 +9,13 @@ const xuid = require('xuid')
 const invariant = require('invariant')
 const lz = require('@nxtedition/lz-string')
 
-const Record = function (name, connection, client, cache) {
+const Record = function (name, connection, client, cache, prune) {
   if (typeof name !== 'string' || name.length === 0 || name.includes('[object Object]')) {
     throw new Error('invalid argument name')
   }
 
   this._cache = cache
+  this._prune = prune
 
   const [ version, _data ] = this._cache.get(name) || [null, null]
 
@@ -148,6 +149,10 @@ Record.prototype.discard = function () {
   invariant(this.usages !== 0, `${this.name} "discard" cannot use discarded record`)
 
   this.usages = Math.max(0, this.usages - 1)
+
+  if (this.isReady && this.usages === 0) {
+    this._prune(this)
+  }
 }
 
 Record.prototype._$destroy = function () {
@@ -300,6 +305,10 @@ Record.prototype._onRead = function (data) {
   this._applyChange(newValue)
 
   this.emit('ready')
+
+  if (this.usages === 0) {
+    this._prune(this)
+  }
 }
 
 Record.prototype._applyChange = function (newData) {

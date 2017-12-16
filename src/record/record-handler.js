@@ -13,31 +13,24 @@ const RecordHandler = function (options, connection, client) {
   this._records = new Map()
   this._listeners = new Map()
   this._cache = new LRU({ max: options.cacheSize || 512 })
+  this._prune = new Map()
+  this._onPruneRecord = this._onPruneRecord.bind(this)
 
-  this._prune = this._prune.bind(this)
-  this._prune()
-}
-
-RecordHandler.prototype._prune = function () {
-  utils.requestIdleCallback(() => {
+  setInterval(() => {
     let now = Date.now()
 
-    for (const record of this._records.values()) {
-      if (record.usages === 0 && record.isReady) {
-        if (!record.timestamp) {
-          record.timestamp = now
-        } else if (now - record.timestamp > 2000) {
-          if (this._records.delete(record.name)) {
-            record._$destroy()
-          }
-        }
-      } else {
-        record.timestamp = null
+    for (const [ record, timestamp ] of this._prune) {
+      if (
+        record.usages === 0 &&
+        now - timestamp > 2000 &&
+        this._records.delete(record.name)
+      ) {
+        record._$destroy()
       }
     }
 
-    setTimeout(this._prune, 2000)
-  })
+    this._prune.clear()
+  }, 2000)
 }
 
 RecordHandler.prototype.getRecord = function (name) {
@@ -46,7 +39,13 @@ RecordHandler.prototype.getRecord = function (name) {
   let record = this._records.get(name)
 
   if (!record) {
-    record = new Record(name, this._connection, this._client, this._cache)
+    record = new Record(
+      name,
+      this._connection,
+      this._client,
+      this._cache,
+      record => this._prune.set(record, Date.now())
+    )
     this._records.set(name, record)
   }
 
