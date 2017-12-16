@@ -278,13 +278,14 @@ Record.prototype._onRead = function (data) {
   let oldValue
   if (data[1] == null) {
     oldValue = this._stale
-    this._stale = null
   } else {
     oldValue = typeof data[2] === 'string'
       ? JSON.parse(lz.decompressFromUTF16(data[2]))
       : data[2]
     this.version = data[1]
   }
+
+  this._stale = null
 
   this._invariantVersion()
 
