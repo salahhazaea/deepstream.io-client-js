@@ -13,7 +13,6 @@ const RecordHandler = function (options, connection, client) {
   this._listeners = new Map()
   this._cache = new LRU({ max: options.cacheSize || 512 })
   this._prune = new Map()
-  this._onPruneRecord = this._onPruneRecord.bind(this)
 
   setInterval(() => {
     let now = Date.now()
@@ -145,8 +144,8 @@ RecordHandler.prototype.observeRecord = function (name) {
         record.on('hasProviderChanged', onUpdate)
         record.on('ready', onUpdate)
         return () => {
-          record.off('hasProviderChanged', onUpdate)
           record.off('ready', onUpdate)
+          record.off('hasProviderChanged', onUpdate)
           record.unsubscribe(onUpdate)
           record.discard()
         }
