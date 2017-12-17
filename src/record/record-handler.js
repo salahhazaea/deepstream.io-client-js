@@ -156,8 +156,9 @@ RecordHandler.prototype.observeRecord = function (name) {
     })
     .distinctUntilChanged((a, b) =>
       a.data === b.data &&
-      a.isReady === b.isReady &&
-      a.hasProvider === b.hasProvider
+      a.version === b.version &&
+      a.ready === b.isReady &&
+      a.provided === b.provided
     )
 }
 
