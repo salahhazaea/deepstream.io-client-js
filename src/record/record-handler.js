@@ -2,7 +2,6 @@ const Record = require('./record')
 const Listener = require('../utils/listener')
 const C = require('../constants/constants')
 const { Observable } = require('rxjs/Observable')
-const utils = require('../utils/utils')
 const LRU = require('lru-cache')
 const invariant = require('invariant')
 
@@ -130,6 +129,36 @@ RecordHandler.prototype.update = function (name, pathOrUpdater, updaterOrNil) {
       record.discard()
       throw err
     })
+}
+
+RecordHandler.prototype.observeRecord = function (name) {
+  return Observable
+    .create(o => {
+      try {
+        const record = this.getRecord(name)
+        const onUpdate = () => o.next({
+          data: record.get(),
+          isReady: record.isReady,
+          hasProvider: record.hasProvider
+        })
+        record.subscribe(onUpdate, true)
+        record.on('hasProviderChanged', onUpdate)
+        record.on('ready', onUpdate)
+        return () => {
+          record.off('hasProviderChanged', onUpdate)
+          record.off('ready', onUpdate)
+          record.unsubscribe(onUpdate)
+          record.discard()
+        }
+      } catch (err) {
+        o.error(err)
+      }
+    })
+    .distinctUntilChanged((a, b) =>
+      a.data === b.data &&
+      a.isReady === b.isReady &&
+      a.hasProvider === b.hasProvider
+    )
 }
 
 RecordHandler.prototype.observe = function (name) {
