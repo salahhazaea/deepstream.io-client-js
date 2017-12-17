@@ -138,6 +138,7 @@ RecordHandler.prototype.observeRecord = function (name) {
         const onUpdate = () => o.next({
           data: record.get(),
           ready: record.isReady,
+          version: record.version,
           provided: record.hasProvider
         })
         record.subscribe(onUpdate, true)
