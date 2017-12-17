@@ -138,8 +138,8 @@ RecordHandler.prototype.observeRecord = function (name) {
         const record = this.getRecord(name)
         const onUpdate = () => o.next({
           data: record.get(),
-          isReady: record.isReady,
-          hasProvider: record.hasProvider
+          ready: record.isReady,
+          provided: record.hasProvider
         })
         record.subscribe(onUpdate, true)
         record.on('hasProviderChanged', onUpdate)
