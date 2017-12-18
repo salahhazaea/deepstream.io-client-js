@@ -190,9 +190,12 @@ Record.prototype._$onMessage = function (message) {
     } else {
       this._onUpdate(message.data)
     }
-  } else if (message.action === C.ACTIONS.SUBSCRIPTION_HAS_PROVIDER) {
-    this.hasProvider = messageParser.convertTyped(message.data[1], this._client)
-    this.emit('hasProviderChanged', this.hasProvider)
+
+    const hasProvider = this.isReady && this.version.startsWith('INF')
+    if (hasProvider !== this.hasProvider) {
+      this.hasProvider = hasProvider
+      this.emit('hasProviderChanged', this.hasProvider)
+    }
   }
 }
 
