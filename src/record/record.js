@@ -191,7 +191,7 @@ Record.prototype._$onMessage = function (message) {
       this._onUpdate(message.data)
     }
 
-    const hasProvider = this.isReady && this.version && this.version.startsWith('INF')
+    const hasProvider = this.isReady && this.version.startsWith('INF')
     if (hasProvider !== this.hasProvider) {
       this.hasProvider = hasProvider
       this.emit('hasProviderChanged', this.hasProvider)
