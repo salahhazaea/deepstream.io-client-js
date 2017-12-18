@@ -80,7 +80,9 @@ Record.prototype.set = function (pathOrData, dataOrNil) {
     this._patchQueue.push(path, data)
   }
 
-  this._applyChange(newValue)
+  const oldValue = this._data
+  this._data = utils.deepFreeze(newValue)
+  this._applyChange(this._data, oldValue)
 
   return this.whenReady()
 }
@@ -286,7 +288,9 @@ Record.prototype._onUpdate = function (data) {
 
   this._invariantVersion()
 
-  this._applyChange(jsonPath.set(this._data, undefined, value))
+  const oldValue = this._data
+  this._data = jsonPath.set(this._data, undefined, value)
+  this._applyChange(this._data, oldValue)
 }
 
 Record.prototype._onRead = function (data) {
@@ -318,19 +322,16 @@ Record.prototype._onRead = function (data) {
     this._sendUpdate(newValue)
   }
 
-  this._applyChange(newValue)
-
+  this._data = utils.deepFreeze(newValue)
   this.emit('ready')
+  this._applyChange(newValue, oldValue)
 
   if (this.usages === 0) {
     this._prune(this)
   }
 }
 
-Record.prototype._applyChange = function (newData) {
-  const oldData = this._data
-  this._data = utils.deepFreeze(newData)
-
+Record.prototype._applyChange = function (newData, oldData) {
   const paths = this._eventEmitter.eventNames()
   for (let i = 0; i < paths.length; i++) {
     const newValue = jsonPath.get(newData, paths[i])
