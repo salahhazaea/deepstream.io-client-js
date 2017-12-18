@@ -190,10 +190,25 @@ Record.prototype._$onMessage = function (message) {
     } else {
       this._onUpdate(message.data)
     }
+    if (this._isProvided()) {
+      this._updateHasProvider(true)
+    }
   } else if (message.action === C.ACTIONS.SUBSCRIPTION_HAS_PROVIDER) {
-    this.hasProvider = messageParser.convertTyped(message.data[1], this._client)
+    this._updateHasProvider(messageParser.convertTyped(message.data[1], this._client))
+  }
+}
+
+Record.prototype._updateHasProvider = function (hasProvider) {
+  hasProvider = hasProvider && this._isProvided()
+
+  if (this.hasProvider !== hasProvider) {
+    this.hasProvider = hasProvider
     this.emit('hasProviderChanged', this.hasProvider)
   }
+}
+
+Record.prototype._isProvided = function () {
+  return this.isReady && this.version && this.version.startsWith('INF')
 }
 
 Record.prototype._hasVersion = function () {
