@@ -307,14 +307,15 @@ Record.prototype._onRead = function (data) {
     this._patchQueue = null
   }
 
-  this.isReady = true
-
   if (newValue !== oldValue) {
     this._sendUpdate(newValue)
   }
 
   this._data = utils.deepFreeze(newValue)
+
+  this.isReady = true
   this.emit('ready')
+
   this._applyChange(newValue, oldValue)
 
   if (this.usages === 0) {
