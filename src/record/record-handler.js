@@ -130,38 +130,6 @@ RecordHandler.prototype.update = function (name, pathOrUpdater, updaterOrNil) {
     })
 }
 
-RecordHandler.prototype.observeRecord = function (name) {
-  return Observable
-    .create(o => {
-      try {
-        const record = this.getRecord(name)
-        const onUpdate = () => o.next({
-          data: record.get(),
-          ready: record.isReady,
-          version: record.version,
-          provided: record.hasProvider
-        })
-        record.subscribe(onUpdate, true)
-        record.on('hasProviderChanged', onUpdate)
-        record.on('ready', onUpdate)
-        return () => {
-          record.off('ready', onUpdate)
-          record.off('hasProviderChanged', onUpdate)
-          record.unsubscribe(onUpdate)
-          record.discard()
-        }
-      } catch (err) {
-        o.error(err)
-      }
-    })
-    .distinctUntilChanged((a, b) =>
-      a.data === b.data &&
-      a.version === b.version &&
-      a.ready === b.isReady &&
-      a.provided === b.provided
-    )
-}
-
 RecordHandler.prototype.observe = function (name) {
   return Observable
     .create(o => {
