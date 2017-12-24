@@ -285,39 +285,36 @@ Record.prototype._onUpdate = function (data) {
 }
 
 Record.prototype._onRead = function (data) {
-  let oldValue
+  let value
   if (data[1] == null) {
-    oldValue = this._stale
+    value = this._stale
   } else {
-    oldValue = typeof data[2] === 'string'
+    value = typeof data[2] === 'string'
       ? JSON.parse(lz.decompressFromUTF16(data[2]))
       : data[2]
     this.version = data[1]
+    this._invariantVersion()
   }
 
   this._stale = null
 
-  this._invariantVersion()
+  const oldValue = this._data
+  this._data = value
 
-  let newValue = oldValue
   if (this._patchQueue) {
     for (let i = 0; i < this._patchQueue.length; i += 2) {
-      newValue = jsonPath.set(newValue, this._patchQueue[i + 0], this._patchQueue[i + 1])
+      this._data = jsonPath.set(this._data, this._patchQueue[i + 0], this._patchQueue[i + 1])
     }
     this._patchQueue = null
   }
 
   this.isReady = true
-
-  if (newValue !== oldValue) {
-    this._sendUpdate(newValue)
-  }
-
-  this._data = utils.deepFreeze(newValue)
-
   this.emit('ready')
 
-  this._applyChange(newValue, oldValue)
+  if (this._data !== oldValue) {
+    this._sendUpdate(this._data)
+    this._applyChange(this._data, oldValue)
+  }
 
   if (this.usages === 0) {
     this._prune(this)
