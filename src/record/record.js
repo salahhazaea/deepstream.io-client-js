@@ -315,7 +315,7 @@ Record.prototype._onRead = function (data) {
     this._applyChange(this._data, oldValue)
   }
 
-  if (this._data !== oldValue && oldValue) {
+  if (this._data !== value) {
     this._sendUpdate(this._data)
   }
 
