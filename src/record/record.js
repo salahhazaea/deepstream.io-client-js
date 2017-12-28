@@ -312,8 +312,11 @@ Record.prototype._onRead = function (data) {
   this.emit('ready')
 
   if (this._data !== oldValue) {
-    this._sendUpdate(this._data)
     this._applyChange(this._data, oldValue)
+  }
+
+  if (this._data !== oldValue && oldValue) {
+    this._sendUpdate(this._data)
   }
 
   if (this.usages === 0) {
