@@ -153,7 +153,7 @@ Record.prototype.discard = function () {
   this.usages = Math.max(0, this.usages - 1)
 
   if (this.isReady && this.usages === 0) {
-    this._prune(this)
+    this._prune.set(this, Date.now())
   }
 }
 
@@ -320,7 +320,7 @@ Record.prototype._onRead = function (data) {
   }
 
   if (this.usages === 0) {
-    this._prune(this)
+    this._prune.set(this, Date.now())
   }
 }
 

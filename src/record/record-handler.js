@@ -46,7 +46,7 @@ RecordHandler.prototype.getRecord = function (name) {
       this._connection,
       this._client,
       this._cache,
-      record => this._prune.set(record, Date.now())
+      this._prune
     )
     this._records.set(name, record)
   }
