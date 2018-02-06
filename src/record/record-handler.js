@@ -16,7 +16,6 @@ const RecordHandler = function (options, connection, client) {
 
   setInterval(() => {
     let now = Date.now()
-    let prune = new Map()
 
     for (const [ record, timestamp ] of this._prune) {
       if (
@@ -24,14 +23,11 @@ const RecordHandler = function (options, connection, client) {
         record.isReady &&
         now - timestamp > 2000
       ) {
+        this._prune.delete(record)
         this._records.delete(record.name)
         record._$destroy()
-      } else {
-        prune.set(record, timestamp)
       }
     }
-
-    this._prune = prune
   }, 2000)
 }
 

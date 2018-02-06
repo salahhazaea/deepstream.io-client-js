@@ -145,6 +145,9 @@ Record.prototype.whenReady = function () {
 
 Record.prototype.acquire = function () {
   this.usages += 1
+  if (this.usages === 1) {
+    this._prune.delete(this)
+  }
 }
 
 Record.prototype.discard = function () {
@@ -152,7 +155,7 @@ Record.prototype.discard = function () {
 
   this.usages = Math.max(0, this.usages - 1)
 
-  if (this.isReady && this.usages === 0) {
+  if (this.usages === 0) {
     this._prune.set(this, Date.now())
   }
 }
@@ -317,10 +320,6 @@ Record.prototype._onRead = function (data) {
 
   if (this._data !== value) {
     this._sendUpdate(this._data)
-  }
-
-  if (this.usages === 0) {
-    this._prune.set(this, Date.now())
   }
 }
 
