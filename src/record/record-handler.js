@@ -147,6 +147,24 @@ RecordHandler.prototype.observe = function (name) {
     })
 }
 
+RecordHandler.prototype.isReady = function (name) {
+  return Observable
+    .create(o => {
+      try {
+        const record = this.getRecord(name)
+        const onReady = value => o.next(value)
+        record.on('ready', onReady)
+        onReady(record.isReady)
+        return () => {
+          record.off('ready', onReady)
+          record.discard()
+        }
+      } catch (err) {
+        o.error(err)
+      }
+    })
+}
+
 RecordHandler.prototype.hasProvider = function (name) {
   return Observable
     .create(o => {
