@@ -7,13 +7,19 @@ const C = require('../constants/constants')
 const messageParser = require('../message/message-parser')
 const xuid = require('xuid')
 const invariant = require('invariant')
-const lz = require('@nxtedition/lz-string')
 
-const Record = function (name, connection, client, cache, prune) {
+const Record = function (name, connection, client, cache, prune, lz) {
+  invariant(connection, 'missing connection')
+  invariant(client, 'missing client')
+  invariant(cache, 'missing cache')
+  invariant(prune, 'missing prune')
+  invariant(lz, 'missing lz')
+
   if (typeof name !== 'string' || name.length === 0 || name.includes('[object Object]')) {
     throw new Error('invalid argument name')
   }
 
+  this._lz = lz
   this._cache = cache
   this._prune = prune
 
@@ -253,16 +259,21 @@ Record.prototype._sendUpdate = function (newValue) {
 
   start = start >= 0 ? start : 0
 
-  const version = `${start + 1}-${xuid()}`
+  const name = this.name
+  const nextVersion = `${start + 1}-${xuid()}`
+  const prevVersion = this.version || ''
+  const connection = this._connection
 
-  this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.UPDATE, [
-    this.name,
-    version,
-    lz.compressToUTF16(JSON.stringify(newValue)),
-    this.version || ''
-  ])
+  this._lz.compress(newValue, raw => {
+    connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.UPDATE, [
+      name,
+      nextVersion,
+      raw,
+      prevVersion
+    ])
+  })
 
-  this.version = version
+  this.version = nextVersion
 
   this._invariantVersion()
 }
@@ -274,53 +285,60 @@ Record.prototype._onUpdate = function (data) {
     return
   }
 
-  const value = typeof data[2] === 'string'
-    ? JSON.parse(lz.decompressFromUTF16(data[2]))
-    : data[2]
+  this.acquire()
+  this._lz.decompress(data[2], value => {
+    this.discard()
 
-  this.version = version
+    if (utils.isSameOrNewer(this.version, version)) {
+      return
+    }
 
-  this._invariantVersion()
+    this.version = version
 
-  const oldValue = this._data
-  this._data = jsonPath.set(this._data, undefined, value)
-  this._applyChange(this._data, oldValue)
+    this._invariantVersion()
+
+    const oldValue = this._data
+    this._data = jsonPath.set(this._data, undefined, value)
+    this._applyChange(this._data, oldValue)
+  })
 }
 
 Record.prototype._onRead = function (data) {
-  let value
   if (data[1] == null) {
-    value = this._stale
-  } else {
-    value = typeof data[2] === 'string'
-      ? JSON.parse(lz.decompressFromUTF16(data[2]))
-      : data[2]
+    data[1] = this.version
+    data[2] = this._stale
+  }
+
+  this.acquire()
+  this._lz.decompress(data[2], value => {
+    this.discard()
+
     this.version = data[1]
     this._invariantVersion()
-  }
 
-  this._stale = null
+    this._stale = null
 
-  const oldValue = this._data
-  this._data = value
+    const oldValue = this._data
+    this._data = value
 
-  if (this._patchQueue) {
-    for (let i = 0; i < this._patchQueue.length; i += 2) {
-      this._data = jsonPath.set(this._data, this._patchQueue[i + 0], this._patchQueue[i + 1])
+    if (this._patchQueue) {
+      for (let i = 0; i < this._patchQueue.length; i += 2) {
+        this._data = jsonPath.set(this._data, this._patchQueue[i + 0], this._patchQueue[i + 1])
+      }
+      this._patchQueue = null
     }
-    this._patchQueue = null
-  }
 
-  this.isReady = true
-  this.emit('ready')
+    this.isReady = true
+    this.emit('ready')
 
-  if (this._data !== oldValue) {
-    this._applyChange(this._data, oldValue)
-  }
+    if (this._data !== oldValue) {
+      this._applyChange(this._data, oldValue)
+    }
 
-  if (this._data !== value) {
-    this._sendUpdate(this._data)
-  }
+    if (this._data !== value) {
+      this._sendUpdate(this._data)
+    }
+  })
 }
 
 Record.prototype._applyChange = function (newData, oldData) {

@@ -4,6 +4,7 @@ const C = require('../constants/constants')
 const { Observable } = require('rxjs/Observable')
 const LRU = require('lru-cache')
 const invariant = require('invariant')
+const lz = require('@nxtedition/lz-string')
 
 const RecordHandler = function (options, connection, client) {
   this._options = options
@@ -13,6 +14,22 @@ const RecordHandler = function (options, connection, client) {
   this._listeners = new Map()
   this._cache = new LRU({ max: options.cacheSize || 512 })
   this._prune = new Map()
+  this._lz = {
+    compress (obj, cb) {
+      try {
+        cb(lz.compressToUTF16(JSON.stringify(obj)))
+      } catch (err) {
+        cb(null, err)
+      }
+    },
+    decompress (raw, cb) {
+      try {
+        cb(typeof raw === 'string' ? JSON.parse(lz.decompressFromUTF16(raw)) : raw)
+      } catch (err) {
+        cb(null, err)
+      }
+    }
+  }
 
   setInterval(() => {
     let now = Date.now()
@@ -42,7 +59,8 @@ RecordHandler.prototype.getRecord = function (name) {
       this._connection,
       this._client,
       this._cache,
-      this._prune
+      this._prune,
+      this._lz
     )
     this._records.set(name, record)
   }
