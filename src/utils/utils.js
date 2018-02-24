@@ -98,16 +98,3 @@ module.exports.parseUrl = function (url, defaultPath) {
   return URL.format(serverUrl)
 }
 
-module.exports.requestIdleCallback = (!module.exports.isNode && window.requestIdleCallback && window.requestIdleCallback.bind(window)) ||
-  function (fn) {
-    fn({
-      didTimeout: false,
-      timeRemaining: function () {
-        return Number.Infinity
-      }
-    })
-  }
-
-module.exports.cancelIdleCallback = (!module.exports.isNode && window.cancelIdleCallback && window.cancelIdleCallback.bind(window)) ||
-  function (id) {
-  }
