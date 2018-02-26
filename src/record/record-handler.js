@@ -173,6 +173,7 @@ RecordHandler.prototype.observe2 = function (name) {
         const onUpdate = () => o.next({
           data: record.get(),
           ready: record.isReady,
+          empty: Object.keys(record.get()).length === 0,
           provided: record.hasProvider,
           version: record.version
         })
