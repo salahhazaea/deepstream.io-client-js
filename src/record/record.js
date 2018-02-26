@@ -264,7 +264,12 @@ Record.prototype._sendUpdate = function (newValue) {
   const prevVersion = this.version || ''
   const connection = this._connection
 
-  this._lz.compress(newValue, raw => {
+  this._lz.compress(newValue, (raw, err) => {
+    if (err) {
+      console.error(err)
+      return
+    }
+
     connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.UPDATE, [
       name,
       nextVersion,
@@ -286,8 +291,13 @@ Record.prototype._onUpdate = function (data) {
   }
 
   this.acquire()
-  this._lz.decompress(data[2], value => {
+  this._lz.decompress(data[2], (value, err) => {
     this.discard()
+
+    if (err) {
+      console.error(err)
+      return
+    }
 
     if (utils.isSameOrNewer(this.version, version)) {
       return
@@ -310,8 +320,13 @@ Record.prototype._onRead = function (data) {
   }
 
   this.acquire()
-  this._lz.decompress(data[2], value => {
+  this._lz.decompress(data[2], (value, err) => {
     this.discard()
+
+    if (err) {
+      console.error(err)
+      return
+    }
 
     this.version = data[1]
     this._invariantVersion()
@@ -329,10 +344,15 @@ Record.prototype._onRead = function (data) {
     }
 
     this.isReady = true
-    this.emit('ready')
 
-    if (this._data !== oldValue) {
-      this._applyChange(this._data, oldValue)
+    try {
+      this.emit('ready')
+
+      if (this._data !== oldValue) {
+        this._applyChange(this._data, oldValue)
+      }
+    } catch (err) {
+      console.error(err)
     }
 
     if (this._data !== value) {
