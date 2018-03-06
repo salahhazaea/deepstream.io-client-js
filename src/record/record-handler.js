@@ -174,7 +174,7 @@ RecordHandler.prototype.observe2 = function (name) {
           data: record.get(),
           ready: record.isReady,
           empty: Object.keys(record.get()).length === 0,
-          provided: record.hasProvider,
+          provided: record.isReady && record.hasProvider,
           version: record.version
         })
         record.subscribe(onUpdate)
@@ -193,6 +193,7 @@ RecordHandler.prototype.observe2 = function (name) {
     })
 }
 
+// TODO deprecate
 RecordHandler.prototype.isReady = function (name) {
   return Observable
     .create(o => {
@@ -211,6 +212,7 @@ RecordHandler.prototype.isReady = function (name) {
     })
 }
 
+// TODO deprecate
 RecordHandler.prototype.hasProvider = function (name) {
   return Observable
     .create(o => {
