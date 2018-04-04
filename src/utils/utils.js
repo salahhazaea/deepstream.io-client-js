@@ -28,15 +28,20 @@ module.exports.deepFreeze = function (o) {
 }
 
 module.exports.splitRev = function (s) {
-  const i = s.indexOf(`-`)
+  if (!s) {
+    return [ 0, '00000000000000' ]
+  }
+
+  const i = s.length - 15
   const ver = s.slice(0, i)
-  return [ ver === 'INF' ? Number.MAX_SAFE_INTEGER : parseInt(ver, 10), s.slice(i + 1) ]
+
+  return [ ver === 'INF' ? Number.Infinity : parseInt(ver, 10), s.slice(i + 1) ]
 }
 
 module.exports.isSameOrNewer = function (a, b) {
-  const [ av, ar ] = a ? module.exports.splitRev(a) : [ 0, '00000000000000' ]
-  const [ bv, br ] = b ? module.exports.splitRev(b) : [ 0, '00000000000000' ]
-  return bv !== Number.MAX_SAFE_INTEGER && (av > bv || (av === bv && ar >= br))
+  const [ av, ar ] = module.exports.splitRev(a)
+  const [ bv, br ] = module.exports.splitRev(b)
+  return av > bv || (av === bv && ar >= br)
 }
 
 module.exports.nextTick = function (fn) {
