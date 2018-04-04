@@ -15,7 +15,7 @@ module.exports.get = function (data, path) {
     if (data === undefined) {
       return undefined
     }
-    if (typeof data !== 'object') {
+    if (typeof data !== 'object' || data === null) {
       throw new Error('invalid data or path')
     }
     data = data[tokens[i]]
