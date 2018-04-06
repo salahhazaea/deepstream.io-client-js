@@ -53,6 +53,14 @@ RpcHandler.prototype.make = function (name, data, callback) {
   if (typeof name !== 'string' || name.length === 0) {
     throw new Error('invalid argument name')
   }
+
+  let promise
+  if (callback === undefined) {
+    promise = new Promise((resolve, reject) => {
+      callback = (err, val) => err ? reject(err) : resolve(val)
+    })
+  }
+
   if (typeof callback !== 'function') {
     throw new Error('invalid argument callback')
   }
@@ -64,6 +72,8 @@ RpcHandler.prototype.make = function (name, data, callback) {
     callback
   })
   this._connection.sendMsg(C.TOPIC.RPC, C.ACTIONS.REQUEST, [ name, id, messageBuilder.typed(data) ])
+
+  return promise
 }
 
 RpcHandler.prototype._respond = function (message) {
