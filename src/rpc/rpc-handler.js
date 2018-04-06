@@ -33,6 +33,8 @@ RpcHandler.prototype.provide = function (name, callback) {
 
   this._providers.set(name, callback)
   this._connection.sendMsg(C.TOPIC.RPC, C.ACTIONS.SUBSCRIBE, [ name ])
+
+  return () => this.unprovide(name)
 }
 
 RpcHandler.prototype.unprovide = function (name) {
