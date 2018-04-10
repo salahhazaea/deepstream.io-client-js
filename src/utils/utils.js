@@ -102,4 +102,3 @@ module.exports.parseUrl = function (url, defaultPath) {
   serverUrl.pathname = serverUrl.pathname ? serverUrl.pathname : defaultPath
   return URL.format(serverUrl)
 }
-

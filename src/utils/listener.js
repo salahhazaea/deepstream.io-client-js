@@ -75,7 +75,7 @@ Listener.prototype._$onMessage = function (message) {
 
           this._handler._$handle({
             action: C.ACTIONS.UPDATE,
-            data: [ name, version, value ]
+            data: [ name, version, JSON.parse(raw) ]
           })
         }
       },
