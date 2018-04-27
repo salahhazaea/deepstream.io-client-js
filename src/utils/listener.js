@@ -3,15 +3,6 @@ const xuid = require('xuid')
 const lz = require('@nxtedition/lz-string')
 const { Observable } = require('rxjs')
 
-const rxOf = val => Observable.create(o => o.next(val))
-const rxDefer = fn => Observable.create(o => fn()
-  .then(val => {
-    o.next(val)
-    o.complete()
-  })
-  .catch(err => o.error(err))
-)
-
 const Listener = function (topic, pattern, callback, options, client, connection, handler, recursive) {
   this._topic = topic
   this._callback = callback
@@ -94,16 +85,17 @@ Listener.prototype._$onMessage = function (message) {
         this._client._$onError(this._topic, C.EVENT.LISTENER_ERROR, [ this._pattern, err.message || err ])
       }
     }
-    provider.patternSubscription = rxDefer(() => Promise.resolve(this._callback(name)))
+    provider.patternSubscription = Observable
+      .defer(() => Promise.resolve(this._callback(name)))
       // recursive=false: Observable<T>|value|null
       // recursive=true: Observable< Observable<T>|value|null >
-      .map(value => value == null || value.subscribe ? value : rxOf(value))
+      .map(value => value == null || value.subscribe ? value : Observable.of(value))
       // recursive=false: Observable<T|value>|null
       // recursive=true: Observable< Observable<T>|value|null >
-      .switchMap(value$ => this.recursive ? value$ : rxOf(value$))
+      .switchMap(value$ => this.recursive ? value$ : Observable.of(value$))
       // recursive=false: Observable<T|value|null>
       // recursive=true: Observable<T>|value|null
-      .map(value$ => value$ == null || value$.subscribe ? value$ : rxOf(value$))
+      .map(value$ => value$ == null || value$.subscribe ? value$ : Observable.of(value$))
       // Observable<T|value>|null
       .subscribe({
         next: value$ => {
