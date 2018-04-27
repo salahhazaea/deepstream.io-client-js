@@ -1,7 +1,7 @@
 const Record = require('./record')
 const Listener = require('../utils/listener')
 const C = require('../constants/constants')
-const { Observable } = require('rxjs/Observable')
+const { Observable } = require('rxjs')
 const LRU = require('lru-cache')
 const invariant = require('invariant')
 const lz = require('@nxtedition/lz-string')
