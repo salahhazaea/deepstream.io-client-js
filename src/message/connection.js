@@ -256,7 +256,7 @@ Connection.prototype._onOpen = function () {
  * @private
  * @returns {void}
  */
-Connection.prototype._onError = function (error) {
+Connection.prototype._onError = function ({ error, message }) {
   this._reset()
 
   this._setState(C.CONNECTION_STATE.ERROR)
@@ -270,7 +270,7 @@ Connection.prototype._onError = function (error) {
     if (error.code === 'ECONNRESET' || error.code === 'ECONNREFUSED') {
       msg = 'Can\'t connect! Deepstream server unreachable on ' + this._originalUrl
     } else {
-      msg = error.toString()
+      msg = message || error.toString()
     }
     this._client._$onError(C.TOPIC.CONNECTION, C.EVENT.CONNECTION_ERROR, msg)
   }, 1)
