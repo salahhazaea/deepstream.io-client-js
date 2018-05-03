@@ -111,13 +111,13 @@ RpcHandler.prototype._$handle = function (message) {
 
   if (message.action === C.ACTIONS.RESPONSE) {
     if (error) {
-      rpc.callback(data)
+      rpc.callback(new Error(data))
     } else {
       rpc.callback(null, messageParser.convertTyped(data, this._client))
     }
   } else if (message.action === C.ACTIONS.ERROR) {
     message.processedError = true
-    rpc.callback(data)
+    rpc.callback(new Error(data))
   }
 }
 
@@ -138,7 +138,9 @@ RpcHandler.prototype._handleConnectionStateChange = function () {
   } else if (state === C.CONNECTION_STATE.RECONNECTING) {
     // TODO How should we handle this?
     for (const [ , rpc ] of this._rpcs) {
-      rpc.callback('DISCONNECTED')
+      const err = new Error('socket hang up')
+      err.code = 'ECONNRESET'
+      rpc.callback()
     }
     this._rpcs.clear()
     this._isProviding = false
