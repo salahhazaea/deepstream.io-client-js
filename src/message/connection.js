@@ -194,7 +194,7 @@ Connection.prototype._submit = function (message) {
   if (this._endpoint.readyState === this._endpoint.OPEN) {
     this._endpoint.send(message)
   } else {
-    this._onError('Tried to send message on a closed websocket connection')
+    this._onError(new Error('Tried to send message on a closed websocket connection'))
   }
 }
 
@@ -256,10 +256,20 @@ Connection.prototype._onOpen = function () {
  * @private
  * @returns {void}
  */
-Connection.prototype._onError = function ({ error, message }) {
+Connection.prototype._onError = function (err) {
   this._reset()
 
   this._setState(C.CONNECTION_STATE.ERROR)
+
+  if (err.error) {
+    const { message, error } = err
+    err = error
+    err.message = message
+  }
+
+  if (!err.message) {
+    err.message = 'socket error'
+  }
 
   /*
    * If the implementation isn't listening on the error event this will throw
@@ -267,10 +277,10 @@ Connection.prototype._onError = function ({ error, message }) {
    */
   setTimeout(() => {
     let msg
-    if (error.code === 'ECONNRESET' || error.code === 'ECONNREFUSED') {
+    if (err.code === 'ECONNRESET' || err.code === 'ECONNREFUSED') {
       msg = 'Can\'t connect! Deepstream server unreachable on ' + this._originalUrl
     } else {
-      msg = message || error.toString()
+      msg = err.message
     }
     this._client._$onError(C.TOPIC.CONNECTION, C.EVENT.CONNECTION_ERROR, msg)
   }, 1)
