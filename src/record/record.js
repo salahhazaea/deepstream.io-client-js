@@ -226,7 +226,7 @@ Record.prototype._invariantVersion = function () {
   }
 
   const [start, rev] = this.version.split('-')
-  invariant((start === 'INF' || parseInt(start, 10) >= 0) && rev && rev.length === 14, `${this.name} invalid version ${this.version}`)
+  invariant((start === 'INF' || parseInt(start, 10) >= 0) && rev, `${this.name} invalid version ${this.version}`)
 }
 
 Record.prototype._sendRead = function () {
