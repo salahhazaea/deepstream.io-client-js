@@ -105,7 +105,7 @@ RecordHandler.prototype.get = function (name, pathOrNil, optionsOrNil) {
   RecordHandler.prototype.get = function (name, pathOrNil, optionsOrNil) {
     if (typeof pathOrNil === 'object' && arguments.length === 2) {
       optionsOrNil = pathOrNil
-      pathOrNil = null
+      pathOrNil = undefined
     }
     const isSynced = optionsOrNil && optionsOrNil.isSynced
     const record = this.getRecord(name)
