@@ -103,11 +103,11 @@ RecordHandler.prototype.provide = function (pattern, callback, recursive = false
 
 RecordHandler.prototype.get = function (name, pathOrNil, optionsOrNil) {
   const options = typeof pathOrNil === 'string' ? optionsOrNil : pathOrNil
-  const sync = options && options.sync
+  const isSynced = options && options.isSynced
   const record = this.getRecord(name)
   return record
-    .whenReady({ sync })
-    .then(val => {
+    .whenReady({ isSynced })
+    .then(() => {
       const val = record.get(pathOrNil)
       record.discard()
       return val

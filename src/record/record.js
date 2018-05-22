@@ -144,25 +144,25 @@ Record.prototype.whenReady = function (options) {
     return Promise.reject(new Error('discarded'))
   }
 
-  if (options && options.sync) {
-    this.tokenGen += 1
-    const token = this.tokenGen.toString(16)
-    this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.SYNC, [ this.name, token ])
-    this.acquire()
-    return new Promise(resolve => {
-      this._syncEmitter.once(token, resolve)
-      if (!this._syncEmitter.hasListeners()) {
-        this.tokenGen = 0
-      }
-      this.discard()
+  let promise = this.isReady ? Promise.resolve() : new Promise(resolve => this.once('ready', resolve))
+
+  if (options && options.isSynced) {
+    promise = promise.then(() => {
+      this.tokenGen += 1
+      const token = this.tokenGen.toString(16)
+      this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.SYNC, [ this.name, token ])
+      this.acquire()
+      return new Promise(resolve => {
+        this._syncEmitter.once(token, resolve)
+        if (!this._syncEmitter.hasListeners()) {
+          this.tokenGen = 0
+        }
+        this.discard()
+      })
     })
   }
 
-  if (this.isReady) {
-    return Promise.resolve()
-  }
-
-  return new Promise(resolve => this.once('ready', resolve))
+  return promise
 }
 
 Record.prototype.acquire = function () {
