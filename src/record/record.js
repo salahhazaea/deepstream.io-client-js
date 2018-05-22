@@ -32,10 +32,12 @@ const Record = function (name, connection, client, cache, prune, lz) {
   this.isReady = false
   this.hasProvider = false
   this.version = version
+  this.tokenGen = 0
 
   this._connection = connection
   this._client = client
-  this._eventEmitter = new EventEmitter()
+  this._changeEmitter = new EventEmitter()
+  this._syncEmitter = new EventEmitter()
 
   this._stale = null
   this._data = _data
@@ -109,7 +111,7 @@ Record.prototype.subscribe = function (path, callback, triggerNow) {
     throw new Error('invalid argument callback')
   }
 
-  this._eventEmitter.on(args.path, args.callback)
+  this._changeEmitter.on(args.path, args.callback)
 
   if (args.triggerNow && this._data) {
     args.callback(jsonPath.get(this._data, args.path))
@@ -132,14 +134,28 @@ Record.prototype.unsubscribe = function (pathOrCallback, callback) {
     throw new Error('invalid argument callback')
   }
 
-  this._eventEmitter.off(args.path, args.callback)
+  this._changeEmitter.off(args.path, args.callback)
 }
 
-Record.prototype.whenReady = function () {
+Record.prototype.whenReady = function (options) {
   invariant(this.usages !== 0, `${this.name} "whenReady" cannot use discarded record`)
 
   if (this.usages === 0) {
     return Promise.reject(new Error('discarded'))
+  }
+
+  if (options && options.sync) {
+    this.tokenGen += 1
+    const token = this.tokenGen.toString(16)
+    this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.SYNC, [ this.name, token ])
+    this.acquire()
+    return new Promise(resolve => {
+      this._syncEmitter.once(token, resolve)
+      if (!this._syncEmitter.hasListeners()) {
+        this.tokenGen = 0
+      }
+      this.discard()
+    })
   }
 
   if (this.isReady) {
@@ -183,7 +199,7 @@ Record.prototype._$destroy = function () {
   this.isDestroyed = true
 
   this._client.off('connectionStateChanged', this._handleConnectionStateChange)
-  this._eventEmitter.off()
+  this._changeEmitter.off()
 
   this.off()
 }
@@ -203,6 +219,8 @@ Record.prototype._$onMessage = function (message) {
     }
   } else if (message.action === C.ACTIONS.SUBSCRIPTION_HAS_PROVIDER) {
     this._updateHasProvider(messageParser.convertTyped(message.data[1], this._client))
+  } else if (message.action === C.ACTIONS.SYNC) {
+    this._syncEmitter.emit(message.data[1])
   }
 }
 
@@ -362,13 +380,13 @@ Record.prototype._onRead = function (data) {
 }
 
 Record.prototype._applyChange = function (newData, oldData) {
-  const paths = this._eventEmitter.eventNames()
+  const paths = this._changeEmitter.eventNames()
   for (let i = 0; i < paths.length; i++) {
     const newValue = jsonPath.get(newData, paths[i])
     const oldValue = jsonPath.get(oldData, paths[i])
 
     if (newValue !== oldValue) {
-      this._eventEmitter.emit(paths[i], newValue)
+      this._changeEmitter.emit(paths[i], newValue)
     }
   }
 }
@@ -378,6 +396,9 @@ Record.prototype._handleConnectionStateChange = function () {
 
   if (state === C.CONNECTION_STATE.OPEN) {
     this._sendRead()
+    for (const token of this._syncEmitter.eventNames()) {
+      this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.SYNC, [ this.name, token ])
+    }
   } else if (state === C.CONNECTION_STATE.RECONNECTING) {
     this.isSubscribed = false
   }
