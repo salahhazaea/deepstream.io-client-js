@@ -215,7 +215,7 @@ Connection.prototype._sendAuthParams = function () {
  * @return {void}
  */
 Connection.prototype._checkHeartBeat = function () {
-  const heartBeatTolerance = this._options.heartbeatInterval * 2
+  const heartBeatTolerance = this._options.heartbeatInterval * 3
 
   if (Date.now() - this._lastHeartBeat > heartBeatTolerance) {
     clearInterval(this._heartbeatInterval)
