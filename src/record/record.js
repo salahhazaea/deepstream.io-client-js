@@ -21,28 +21,31 @@ const Record = function (name, connection, client, cache, prune, lz) {
   this._cache = cache
   this._prune = prune
 
-  const [ version, _data ] = this._cache.get(name) || [null, null]
-
   this.name = name
   this.usages = 0
   this.isDestroyed = false
   this.isReady = false
   this.hasProvider = false
-  this.version = version
+  this.version = null
 
   this._connection = connection
   this._client = client
   this._changeEmitter = new EventEmitter()
 
   this._stale = null
-  this._data = _data
+  this._data = null
   this._patchQueue = null
 
   this._handleConnectionStateChange = this._handleConnectionStateChange.bind(this)
 
-  this._client.on('connectionStateChanged', this._handleConnectionStateChange)
-
-  this._handleConnectionStateChange()
+  this._cache.get(name, (found, data, version) => {
+    if (found) {
+      this._data = data
+      this.version = version
+    }
+    this._client.on('connectionStateChanged', this._handleConnectionStateChange)
+    this._handleConnectionStateChange()
+  })
 }
 
 EventEmitter(Record.prototype)
@@ -170,7 +173,7 @@ Record.prototype._$destroy = function () {
   invariant(this.usages === 0 && this.isReady, `${this.name} destroy cannot use active or not ready record`)
 
   if (this._hasVersion()) {
-    this._cache.set(this.name, [this.version, this._data])
+    this._cache.set(this.name, this._data, this.version)
   }
 
   if (this._isConnected) {

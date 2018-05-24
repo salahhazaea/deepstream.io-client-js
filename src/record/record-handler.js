@@ -6,13 +6,49 @@ const LRU = require('lru-cache')
 const invariant = require('invariant')
 const lz = require('@nxtedition/lz-string')
 
+const RecordCache = function (options) {
+  const cache = new LRU({ max: options.cacheSize || 512 })
+  const pouch = options.PouchDB && new options.PouchDB('nxt')
+
+  this.set = (name, data, version) => {
+    const doc = {
+      _id: name,
+      _rev: version,
+      data
+    }
+    cache.set(name, doc)
+    if (pouch && doc._rev && !doc._rev.startsWith('INF')) {
+      pouch.put(doc, {
+        force: true
+      }, err => err && console.error(err))
+    }
+  }
+  this.get = (name, callback) => {
+    const doc = cache.get(name)
+    if (doc) {
+      callback(true, doc.data, doc._rev)
+    } else if (pouch) {
+      pouch.get(name, (err, doc) => {
+        if (!err) {
+          console.log(doc)
+          callback(true, doc.data, doc._rev)
+        } else {
+          callback(false)
+        }
+      })
+    } else {
+      callback(false)
+    }
+  }
+}
+
 const RecordHandler = function (options, connection, client) {
   this._options = options
   this._connection = connection
   this._client = client
   this._records = new Map()
   this._listeners = new Map()
-  this._cache = new LRU({ max: options.cacheSize || 512 })
+  this._cache = new RecordCache(options)
   this._prune = new Map()
   this._sync = new Map()
   this._syncGen = 0

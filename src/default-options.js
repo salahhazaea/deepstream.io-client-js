@@ -7,5 +7,6 @@ module.exports = {
   sendDelay: 5,
   cacheSize: 512,
   maxIdleTime: 500,
-  path: '/deepstream'
+  path: '/deepstream',
+  PouchDB: null
 }
