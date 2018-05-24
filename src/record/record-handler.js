@@ -29,8 +29,7 @@ const RecordCache = function (options) {
       callback(true, doc.data, doc._rev)
     } else if (pouch) {
       pouch.get(name, (err, doc) => {
-        if (!err) {
-          console.log(doc)
+        if (dock && !err) {
           callback(true, doc.data, doc._rev)
         } else {
           callback(false)
