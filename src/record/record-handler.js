@@ -14,6 +14,8 @@ const RecordHandler = function (options, connection, client) {
   this._listeners = new Map()
   this._cache = new LRU({ max: options.cacheSize || 512 })
   this._prune = new Map()
+  this._sync = new Map()
+  this._syncGen = 0
   this._lz = {
     compress (obj, cb) {
       try {
@@ -46,6 +48,12 @@ const RecordHandler = function (options, connection, client) {
       }
     }
   }, 2000)
+
+  this._handleConnectionStateChange = this._handleConnectionStateChange.bind(this)
+
+  this._client.on('connectionStateChanged', this._handleConnectionStateChange)
+
+  this._handleConnectionStateChange()
 }
 
 RecordHandler.prototype.getRecord = function (name) {
@@ -101,14 +109,24 @@ RecordHandler.prototype.provide = function (pattern, callback, recursive = false
   }
 }
 
-RecordHandler.prototype.get = function (name, pathOrNil, optionsOrNil) {
-  if (typeof pathOrNil === 'object' && arguments.length === 2) {
-    optionsOrNil = pathOrNil
-    pathOrNil = undefined
-  }
+RecordHandler.prototype.sync = function () {
+  return new Promise(resolve => {
+    this._syncGen = (this._syncGen + 1) & 2147483647
+
+    const token = this._syncGen.toString(16)
+
+    if (this._isConnected) {
+      this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.SYNC, [ token ])
+    }
+
+    this._sync.set(token, resolve)
+  })
+}
+
+RecordHandler.prototype.get = function (name, pathOrNil) {
   const record = this.getRecord(name)
   return record
-    .whenReady(optionsOrNil)
+    .whenReady()
     .then(() => {
       const val = record.get(pathOrNil)
       record.discard()
@@ -239,6 +257,14 @@ RecordHandler.prototype._$handle = function (message) {
     name = message.data[0]
   }
 
+  if (message.action === C.ACTIONS.SYNC) {
+    const resolve = this._sync.get(message.data[0])
+    if (resolve) {
+      resolve()
+    }
+    return
+  }
+
   const record = this._records.get(name)
   if (record) {
     record._$onMessage(message)
@@ -249,5 +275,16 @@ RecordHandler.prototype._$handle = function (message) {
     listener._$onMessage(message)
   }
 }
+
+RecordHandler.prototype._handleConnectionStateChange = function () {
+  const state = this._client.getConnectionState()
+
+  if (state === C.CONNECTION_STATE.OPEN) {
+    for (const token of this._sync.keys()) {
+      this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.SYNC, [ token ])
+    }
+  }
+}
+
 
 module.exports = RecordHandler

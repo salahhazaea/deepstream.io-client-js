@@ -34,7 +34,6 @@ const Record = function (name, connection, client, cache, prune, lz) {
   this._connection = connection
   this._client = client
   this._changeEmitter = new EventEmitter()
-  this._syncEmitter = new EventEmitter()
 
   this._stale = null
   this._data = _data
@@ -140,37 +139,14 @@ Record.prototype.unsubscribe = function (pathOrCallback, callback) {
   this._changeEmitter.off(args.path, args.callback)
 }
 
-Record.prototype.whenReady = function (options) {
+Record.prototype.whenReady = function () {
   invariant(this.usages !== 0, `${this.name} "whenReady" cannot use discarded record`)
 
   if (this.usages === 0) {
     return Promise.reject(new Error('discarded'))
   }
 
-  let promise = this.isReady ? Promise.resolve() : new Promise(resolve => this.once('ready', resolve))
-
-  if (options && options.isSynced) {
-    promise = promise.then(() => this.sync())
-  }
-
-  return promise
-}
-
-Record.prototype.sync = function () {
-  return new Promise(resolve => {
-    this.tokenGen = (this.tokenGen + 1) & 2147483647
-    const token = this.tokenGen.toString(16)
-
-    if (this._isConnected) {
-      this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.SYNC, [ this.name, token, ])
-    }
-
-    this.acquire()
-    this._syncEmitter.once(token, () => {
-      this.discard()
-      resolve()
-    })
-  })
+  return this.isReady ? Promise.resolve() : new Promise(resolve => this.once('ready', resolve))
 }
 
 Record.prototype.acquire = function () {
@@ -226,8 +202,6 @@ Record.prototype._$onMessage = function (message) {
     }
   } else if (message.action === C.ACTIONS.SUBSCRIPTION_HAS_PROVIDER) {
     this._updateHasProvider(messageParser.convertTyped(message.data[1], this._client))
-  } else if (message.action === C.ACTIONS.SYNC) {
-    this._syncEmitter.emit(message.data[1])
   }
 }
 
@@ -394,9 +368,6 @@ Record.prototype._handleConnectionStateChange = function () {
       this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.READ, [this.name, this.version])
     } else {
       this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.READ, [this.name])
-    }
-    for (const token of this._syncEmitter.eventNames()) {
-      this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.SYNC, [ this.name, token ])
     }
   }
 }
