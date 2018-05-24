@@ -140,10 +140,9 @@ RpcHandler.prototype._handleConnectionStateChange = function () {
       this._connection.sendMsg(C.TOPIC.RPC, C.ACTIONS.SUBSCRIBE, [ name ])
     }
   } else if (state === C.CONNECTION_STATE.RECONNECTING) {
-    // TODO How should we handle this?
+    const err = new Error('socket hang up')
+    err.code = 'ECONNRESET'
     for (const [ , rpc ] of this._rpcs) {
-      const err = new Error('socket hang up')
-      err.code = 'ECONNRESET'
       rpc.callback(err)
     }
     this._rpcs.clear()
