@@ -26,7 +26,6 @@ const Record = function (name, connection, client, cache, prune, lz) {
   this.name = name
   this.usages = 0
   this.isDestroyed = false
-  this.isSubscribed = false
   this.isReady = false
   this.hasProvider = false
   this.version = version
@@ -45,10 +44,16 @@ const Record = function (name, connection, client, cache, prune, lz) {
 
   this._client.on('connectionStateChanged', this._handleConnectionStateChange)
 
-  this._sendRead()
+  this._handleConnectionStateChange()
 }
 
 EventEmitter(Record.prototype)
+
+Object.defineProperty(RpcHandler.prototype, '_isConnected', {
+  get: function _isConnected () {
+    return this._client.getConnectionState() === C.CONNECTION_STATE.OPEN
+  }
+})
 
 Record.prototype.get = function (path) {
   invariant(this.usages !== 0, `${this.name} "get" cannot use discarded record`)
@@ -152,16 +157,22 @@ Record.prototype.whenReady = function (options) {
 }
 
 Record.prototype.sync = function () {
-  this.tokenGen += 1
-  const token = this.tokenGen.toString(16)
-  this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.SYNC, [ this.name, token ])
-  this.acquire()
   return new Promise(resolve => {
-    this._syncEmitter.once(token, resolve)
-    if (!this._syncEmitter.hasListeners()) {
-      this.tokenGen = 0
+    this.tokenGen += 1
+    const token = this.tokenGen.toString(16)
+
+    if (this._isConnected) {
+      this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.SYNC, [ this.name, token, ])
     }
-    this.discard()
+
+    this.acquire()
+    this._syncEmitter.once(token, () => {
+      if (!this._syncEmitter.hasListeners()) {
+        this.tokenGen = 0
+      }
+      this.discard()
+      resolve()
+    })
   })
 }
 
@@ -190,9 +201,8 @@ Record.prototype._$destroy = function () {
     this._cache.set(this.name, [this.version, this._data])
   }
 
-  if (this.isSubscribed) {
+  if (this._isConnected) {
     this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.UNSUBSCRIBE, [this.name])
-    this.isSubscribed = false
   }
 
   this.usages = 0
@@ -245,19 +255,6 @@ Record.prototype._invariantVersion = function () {
 
   const [start, rev] = this.version.split('-')
   invariant((start === 'INF' || parseInt(start, 10) >= 0) && rev, `${this.name} invalid version ${this.version}`)
-}
-
-Record.prototype._sendRead = function () {
-  if (this.isSubscribed || this._connection.getState() !== C.CONNECTION_STATE.OPEN) {
-    return
-  }
-  if (this._hasVersion()) {
-    this._stale = this._data
-    this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.READ, [this.name, this.version])
-  } else {
-    this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.READ, [this.name])
-  }
-  this.isSubscribed = true
 }
 
 Record.prototype._sendUpdate = function (newValue) {
@@ -395,12 +392,15 @@ Record.prototype._handleConnectionStateChange = function () {
   const state = this._client.getConnectionState()
 
   if (state === C.CONNECTION_STATE.OPEN) {
-    this._sendRead()
+    if (this._hasVersion()) {
+      this._stale = this._data
+      this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.READ, [this.name, this.version])
+    } else {
+      this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.READ, [this.name])
+    }
     for (const token of this._syncEmitter.eventNames()) {
       this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.SYNC, [ this.name, token ])
     }
-  } else if (state === C.CONNECTION_STATE.RECONNECTING) {
-    this.isSubscribed = false
   }
 }
 
