@@ -100,7 +100,7 @@ EventHandler.prototype.provide = function (pattern, callback) {
 
   this._listeners.set(pattern, listener)
   return () => {
-    listener.destroy()
+    listener._$destroy()
     this._listeners.delete(pattern)
   }
 }

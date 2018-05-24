@@ -11,7 +11,6 @@ const Listener = function (topic, pattern, callback, options, client, connection
   this._client = client
   this._connection = connection
   this._handler = handler
-  this._isListening = false
   this._providers = new Map()
   this.recursive = recursive
 
@@ -19,11 +18,19 @@ const Listener = function (topic, pattern, callback, options, client, connection
 
   this._client.on('connectionStateChanged', this._handleConnectionStateChange)
 
-  this._sendListen()
+  this._handleConnectionStateChange()
 }
 
+Object.defineProperty(Listener.prototype, '_isConnected', {
+  get: function _isConnected () {
+    return this._client.getConnectionState() === C.CONNECTION_STATE.OPEN
+  }
+})
+
 Listener.prototype._$destroy = function () {
-  this._connection.sendMsg(this._topic, C.ACTIONS.UNLISTEN, [ this._pattern ])
+  if (this._isConnected) {
+    this._connection.sendMsg(this._topic, C.ACTIONS.UNLISTEN, [ this._pattern ])
+  }
   this._reset()
 }
 
@@ -147,21 +154,12 @@ Listener.prototype._$onMessage = function (message) {
   }
 }
 
-Listener.prototype._sendListen = function () {
-  if (this._isListening || this._connection.getState() !== C.CONNECTION_STATE.OPEN) {
-    return
-  }
-  this._connection.sendMsg(this._topic, C.ACTIONS.LISTEN, [ this._pattern ])
-  this._isListening = true
-}
-
 Listener.prototype._handleConnectionStateChange = function () {
   const state = this._client.getConnectionState()
 
   if (state === C.CONNECTION_STATE.OPEN) {
-    this._sendListen()
+    this._connection.sendMsg(this._topic, C.ACTIONS.LISTEN, [ this._pattern ])
   } else if (state === C.CONNECTION_STATE.RECONNECTING) {
-    this._isListening = false
     this._reset()
   }
 }
