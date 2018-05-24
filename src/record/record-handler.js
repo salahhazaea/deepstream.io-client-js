@@ -25,10 +25,11 @@ const RecordCache = function (handler, options) {
         setTimeout(() => handler
           .sync()
           .then(() => {
-            db.bulkDocks(Array.from(pending.values()), {
-              new_edits: false
-            }, err => err && console.error(err))
-          }),
+            const docs = Array.from(pending.values())
+            pending.clear()
+            return db.bulkDocs(docs, { new_edits: false })
+          })
+          .catch(err => console.error(err)),
           2000
         )
       }
