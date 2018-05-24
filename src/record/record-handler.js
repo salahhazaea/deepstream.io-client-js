@@ -116,6 +116,7 @@ RecordHandler.prototype.provide = function (pattern, callback, recursive = false
 }
 
 RecordHandler.prototype.sync = function () {
+  // TODO (perf): setTimeout and share sync.
   return new Promise(resolve => {
     this._syncGen = (this._syncGen + 1) & 2147483647
 
