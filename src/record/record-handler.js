@@ -6,9 +6,11 @@ const LRU = require('lru-cache')
 const invariant = require('invariant')
 const lz = require('@nxtedition/lz-string')
 
-const RecordCache = function (options) {
-  const cache = new LRU({ max: options.cacheSize || 512 })
+const RecordCache = function (handler, options) {
+  const max = options.cacheSize || 512
+  const cache = new LRU({ max })
   const db = options.cacheDb
+  const pending = new Map()
 
   this.set = (name, data, version) => {
     const doc = {
@@ -18,9 +20,18 @@ const RecordCache = function (options) {
     }
     cache.set(name, doc)
     if (db && doc._rev && !doc._rev.startsWith('INF')) {
-      db.put(doc, {
-        force: true
-      }, err => err && console.error(err))
+      pending.set(name, doc)
+      if (pending.size === 1) {
+        setTimeout(() => handler
+          .sync()
+          .then(() => {
+            db.bulkDocks(Array.from(pending.values()), {
+              new_edits: false
+            }, err => err && console.error(err))
+          }),
+          2000
+        )
+      }
     }
   }
   this.get = (name, callback) => {
@@ -47,7 +58,7 @@ const RecordHandler = function (options, connection, client) {
   this._client = client
   this._records = new Map()
   this._listeners = new Map()
-  this._cache = new RecordCache(options)
+  this._cache = new RecordCache(this, options)
   this._prune = new Map()
   this._sync = new Map()
   this._syncGen = 0
