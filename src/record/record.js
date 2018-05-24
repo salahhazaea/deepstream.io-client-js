@@ -49,7 +49,7 @@ const Record = function (name, connection, client, cache, prune, lz) {
 
 EventEmitter(Record.prototype)
 
-Object.defineProperty(RpcHandler.prototype, '_isConnected', {
+Object.defineProperty(Record.prototype, '_isConnected', {
   get: function _isConnected () {
     return this._client.getConnectionState() === C.CONNECTION_STATE.OPEN
   }
