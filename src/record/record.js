@@ -29,7 +29,6 @@ const Record = function (name, connection, client, cache, prune, lz) {
   this.isReady = false
   this.hasProvider = false
   this.version = version
-  this.tokenGen = 0
 
   this._connection = connection
   this._client = client
