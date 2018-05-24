@@ -56,6 +56,12 @@ const RecordHandler = function (options, connection, client) {
   this._handleConnectionStateChange()
 }
 
+Object.defineProperty(RecordHandler.prototype, '_isConnected', {
+  get: function _isConnected () {
+    return this._client.getConnectionState() === C.CONNECTION_STATE.OPEN
+  }
+})
+
 RecordHandler.prototype.getRecord = function (name) {
   invariant(typeof name === 'string' && name.length > 0 && !name.includes('[object Object]'), `invalid name ${name}`)
 
