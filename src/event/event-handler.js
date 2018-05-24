@@ -13,12 +13,17 @@ const EventHandler = function (options, connection, client) {
   this._client = client
   this._emitter = new EventEmitter()
   this._listeners = new Map()
-  this._isSubscribed = true
 
   this._handleConnectionStateChange = this._handleConnectionStateChange.bind(this)
 
   this._client.on('connectionStateChanged', this._handleConnectionStateChange)
 }
+
+Object.defineProperty(EventHandler.prototype, '_isConnected', {
+  get: function _isConnected () {
+    return this._client.getConnectionState() === C.CONNECTION_STATE.OPEN
+  }
+})
 
 EventHandler.prototype.subscribe = function (name, callback) {
   if (typeof name !== 'string' || name.length === 0) {
@@ -28,7 +33,7 @@ EventHandler.prototype.subscribe = function (name, callback) {
     throw new Error('invalid argument callback')
   }
 
-  if (!this._emitter.hasListeners(name)) {
+  if (!this._emitter.hasListeners(name) && this._isConnected) {
     this._connection.sendMsg(C.TOPIC.EVENT, C.ACTIONS.SUBSCRIBE, [ name ])
   }
 
@@ -45,7 +50,7 @@ EventHandler.prototype.unsubscribe = function (name, callback) {
 
   this._emitter.off(name, callback)
 
-  if (!this._emitter.hasListeners(name)) {
+  if (!this._emitter.hasListeners(name) && this._isConnected) {
     this._connection.sendMsg(C.TOPIC.EVENT, C.ACTIONS.UNSUBSCRIBE, [name])
   }
 }
@@ -120,22 +125,13 @@ EventHandler.prototype._$handle = function (message) {
   }
 }
 
-EventHandler.prototype._sendSubcribe = function () {
-  if (this._isSubscribed || this._connection.getState() !== C.CONNECTION_STATE.OPEN) {
-    return
-  }
-  for (const eventName of this._emitter.eventNames()) {
-    this._connection.sendMsg(C.TOPIC.EVENT, C.ACTIONS.SUBSCRIBE, [ eventName ])
-  }
-}
-
 EventHandler.prototype._handleConnectionStateChange = function () {
   const state = this._client.getConnectionState()
 
   if (state === C.CONNECTION_STATE.OPEN) {
-    this._sendSubcribe()
-  } else if (state === C.CONNECTION_STATE.RECONNECTING) {
-    this._isSubscribed = false
+    for (const eventName of this._emitter.eventNames()) {
+      this._connection.sendMsg(C.TOPIC.EVENT, C.ACTIONS.SUBSCRIBE, [ eventName ])
+    }
   }
 }
 
