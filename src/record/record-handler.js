@@ -8,7 +8,7 @@ const lz = require('@nxtedition/lz-string')
 
 const RecordCache = function (options) {
   const cache = new LRU({ max: options.cacheSize || 512 })
-  const pouch = options.PouchDB && new options.PouchDB('nxt')
+  const db = options.cacheDb
 
   this.set = (name, data, version) => {
     const doc = {
@@ -17,8 +17,8 @@ const RecordCache = function (options) {
       data
     }
     cache.set(name, doc)
-    if (pouch && doc._rev && !doc._rev.startsWith('INF')) {
-      pouch.put(doc, {
+    if (db && doc._rev && !doc._rev.startsWith('INF')) {
+      db.put(doc, {
         force: true
       }, err => err && console.error(err))
     }
@@ -27,9 +27,9 @@ const RecordCache = function (options) {
     const doc = cache.get(name)
     if (doc) {
       callback(true, doc.data, doc._rev)
-    } else if (pouch) {
-      pouch.get(name, (err, doc) => {
-        if (dock && !err) {
+    } else if (db) {
+      db.get(name, (err, doc) => {
+        if (doc && !err) {
           callback(true, doc.data, doc._rev)
         } else {
           callback(false)
