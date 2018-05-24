@@ -158,7 +158,7 @@ Record.prototype.whenReady = function (options) {
 
 Record.prototype.sync = function () {
   return new Promise(resolve => {
-    this.tokenGen += 1
+    this.tokenGen = (this.tokenGen + 1) & 2147483647
     const token = this.tokenGen.toString(16)
 
     if (this._isConnected) {
@@ -167,9 +167,6 @@ Record.prototype.sync = function () {
 
     this.acquire()
     this._syncEmitter.once(token, () => {
-      if (!this._syncEmitter.hasListeners()) {
-        this.tokenGen = 0
-      }
       this.discard()
       resolve()
     })
