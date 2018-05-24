@@ -11,12 +11,17 @@ const RpcHandler = function (options, connection, client) {
   this._client = client
   this._rpcs = new Map()
   this._providers = new Map()
-  this._isProviding = true
 
   this._handleConnectionStateChange = this._handleConnectionStateChange.bind(this)
 
   this._client.on('connectionStateChanged', this._handleConnectionStateChange)
 }
+
+Object.defineProperty(RpcHandler.prototype, '_isConnected', {
+  get: function _isConnected () {
+    return this._client.getConnectionState() === C.CONNECTION_STATE.OPEN
+  }
+})
 
 RpcHandler.prototype.provide = function (name, callback) {
   if (typeof name !== 'string' || name.length === 0) {
@@ -32,7 +37,10 @@ RpcHandler.prototype.provide = function (name, callback) {
   }
 
   this._providers.set(name, callback)
-  this._connection.sendMsg(C.TOPIC.RPC, C.ACTIONS.SUBSCRIBE, [ name ])
+
+  if (this._isConnected) {
+    this._connection.sendMsg(C.TOPIC.RPC, C.ACTIONS.SUBSCRIBE, [ name ])
+  }
 
   return () => this.unprovide(name)
 }
@@ -48,7 +56,10 @@ RpcHandler.prototype.unprovide = function (name) {
   }
 
   this._providers.delete(name)
-  this._connection.sendMsg(C.TOPIC.RPC, C.ACTIONS.UNSUBSCRIBE, [ name ])
+
+  if (this._isConnected) {
+    this._connection.sendMsg(C.TOPIC.RPC, C.ACTIONS.UNSUBSCRIBE, [ name ])
+  }
 }
 
 RpcHandler.prototype.make = function (name, data, callback) {
@@ -121,29 +132,21 @@ RpcHandler.prototype._$handle = function (message) {
   }
 }
 
-RpcHandler.prototype._sendProviding = function () {
-  if (this._isProviding || this._connection.getState() !== C.CONNECTION_STATE.OPEN) {
-    return
-  }
-  for (const name of this._providers.keys()) {
-    this._connection.sendMsg(C.TOPIC.RPC, C.ACTIONS.SUBSCRIBE, [ name ])
-  }
-}
-
 RpcHandler.prototype._handleConnectionStateChange = function () {
   const state = this._client.getConnectionState()
 
   if (state === C.CONNECTION_STATE.OPEN) {
-    this._sendProviding()
+    for (const name of this._providers.keys()) {
+      this._connection.sendMsg(C.TOPIC.RPC, C.ACTIONS.SUBSCRIBE, [ name ])
+    }
   } else if (state === C.CONNECTION_STATE.RECONNECTING) {
     // TODO How should we handle this?
     for (const [ , rpc ] of this._rpcs) {
       const err = new Error('socket hang up')
       err.code = 'ECONNRESET'
-      rpc.callback()
+      rpc.callback(err)
     }
     this._rpcs.clear()
-    this._isProviding = false
   }
 }
 
