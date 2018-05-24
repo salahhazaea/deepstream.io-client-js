@@ -1,5 +1,3 @@
-'use strict'
-
 const messageBuilder = require('../message/message-builder')
 const messageParser = require('../message/message-parser')
 const C = require('../constants/constants')

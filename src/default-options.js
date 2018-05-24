@@ -1,5 +1,3 @@
-'use strict'
-
 module.exports = {
   heartbeatInterval: 30000,
   reconnectIntervalIncrement: 4000,

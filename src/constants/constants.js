@@ -1,5 +1,3 @@
-'use strict'
-
 module.exports.CONNECTION_STATE = {}
 
 module.exports.CONNECTION_STATE.CLOSED = 'CLOSED'

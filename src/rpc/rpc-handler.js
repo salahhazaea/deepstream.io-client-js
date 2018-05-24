@@ -1,5 +1,3 @@
-'use strict'
-
 const C = require('../constants/constants')
 const RpcResponse = require('./rpc-response')
 const messageParser = require('../message/message-parser')

@@ -1,5 +1,3 @@
-'use strict'
-
 const utils = require('../utils/utils')
 const PARTS_REG_EXP = /([^.[\]\s]+)/g
 
