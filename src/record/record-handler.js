@@ -40,6 +40,7 @@ const RecordCache = function (handler, options) {
     if (doc) {
       callback(true, doc.data, doc._rev)
     } else if (db) {
+      // TODO (perf): bulkDocs?
       db.get(name, (err, doc) => {
         if (doc && !err) {
           callback(true, doc.data, doc._rev)
