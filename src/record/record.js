@@ -7,12 +7,6 @@ const xuid = require('xuid')
 const invariant = require('invariant')
 
 const Record = function (name, handler) {
-  invariant(connection, 'missing connection')
-  invariant(client, 'missing client')
-  invariant(cache, 'missing cache')
-  invariant(prune, 'missing prune')
-  invariant(lz, 'missing lz')
-
   if (typeof name !== 'string' || name.length === 0 || name.includes('[object Object]')) {
     throw new Error('invalid argument name')
   }
