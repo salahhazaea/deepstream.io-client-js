@@ -42,6 +42,7 @@ const Record = function (name, connection, client, cache, prune, lz) {
     if (found) {
       this._data = data
       this.version = version
+      this._applyChange(this._data)
     }
     this._client.on('connectionStateChanged', this._handleConnectionStateChange)
     this._handleConnectionStateChange()
