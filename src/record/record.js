@@ -6,7 +6,7 @@ const messageParser = require('../message/message-parser')
 const xuid = require('xuid')
 const invariant = require('invariant')
 
-const Record = function (name, connection, client, cache, prune, lz) {
+const Record = function (name, connection, client, cache, prune, dirty, lz) {
   invariant(connection, 'missing connection')
   invariant(client, 'missing client')
   invariant(cache, 'missing cache')
@@ -17,9 +17,10 @@ const Record = function (name, connection, client, cache, prune, lz) {
     throw new Error('invalid argument name')
   }
 
-  this._lz = lz
   this._cache = cache
   this._prune = prune
+  this._dirty = dirty
+  this._lz = lz
 
   this.name = name
   this.usages = 0
@@ -27,6 +28,7 @@ const Record = function (name, connection, client, cache, prune, lz) {
   this.isReady = false
   this.hasProvider = false
   this.version = null
+  this.timestamp = null
 
   this._connection = connection
   this._client = client
@@ -38,12 +40,13 @@ const Record = function (name, connection, client, cache, prune, lz) {
 
   this._handleConnectionStateChange = this._handleConnectionStateChange.bind(this)
 
-  this._cache.get(name, (found, data, version) => {
-    if (found) {
-      this._data = data
-      this.version = version
+  this._cache.get(name, (err, doc) => {
+    if (!err && doc) {
+      this._data = doc.data
+      this.version = doc._rev
       this._applyChange(this._data)
     }
+
     this._client.on('connectionStateChanged', this._handleConnectionStateChange)
     this._handleConnectionStateChange()
   })
@@ -155,6 +158,7 @@ Record.prototype.whenReady = function () {
 Record.prototype.acquire = function () {
   this.usages += 1
   if (this.usages === 1) {
+    this.timestamp = null
     this._prune.delete(this)
   }
 }
@@ -165,17 +169,14 @@ Record.prototype.discard = function () {
   this.usages = Math.max(0, this.usages - 1)
 
   if (this.usages === 0) {
-    this._prune.set(this, Date.now())
+    this.timestamp = Date.now()
+    this._prune.add(this)
   }
 }
 
 Record.prototype._$destroy = function () {
   invariant(!this.isDestroyed, `${this.name} "destroy" cannot use destroyed record`)
   invariant(this.usages === 0 && this.isReady, `${this.name} destroy cannot use active or not ready record`)
-
-  if (this._hasVersion()) {
-    this._cache.set(this.name, this._data, this.version)
-  }
 
   if (this._isConnected) {
     this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.UNSUBSCRIBE, [this.name])
@@ -359,6 +360,17 @@ Record.prototype._applyChange = function (newData, oldData) {
     if (newValue !== oldValue) {
       this._changeEmitter.emit(paths[i], newValue)
     }
+  }
+
+  if (
+    this._dirty &&
+    oldData !== undefined &&
+    newData !== oldData &&
+    this.version &&
+    !this.version.startsWith('I') &&
+    !this.version.startsWith('0')
+  ) {
+    this._dirty.add(this)
   }
 }
 

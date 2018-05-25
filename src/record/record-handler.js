@@ -6,62 +6,29 @@ const LRU = require('lru-cache')
 const invariant = require('invariant')
 const lz = require('@nxtedition/lz-string')
 
-const RecordCache = function (handler, options) {
-  const max = options.cacheSize || 512
-  const cache = new LRU({ max })
-  const db = options.cacheDb
-  const pending = new Map()
-
-  this.set = (name, data, version) => {
-    const doc = {
-      _id: name,
-      _rev: version,
-      data
-    }
-    cache.set(name, doc)
-    if (db && doc._rev && !doc._rev.startsWith('INF')) {
-      pending.set(name, doc)
-      if (pending.size === 1) {
-        setTimeout(() => handler
-          .sync()
-          .then(() => {
-            const docs = Array.from(pending.values())
-            pending.clear()
-            return db.bulkDocs(docs, { new_edits: false })
-          })
-          .catch(err => console.error(err)),
-          2000
-        )
-      }
-    }
-  }
-  this.get = (name, callback) => {
-    const doc = cache.get(name)
-    if (doc) {
-      callback(true, doc.data, doc._rev)
-    } else if (db) {
-      // TODO (perf): bulkDocs?
-      db.get(name, (err, doc) => {
-        if (doc && !err) {
-          callback(true, doc.data, doc._rev)
-        } else {
-          callback(false)
-        }
-      })
-    } else {
-      callback(false)
-    }
-  }
-}
-
 const RecordHandler = function (options, connection, client) {
+  const cache = new LRU({ max: options.cacheSize || 512 })
+  const db = options.cacheDb
+
   this._options = options
   this._connection = connection
   this._client = client
   this._records = new Map()
   this._listeners = new Map()
-  this._cache = new RecordCache(this, options)
-  this._prune = new Map()
+  this._cache = {
+    get (name, callback) {
+      const doc = cache.get(name)
+      if (doc) {
+        callback(null, doc)
+      } else if (db) {
+        db.get(name, callback)
+      } else {
+        callback(null, null)
+      }
+    }
+  }
+  this._prune = new Set()
+  this._dirty = db && new Set()
   this._sync = new Map()
   this._syncGen = 0
   this._lz = {
@@ -84,18 +51,45 @@ const RecordHandler = function (options, connection, client) {
   setInterval(() => {
     let now = Date.now()
 
-    for (const [ record, timestamp ] of this._prune) {
+    if (db && this._dirty.size > 0) {
+      const docs = []
+      for (const rec of this._dirty) {
+        docs.push({
+          _id: rec.name,
+          _rev: rec.version,
+          data: rec._data
+        })
+      }
+
+      this
+        .sync()
+        .then(() => db.bulkDocs(docs, { new_edits: false }))
+        .catch(err => console.error(err))
+
+      this._dirty.clear()
+    }
+
+    for (const rec of this._prune) {
+      const deadline = rec.version && rec.version.startsWith('I')
+        ? 1000
+        : 10000
+
       if (
-        record.usages === 0 &&
-        record.isReady &&
-        now - timestamp > 2000
+        rec.usages === 0 &&
+        rec.isReady &&
+        now - rec.timestamp > deadline
       ) {
-        this._prune.delete(record)
-        this._records.delete(record.name)
-        record._$destroy()
+        cache.set(rec.name, {
+          _id: rec.name,
+          _rev: rec.version,
+          data: rec._data
+        })
+        this._prune.delete(rec)
+        this._records.delete(rec.name)
+        rec._$destroy()
       }
     }
-  }, 2000)
+  }, 1000)
 
   this._handleConnectionStateChange = this._handleConnectionStateChange.bind(this)
 
@@ -122,6 +116,7 @@ RecordHandler.prototype.getRecord = function (name) {
       this._client,
       this._cache,
       this._prune,
+      this._dirty,
       this._lz
     )
     this._records.set(name, record)
