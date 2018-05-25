@@ -10,6 +10,7 @@ const RecordHandler = function (options, connection, client) {
   const cache = new LRU({ max: options.cacheSize || 512 })
   const db = options.cacheDb
 
+  this.isAsync = true
   this._options = options
   this._connection = connection
   this._client = client
@@ -110,15 +111,7 @@ RecordHandler.prototype.getRecord = function (name) {
   let record = this._records.get(name)
 
   if (!record) {
-    record = new Record(
-      name,
-      this._connection,
-      this._client,
-      this._cache,
-      this._prune,
-      this._dirty,
-      this._lz
-    )
+    record = new Record(name, this)
     this._records.set(name, record)
   }
 

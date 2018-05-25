@@ -6,7 +6,7 @@ const messageParser = require('../message/message-parser')
 const xuid = require('xuid')
 const invariant = require('invariant')
 
-const Record = function (name, connection, client, cache, prune, dirty, lz) {
+const Record = function (name, handler) {
   invariant(connection, 'missing connection')
   invariant(client, 'missing client')
   invariant(cache, 'missing cache')
@@ -17,10 +17,11 @@ const Record = function (name, connection, client, cache, prune, dirty, lz) {
     throw new Error('invalid argument name')
   }
 
-  this._cache = cache
-  this._prune = prune
-  this._dirty = dirty
-  this._lz = lz
+  this._handler = handler
+  this._cache = handler._cache
+  this._prune = handler._prune
+  this._dirty = handler._dirty
+  this._lz = handler._lz
 
   this.name = name
   this.usages = 0
@@ -30,8 +31,8 @@ const Record = function (name, connection, client, cache, prune, dirty, lz) {
   this.version = null
   this.timestamp = null
 
-  this._connection = connection
-  this._client = client
+  this._connection = handler._connection
+  this._client = handler._client
   this._changeEmitter = new EventEmitter()
 
   this._stale = null
@@ -98,7 +99,10 @@ Record.prototype.set = function (pathOrData, dataOrNil) {
 
   const oldValue = this._data
   this._data = utils.deepFreeze(newValue)
+
+  this._handler.isAsync = false
   this._applyChange(this._data, oldValue)
+  this._handler.isAsync = true
 
   return this.whenReady()
 }
@@ -358,7 +362,11 @@ Record.prototype._applyChange = function (newData, oldData) {
     const oldValue = jsonPath.get(oldData, paths[i])
 
     if (newValue !== oldValue) {
-      this._changeEmitter.emit(paths[i], newValue)
+      try {
+        this._changeEmitter.emit(paths[i], newValue)
+      } catch (err) {
+        console.error(err)
+      }
     }
   }
 
