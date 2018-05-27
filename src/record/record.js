@@ -157,7 +157,7 @@ Record.prototype.acquire = function () {
   this.usages += 1
   if (this.usages === 1) {
     this.timestamp = null
-    this._prune[rec._pruneIdx] = this._prune.pop()
+    this._prune[this._pruneIdx] = this._prune.pop()
   }
 }
 
