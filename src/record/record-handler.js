@@ -7,7 +7,7 @@ const invariant = require('invariant')
 const lz = require('@nxtedition/lz-string')
 const utils = require('../utils/utils')
 
-const requestIdleCallback = utils.isNode ? cb => setTimeout(cb, 1) : window.requestIdleCallback
+const schedule = utils.isNode ? cb => cb() : window.schedule
 
 const RecordHandler = function (options, connection, client) {
   const cache = new LRU({ max: options.cacheSize || 512 })
@@ -68,7 +68,7 @@ const RecordHandler = function (options, connection, client) {
 
       this
         .sync()
-        .then(() => requestIdleCallback(() => db
+        .then(() => schedule(() => db
           .bulkDocs(docs, { new_edits: false })
           .catch(err => console.error(err))
         ))
