@@ -5,6 +5,9 @@ const { Observable } = require('rxjs')
 const LRU = require('lru-cache')
 const invariant = require('invariant')
 const lz = require('@nxtedition/lz-string')
+const utils = require('../utils/utils')
+
+const requestIdleCallback = utils.isNode ? cb => setTimeout(cb, 1) : window.requestIdleCallback
 
 const RecordHandler = function (options, connection, client) {
   const cache = new LRU({ max: options.cacheSize || 512 })
@@ -61,13 +64,14 @@ const RecordHandler = function (options, connection, client) {
           data: rec._data
         })
       }
+      this._dirty.clear()
 
       this
         .sync()
-        .then(() => db.bulkDocs(docs, { new_edits: false }))
-        .catch(err => console.error(err))
-
-      this._dirty.clear()
+        .then(() => requestIdleCallback(() => db
+          .bulkDocs(docs, { new_edits: false })
+          .catch(err => console.error(err))
+        ))
     }
 
     let n = 0
