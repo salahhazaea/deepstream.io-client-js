@@ -210,11 +210,6 @@ Record.prototype._updateHasProvider = function (hasProvider) {
   }
 }
 
-Record.prototype._hasVersion = function () {
-  const version = this.version && this.version.split('-', 1)[0]
-  return version && (version === 'INF' || parseInt(version) > 0)
-}
-
 Record.prototype._invariantVersion = function () {
   invariant(this.version && typeof this.version === 'string', `${this.name} invalid version ${this.version}`)
 
@@ -376,7 +371,7 @@ Record.prototype._handleConnectionStateChange = function () {
   const state = this._client.getConnectionState()
 
   if (state === C.CONNECTION_STATE.OPEN) {
-    if (this._hasVersion()) {
+    if (this.version) {
       this._stale = this._data
       this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.READ, [this.name, this.version])
     } else {
