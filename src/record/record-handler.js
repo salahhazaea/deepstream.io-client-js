@@ -55,7 +55,7 @@ const RecordHandler = function (options, connection, client) {
   setInterval(() => {
     let now = Date.now()
 
-    if (db && this._dirty.size > 0) {
+    if (db && this._dirty && this._dirty.size > 0) {
       const docs = []
       for (const rec of this._dirty) {
         docs.push({
