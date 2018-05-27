@@ -14,6 +14,7 @@ const RecordHandler = function (options, connection, client) {
   const db = options.cacheDb
 
   this.isAsync = true
+  this._pool = []
   this._options = options
   this._connection = connection
   this._client = client
@@ -96,6 +97,7 @@ const RecordHandler = function (options, connection, client) {
         this._prune.delete(rec)
         this._records.delete(rec.name)
         rec._$destroy()
+        this._pool.push(rec)
       }
     }
   }, 1000)
@@ -119,7 +121,8 @@ RecordHandler.prototype.getRecord = function (name) {
   let record = this._records.get(name)
 
   if (!record) {
-    record = new Record(name, this)
+    record = this._pool.pop() || new Record(this)
+    record.init(name)
     this._records.set(name, record)
   }
 

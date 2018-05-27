@@ -6,20 +6,15 @@ const messageParser = require('../message/message-parser')
 const xuid = require('xuid')
 const invariant = require('invariant')
 
-const Record = function (name, handler) {
-  if (typeof name !== 'string' || name.length === 0 || name.includes('[object Object]')) {
-    throw new Error('invalid argument name')
-  }
-
+const Record = function (handler) {
   this._handler = handler
   this._cache = handler._cache
   this._prune = handler._prune
   this._dirty = handler._dirty
   this._lz = handler._lz
 
-  this.name = name
+  this.name = null
   this.usages = 0
-  this.isDestroyed = false
   this.isReady = false
   this.hasProvider = false
   this.version = null
@@ -34,8 +29,27 @@ const Record = function (name, handler) {
   this._patchQueue = null
 
   this._handleConnectionStateChange = this._handleConnectionStateChange.bind(this)
+}
 
+EventEmitter(Record.prototype)
+
+Object.defineProperty(Record.prototype, '_isConnected', {
+  get: function _isConnected () {
+    return this._client.getConnectionState() === C.CONNECTION_STATE.OPEN
+  }
+})
+
+Record.prototype.init = function (name) {
+  if (typeof name !== 'string' || name.length === 0 || name.includes('[object Object]')) {
+    throw new Error('invalid argument name')
+  }
+
+  this.name = name
   this._cache.get(name, (err, doc) => {
+    if (name !== this.name) {
+      return
+    }
+
     if (!err && doc) {
       this._data = doc.data
       this.version = doc._rev
@@ -46,14 +60,6 @@ const Record = function (name, handler) {
     this._handleConnectionStateChange()
   })
 }
-
-EventEmitter(Record.prototype)
-
-Object.defineProperty(Record.prototype, '_isConnected', {
-  get: function _isConnected () {
-    return this._client.getConnectionState() === C.CONNECTION_STATE.OPEN
-  }
-})
 
 Record.prototype.get = function (path) {
   invariant(this.usages !== 0, `${this.name} "get" cannot use discarded record`)
@@ -169,15 +175,22 @@ Record.prototype.discard = function () {
 }
 
 Record.prototype._$destroy = function () {
-  invariant(!this.isDestroyed, `${this.name} "destroy" cannot use destroyed record`)
   invariant(this.usages === 0 && this.isReady, `${this.name} destroy cannot use active or not ready record`)
 
   if (this._isConnected) {
     this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.UNSUBSCRIBE, [this.name])
   }
 
+  this.name = null
   this.usages = 0
-  this.isDestroyed = true
+  this.isReady = false
+  this.hasProvider = false
+  this.version = null
+  this.timestamp = null
+
+  this._stale = null
+  this._data = null
+  this._patchQueue = null
 
   this._client.off('connectionStateChanged', this._handleConnectionStateChange)
   this._changeEmitter.off()
@@ -186,12 +199,6 @@ Record.prototype._$destroy = function () {
 }
 
 Record.prototype._$onMessage = function (message) {
-  invariant(!this.isDestroyed, `${this.name} "_$onMessage" cannot use destroyed record`)
-
-  if (this.isDestroyed) {
-    return
-  }
-
   if (message.action === C.ACTIONS.UPDATE) {
     if (!this.isReady) {
       this._onRead(message.data)
