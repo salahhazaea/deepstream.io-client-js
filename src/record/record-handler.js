@@ -7,7 +7,7 @@ const invariant = require('invariant')
 const lz = require('@nxtedition/lz-string')
 const utils = require('../utils/utils')
 
-const schedule = utils.isNode ? cb => cb() : window.schedule
+const schedule = utils.isNode ? cb => cb() : window.requestIdleCallback
 
 const RecordHandler = function (options, connection, client) {
   const cache = new LRU({ max: options.cacheSize || 512 })
@@ -31,7 +31,7 @@ const RecordHandler = function (options, connection, client) {
       }
     }
   }
-  this._prune = []
+  this._prune = new Set()
   this._dirty = db && new Set()
   this._sync = new Map()
   this._syncGen = 0
@@ -55,7 +55,7 @@ const RecordHandler = function (options, connection, client) {
   setInterval(() => {
     let now = Date.now()
 
-    if (db && this._dirty && this._dirty.size > 0) {
+    if (db && this._dirty.size > 0) {
       const docs = []
       for (const rec of this._dirty) {
         docs.push({
@@ -64,7 +64,6 @@ const RecordHandler = function (options, connection, client) {
           data: rec._data
         })
       }
-      this._dirty.clear()
 
       this
         .sync()
@@ -72,18 +71,20 @@ const RecordHandler = function (options, connection, client) {
           .bulkDocs(docs, { new_edits: false })
           .catch(err => console.error(err))
         ))
+
+      this._dirty.clear()
     }
 
-    let n = 0
-    while (n < this._prune.length) {
-      const rec = this._prune[n]
-
+    for (const rec of this._prune) {
+      if (rec.usages !== 0) {
+        this._prune.delete(rec)
+        continue
+      }
       const deadline = rec.version && rec.version.startsWith('I')
         ? 1000
         : 10000
 
       if (
-        rec.usages === 0 &&
         rec.isReady &&
         now - rec.timestamp > deadline
       ) {
@@ -92,12 +93,9 @@ const RecordHandler = function (options, connection, client) {
           _rev: rec.version,
           data: rec._data
         })
-
-        this._prune[n] = this._prune.pop()
+        this._prune.delete(rec)
         this._records.delete(rec.name)
         rec._$destroy()
-      } else {
-        n++
       }
     }
   }, 1000)

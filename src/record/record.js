@@ -155,13 +155,6 @@ Record.prototype.whenReady = function () {
 
 Record.prototype.acquire = function () {
   this.usages += 1
-  if (this.usages === 1) {
-    this.timestamp = null
-    if (this._pruneIdx != null) {
-      this._prune[this._pruneIdx] = this._prune.pop()
-      this._pruneIdx = null
-    }
-  }
 }
 
 Record.prototype.discard = function () {
@@ -171,8 +164,7 @@ Record.prototype.discard = function () {
 
   if (this.usages === 0) {
     this.timestamp = Date.now()
-    this._pruneIdx = this._prune.length
-    this._prune.push(this)
+    this._prune.add(this)
   }
 }
 
@@ -186,7 +178,6 @@ Record.prototype._$destroy = function () {
 
   this.usages = 0
   this.isDestroyed = true
-  this._pruneIdx = null
 
   this._client.off('connectionStateChanged', this._handleConnectionStateChange)
   this._changeEmitter.off()
