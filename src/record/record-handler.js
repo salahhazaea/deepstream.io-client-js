@@ -28,7 +28,7 @@ const RecordHandler = function (options, connection, client) {
       }
     }
   }
-  this._prune = new Set()
+  this._prune = []
   this._dirty = db && new Set()
   this._sync = new Map()
   this._syncGen = 0
@@ -70,7 +70,8 @@ const RecordHandler = function (options, connection, client) {
       this._dirty.clear()
     }
 
-    for (const rec of this._prune) {
+    let n = 0
+    while (n < this._prune.length) {
       const deadline = rec.version && rec.version.startsWith('I')
         ? 1000
         : 10000
@@ -85,9 +86,12 @@ const RecordHandler = function (options, connection, client) {
           _rev: rec.version,
           data: rec._data
         })
-        this._prune.delete(rec)
+
+        this._prune[n] = this._prune.pop()
         this._records.delete(rec.name)
         rec._$destroy()
+      } else {
+        n++
       }
     }
   }, 1000)

@@ -157,7 +157,7 @@ Record.prototype.acquire = function () {
   this.usages += 1
   if (this.usages === 1) {
     this.timestamp = null
-    this._prune.delete(this)
+    this._prune[rec._pruneIdx] = this._prune.pop()
   }
 }
 
@@ -168,7 +168,8 @@ Record.prototype.discard = function () {
 
   if (this.usages === 0) {
     this.timestamp = Date.now()
-    this._prune.add(this)
+    rec._pruneIdx = this._prune.length
+    this._prune.push(rec)
   }
 }
 
