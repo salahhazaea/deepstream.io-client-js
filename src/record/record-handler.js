@@ -76,6 +76,8 @@ const RecordHandler = function (options, connection, client) {
 
     let n = 0
     while (n < this._prune.length) {
+      const rec = this._prune[n]
+
       const deadline = rec.version && rec.version.startsWith('I')
         ? 1000
         : 10000
