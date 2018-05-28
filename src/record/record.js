@@ -10,7 +10,6 @@ const Record = function (handler) {
   this._handler = handler
   this._cache = handler._cache
   this._prune = handler._prune
-  this._dirty = handler._dirty
   this._lz = handler._lz
 
   this.name = null
@@ -361,17 +360,6 @@ Record.prototype._applyChange = function (newData, oldData) {
         console.error(err)
       }
     }
-  }
-
-  if (
-    this._dirty &&
-    oldData !== undefined &&
-    newData !== oldData &&
-    this.version &&
-    !this.version.startsWith('I') &&
-    !this.version.startsWith('0')
-  ) {
-    this._dirty.add(this)
   }
 }
 

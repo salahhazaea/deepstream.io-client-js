@@ -62,28 +62,8 @@ const RecordHandler = function (options, connection, client) {
   this.prune()
 
   function prune() {
-    let now = Date.now()
-
-    if (db && this._dirty.size > 0) {
-      const dirty = this._dirty
-      this._dirty = new Set()
-      this
-        .sync()
-        .then(() => schedule(() => {
-          const docs = []
-          for (const rec of dirty) {
-            docs.push({
-              _id: rec.name,
-              _rev: rec.version,
-              data: rec._data
-            })
-          }
-
-          db
-            .bulkDocs(docs, { new_edits: false })
-            .catch(err => console.error(err))
-        }))
-    }
+    const now = Date.now()
+    const docs = []
 
     for (const rec of this._prune) {
       if (rec.usages !== 0) {
@@ -98,16 +78,29 @@ const RecordHandler = function (options, connection, client) {
         rec.isReady &&
         now - rec.timestamp > deadline
       ) {
-        cache.set(rec.name, {
+        const doc = {
           _id: rec.name,
           _rev: rec.version,
           data: rec._data
-        })
+        }
+
+        docs.push(doc)
+        cache.set(rec.name, doc)
+
         this._prune.delete(rec)
         this._records.delete(rec.name)
         rec._$destroy()
         this._pool.push(rec)
       }
+    }
+
+    if (db && docs.length > 0) {
+      this
+        .sync()
+        .then(() => schedule(() => db
+          .bulkDocs(docs, { new_edits: false })
+          .catch(err => console.error(err))
+        }))
     }
 
     setTimeout(() => schedule(prune, { timeout: 1000 }), 1000)
