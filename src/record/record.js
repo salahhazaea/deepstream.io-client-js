@@ -304,6 +304,7 @@ Record.prototype._onRead = function (data) {
     data[1] = this.version
     data[2] = this._stale
   }
+  this._stale = null
 
   this.acquire()
   this._lz.decompress(data[2], (value, err) => {
@@ -316,8 +317,6 @@ Record.prototype._onRead = function (data) {
 
     this.version = data[1]
     this._invariantVersion()
-
-    this._stale = null
 
     const oldValue = this._data
     this._data = value
