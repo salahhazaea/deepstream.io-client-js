@@ -300,9 +300,8 @@ Record.prototype._onUpdate = function (data) {
 }
 
 Record.prototype._onRead = function (data) {
-  if (data[1] == null) {
-    data[1] = this.version
-    data[2] = this._stale
+  if (data[1] == null || data[2] == null) {
+    data = this._stale
   }
   this._stale = null
 
@@ -312,6 +311,10 @@ Record.prototype._onRead = function (data) {
 
     if (err) {
       console.error(err)
+      return
+    }
+
+    if (this._data && utils.isSameOrNewer(this.version, data[1])) {
       return
     }
 
@@ -378,7 +381,7 @@ Record.prototype._handleConnectionStateChange = function () {
 
   if (state === C.CONNECTION_STATE.OPEN) {
     if (this.version) {
-      this._stale = this._data
+      this._stale = [ this.version, this._data ]
       this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.READ, [this.name, this.version])
     } else {
       this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.READ, [this.name])
