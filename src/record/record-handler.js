@@ -7,7 +7,7 @@ const invariant = require('invariant')
 const lz = require('@nxtedition/lz-string')
 const utils = require('../utils/utils')
 
-const schedule = utils.isNode ? cb => cb() : window.requestIdleCallback
+const schedule = utils.isNode ? cb => cb() : (cb, options) => window.requestIdleCallback(cb, options)
 
 const RecordHandler = function (options, connection, client) {
   const cache = new LRU({ max: options.cacheSize || 512 })
@@ -53,7 +53,15 @@ const RecordHandler = function (options, connection, client) {
     }
   }
 
-  setInterval(() => {
+  this._handleConnectionStateChange = this._handleConnectionStateChange.bind(this)
+
+  this._client.on('connectionStateChanged', this._handleConnectionStateChange)
+
+  this._handleConnectionStateChange()
+
+  this.prune()
+
+  function prune() {
     let now = Date.now()
 
     if (db && this._dirty.size > 0) {
@@ -101,13 +109,9 @@ const RecordHandler = function (options, connection, client) {
         this._pool.push(rec)
       }
     }
-  }, 1000)
 
-  this._handleConnectionStateChange = this._handleConnectionStateChange.bind(this)
-
-  this._client.on('connectionStateChanged', this._handleConnectionStateChange)
-
-  this._handleConnectionStateChange()
+    setTimeout(() => schedule(prune, { timeout: 1000 }), 1000)
+  }
 }
 
 Object.defineProperty(RecordHandler.prototype, '_isConnected', {
