@@ -33,7 +33,6 @@ const RecordHandler = function (options, connection, client) {
     }
   }
   this._prune = new Set()
-  this._dirty = db && new Set()
   this._sync = new Map()
   this._syncGen = 0
   this._lz = {
@@ -59,9 +58,7 @@ const RecordHandler = function (options, connection, client) {
 
   this._handleConnectionStateChange()
 
-  this.prune()
-
-  function prune() {
+  const prune = () => {
     const now = Date.now()
     const docs = []
 
@@ -84,7 +81,10 @@ const RecordHandler = function (options, connection, client) {
           data: rec._data
         }
 
-        docs.push(doc)
+        if (/^[^I0]/.test(rec.version)) {
+          docs.push(doc)
+        }
+
         cache.set(rec.name, doc)
 
         this._prune.delete(rec)
@@ -100,11 +100,13 @@ const RecordHandler = function (options, connection, client) {
         .then(() => schedule(() => db
           .bulkDocs(docs, { new_edits: false })
           .catch(err => console.error(err))
-        }))
+        ))
     }
 
     setTimeout(() => schedule(prune, { timeout: 1000 }), 1000)
   }
+
+  prune()
 }
 
 Object.defineProperty(RecordHandler.prototype, '_isConnected', {
