@@ -45,10 +45,9 @@ Record.prototype.init = function (name) {
   }
 
   this.name = name
+  this.acquire()
   this._cache.get(name, (err, doc) => {
-    if (name !== this.name) {
-      return
-    }
+    this.discard()
 
     if (!err && doc) {
       this._data = doc.data
