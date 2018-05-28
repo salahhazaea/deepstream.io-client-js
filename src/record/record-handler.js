@@ -57,23 +57,24 @@ const RecordHandler = function (options, connection, client) {
     let now = Date.now()
 
     if (db && this._dirty.size > 0) {
-      const docs = []
-      for (const rec of this._dirty) {
-        docs.push({
-          _id: rec.name,
-          _rev: rec.version,
-          data: rec._data
-        })
-      }
-
+      const dirty = this._dirty
+      this._dirty = new Set()
       this
         .sync()
-        .then(() => schedule(() => db
-          .bulkDocs(docs, { new_edits: false })
-          .catch(err => console.error(err))
-        ))
+        .then(() => schedule(() => {
+          const docs = []
+          for (const rec of dirty) {
+            docs.push({
+              _id: rec.name,
+              _rev: rec.version,
+              data: rec._data
+            })
+          }
 
-      this._dirty.clear()
+          db
+            .bulkDocs(docs, { new_edits: false })
+            .catch(err => console.error(err))
+        }))
     }
 
     for (const rec of this._prune) {
