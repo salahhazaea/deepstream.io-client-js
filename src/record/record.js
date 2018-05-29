@@ -312,7 +312,7 @@ Record.prototype._onRead = function (data) {
       return
     }
 
-    if (this._data && utils.isSameOrNewer(this.version, data[1])) {
+    if (this.isReady && this._data && utils.isSameOrNewer(this.version, data[1])) {
       return
     }
 
