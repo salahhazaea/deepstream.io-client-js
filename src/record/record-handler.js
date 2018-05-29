@@ -81,7 +81,7 @@ const RecordHandler = function (options, connection, client) {
           data: rec._data
         }
 
-        if (/^[^I0]/.test(rec.version)) {
+        if (db && /^[^I0]/.test(rec.version)) {
           docs.push(doc)
         }
 
