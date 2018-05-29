@@ -98,8 +98,11 @@ const RecordHandler = function (options, connection, client) {
       this
         .sync()
         .then(() => schedule(() => db
-          .bulkDocs(docs, { new_edits: false })
-          .catch(err => console.error(err))
+          .bulkDocs(docs, { new_edits: false }, err => {
+            if (err) {
+              console.error(err)
+            }
+          })
         ))
     }
 
