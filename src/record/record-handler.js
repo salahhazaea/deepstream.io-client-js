@@ -67,6 +67,7 @@ const RecordHandler = function (options, connection, client) {
         this._prune.delete(rec)
         continue
       }
+
       const deadline = rec.version && rec.version.startsWith('I')
         ? 1000
         : 10000
