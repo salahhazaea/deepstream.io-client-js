@@ -45,12 +45,12 @@ Record.prototype.init = function (name) {
 
   this.name = name
   this.acquire()
-  this._cache.get(name, (err, doc) => {
+  this._cache.get(name, (err, data, version) => {
     this.discard()
 
-    if (!err && doc) {
-      this._data = doc.data
-      this.version = doc._rev
+    if (!err && data) {
+      this._data = data
+      this.version = version
       this._applyChange(this._data)
     }
 

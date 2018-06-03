@@ -22,11 +22,20 @@ const RecordHandler = function (options, connection, client) {
   this._listeners = new Map()
   this._cache = {
     get (name, callback) {
-      const doc = cache.get(name)
-      if (doc) {
-        callback(null, doc)
+      const val = cache.get(name)
+      if (val) {
+        callback(null, val[0], val[1])
       } else if (db) {
-        db.get(name, callback)
+        db.get(name, (err, doc) => {
+          if (err) {
+            callbac(err)
+          } else {
+            const version = doc._rev
+            delete doc._id
+            delete doc._rev
+            callback(null, doc, version)
+          }
+        })
       } else {
         callback(null, null)
       }
@@ -76,17 +85,15 @@ const RecordHandler = function (options, connection, client) {
         rec.isReady &&
         now - rec.timestamp > deadline
       ) {
-        const doc = {
-          _id: rec.name,
-          _rev: rec.version,
-          data: rec._data
-        }
-
         if (db && /^[^I0]/.test(rec.version)) {
-          docs.push(doc)
+          docs.push({
+            _id: rec.name,
+            _rev: rec.version,
+            ...rec._data
+          })
         }
 
-        cache.set(rec.name, doc)
+        cache.set(rec.name, [ rec._data, rec.version ])
 
         this._prune.delete(rec)
         this._records.delete(rec.name)
