@@ -5,14 +5,14 @@ const RpcResponse = function (connection, name, id) {
   this._connection = connection
   this._name = name
   this._id = id
-  this._isComplete = false
+  this.completed = false
 }
 
 RpcResponse.prototype.reject = function () {
-  if (this._isComplete) {
+  if (this.completed) {
     throw new Error(`Rpc ${this._name} already completed`)
   }
-  this._isComplete = true
+  this.completed = true
 
   this._connection.sendMsg(
     C.TOPIC.RPC,
@@ -22,10 +22,10 @@ RpcResponse.prototype.reject = function () {
 }
 
 RpcResponse.prototype.error = function (error) {
-  if (this._isComplete) {
+  if (this.completed) {
     throw new Error(`Rpc ${this._name} already completed`)
   }
-  this._isComplete = true
+  this.completed = true
 
   this._connection.sendMsg(
     C.TOPIC.RPC,
@@ -35,10 +35,10 @@ RpcResponse.prototype.error = function (error) {
 }
 
 RpcResponse.prototype.send = function (data) {
-  if (this._isComplete === true) {
+  if (this.completed === true) {
     throw new Error(`Rpc ${this._name} already completed`)
   }
-  this._isComplete = true
+  this.completed = true
 
   this._connection.sendMsg(
     C.TOPIC.RPC,
