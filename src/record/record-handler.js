@@ -26,6 +26,7 @@ const RecordHandler = function (options, connection, client) {
       if (val) {
         callback(null, val[0], val[1])
       } else if (db) {
+        // TODO (perf): allDocs
         db.get(name, (err, doc) => {
           if (err) {
             callbac(err)
