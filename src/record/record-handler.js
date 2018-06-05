@@ -9,6 +9,8 @@ const utils = require('../utils/utils')
 
 const schedule = utils.isNode ? cb => cb() : (cb, options) => window.requestIdleCallback(cb, options)
 
+const EMPTY = {}
+
 const RecordHandler = function (options, connection, client) {
   const cache = new LRU({ max: options.cacheSize || 512 })
   const db = options.cacheDb
@@ -29,11 +31,15 @@ const RecordHandler = function (options, connection, client) {
         // TODO (perf): allDocs
         db.get(name, (err, doc) => {
           if (err) {
-            callbac(err)
+            callback(err)
           } else {
             const version = doc._rev
-            delete doc._id
-            delete doc._rev
+            if (doc._deleted) {
+              doc = EMPTY
+            } else {
+              delete doc._id
+              delete doc._rev
+            }
             callback(null, doc, version)
           }
         })
