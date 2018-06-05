@@ -105,11 +105,11 @@ const RecordHandler = function (options, connection, client) {
 
       cache.set(rec.name, [ rec._data, rec.version ])
 
-      rec._$destroy()
-
       this._prune.delete(rec)
       this._records.delete(rec.name)
       this._pool.push(rec)
+
+      rec._$destroy()
     }
 
     if (db && docs.length > 0) {
