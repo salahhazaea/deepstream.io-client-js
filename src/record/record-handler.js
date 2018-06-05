@@ -78,29 +78,33 @@ const RecordHandler = function (options, connection, client) {
         continue
       }
 
-      const deadline = rec.version && rec.version.startsWith('I')
+      if (!rec.isReady) {
+        continue
+      }
+
+      const minAge = rec.version && rec.version.startsWith('I')
         ? 1000
         : 10000
 
-      if (
-        rec.isReady &&
-        now - rec.timestamp > deadline
-      ) {
-        if (db && /^[^I0]/.test(rec.version)) {
-          docs.push({
-            _id: rec.name,
-            _rev: rec.version,
-            ...rec._data
-          })
-        }
-
-        cache.set(rec.name, [ rec._data, rec.version ])
-
-        this._prune.delete(rec)
-        this._records.delete(rec.name)
-        rec._$destroy()
-        this._pool.push(rec)
+      if (now - rec.timestamp <= minAge) {
+        continue
       }
+
+      if (db && /^[^I0]/.test(rec.version)) {
+        docs.push({
+          _id: rec.name,
+          _rev: rec.version,
+          ...rec._data
+        })
+      }
+
+      cache.set(rec.name, [ rec._data, rec.version ])
+
+      rec._$destroy()
+
+      this._prune.delete(rec)
+      this._records.delete(rec.name)
+      this._pool.push(rec)
     }
 
     if (db && docs.length > 0) {
