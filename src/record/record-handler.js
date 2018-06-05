@@ -97,11 +97,10 @@ const RecordHandler = function (options, connection, client) {
       }
 
       if (db && /^[^I0]/.test(rec.version)) {
-        docs.push({
+        docs.push(Object.assign({
           _id: rec.name,
           _rev: rec.version,
-          ...rec._data
-        })
+        }, rec._data))
       }
 
       cache.set(rec.name, [ rec._data, rec.version ])
