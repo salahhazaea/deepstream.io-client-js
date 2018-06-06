@@ -12,10 +12,9 @@ const schedule = utils.isNode ? cb => cb() : (cb, options) => window.requestIdle
 const EMPTY = {}
 
 const RecordHandler = function (options, connection, client) {
-  const cache = new LRU({ max: options.cacheSize || 512 })
-  const db = options.cacheDb
-
   this.isAsync = true
+  this._lru = options.lru || new LRU({ max: options.cacheSize || 512 })
+  this._db = options.cacheDb || options.db
   this._pool = []
   this._options = options
   this._connection = connection
@@ -24,12 +23,12 @@ const RecordHandler = function (options, connection, client) {
   this._listeners = new Map()
   this._cache = {
     get (name, callback) {
-      const val = cache.get(name)
+      const val = this._lru.get(name)
       if (val) {
         callback(null, val[0], val[1])
-      } else if (db) {
+      } else if (this._db) {
         // TODO (perf): allDocs
-        db.get(name, (err, doc) => {
+        this._db.get(name, (err, doc) => {
           if (err) {
             callback(err)
           } else {
@@ -96,26 +95,26 @@ const RecordHandler = function (options, connection, client) {
         continue
       }
 
-      if (db && /^[^I0]/.test(rec.version)) {
+      if (this._db && /^[^I0]/.test(rec.version)) {
         docs.push(Object.assign({
           _id: rec.name,
           _rev: rec.version,
         }, rec._data))
       }
 
-      cache.set(rec.name, [ rec._data, rec.version ])
-
-      this._prune.delete(rec)
+      this._lru.set(rec.name, [ rec._data, rec.version ])
       this._records.delete(rec.name)
-      this._pool.push(rec)
 
       rec._$destroy()
+
+      this._prune.delete(rec)
+      this._pool.push(rec)
     }
 
-    if (db && docs.length > 0) {
+    if (this._db && docs.length > 0) {
       this
         .sync()
-        .then(() => schedule(() => db
+        .then(() => schedule(() => this._db
           .bulkDocs(docs, { new_edits: false }, err => {
             if (err) {
               console.error(err)
