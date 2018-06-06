@@ -56,14 +56,14 @@ const RecordHandler = function (options, connection, client) {
       try {
         cb(lz.compressToUTF16(JSON.stringify(obj)))
       } catch (err) {
-        cb(null, err)
+        cb(null)
       }
     },
     decompress (raw, cb) {
       try {
         cb(typeof raw === 'string' ? JSON.parse(lz.decompressFromUTF16(raw)) : raw)
       } catch (err) {
-        cb(null, err)
+        cb(null)
       }
     }
   }

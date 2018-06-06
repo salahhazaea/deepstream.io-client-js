@@ -248,11 +248,11 @@ Record.prototype._sendUpdate = function (newValue) {
 
   // TODO (perf): Avoid closure allocation.
   this.acquire()
-  this._lz.compress(newValue, (raw, err) => {
+  this._lz.compress(newValue, raw => {
     this.discard()
 
-    if (err) {
-      console.error(err)
+    if (!raw) {
+      this._client._$onError(this._topic, C.EVENT.LZ_ERROR, [ this.name ])
       return
     }
 
@@ -277,11 +277,11 @@ Record.prototype._onUpdate = function (data) {
 
   this.acquire()
   // TODO (perf): Avoid closure allocation.
-  this._lz.decompress(data[2], (value, err) => {
+  this._lz.decompress(data[2], value => {
     this.discard()
 
-    if (err) {
-      console.error(err)
+    if (!value) {
+      this._client._$onError(this._topic, C.EVENT.LZ_ERROR, [ this.name ])
       return
     }
 
@@ -305,11 +305,11 @@ Record.prototype._onRead = function (data) {
   this._stale = null
 
   this.acquire()
-  this._lz.decompress(data[2], (value, err) => {
+  this._lz.decompress(data[2], value => {
     this.discard()
 
-    if (err) {
-      console.error(err)
+    if (!value) {
+      this._client._$onError(this._topic, C.EVENT.LZ_ERROR, [ this.name ])
       return
     }
 

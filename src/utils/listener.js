@@ -11,6 +11,7 @@ const Listener = function (topic, pattern, callback, options, client, connection
   this._client = client
   this._connection = connection
   this._handler = handler
+  this._lz = handler._lz
   this._providers = new Map()
   this.recursive = recursive
 
@@ -74,15 +75,23 @@ Listener.prototype._$onMessage = function (message) {
 
           const version = `INF-${xuid()}`
 
-          this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.UPDATE, [
-            name,
-            version,
-            lz.compressToUTF16(raw)
-          ])
+          // TODO (perf): Avoid closure allocation.
+          this._lz.compress(value, raw => {
+            if (!raw) {
+              this._client._$onError(this._topic, C.EVENT.LZ_ERROR, [ this._pattern ])
+              return
+            }
+
+            this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.UPDATE, [
+              name,
+              version,
+              raw
+            ])
+          })
 
           this._handler._$handle({
             action: C.ACTIONS.UPDATE,
-            data: [ name, version, JSON.parse(raw) ]
+            data: [ name, version, value ]
           })
         }
       },
