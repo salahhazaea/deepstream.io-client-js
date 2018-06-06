@@ -22,7 +22,7 @@ const RecordHandler = function (options, connection, client) {
   this._records = new Map()
   this._listeners = new Map()
   this._cache = {
-    get (name, callback) {
+    get: (name, callback) => {
       const val = this._lru.get(name)
       if (val) {
         callback(null, val[0], val[1])
