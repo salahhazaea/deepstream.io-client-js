@@ -25,7 +25,7 @@ RpcHandler.prototype.provide = function (name, callback) {
   if (typeof name !== 'string' || name.length === 0) {
     throw new Error('invalid argument name')
   }
-  if (typeof callback !== 'function' || (callback.length !== 1 && callback.length !== 2)) {
+  if (typeof callback !== 'function') {
     throw new Error('invalid argument callback')
   }
 
@@ -94,16 +94,25 @@ RpcHandler.prototype._respond = function (message) {
   const response = new RpcResponse(this._connection, name, id)
 
   if (callback) {
-    if (callback.length === 2) {
-      callback(messageParser.convertTyped(data, this._client), response)
-    } else if (callback.length === 1) {
-      Promise
-        .resolve(callback(messageParser.convertTyped(data, this._client)))
-        .then(val => response.send(val))
-        .catch(err => response.error(err.message || err))
-        .catch(err => this._client._$onError(C.TOPIC.RPC, C.EVENT.RPC_ERROR, err.message || err))
-    } else {
-      this._client._$onError(C.TOPIC.RPC, C.EVENT.RPC_ERROR, 'invalid callback')
+    let promise
+    try {
+      promise = Promise.resolve(callback(messageParser.convertTyped(data, this._client), response))
+    } catch (err) {
+      promise = Promise.reject(err)
+    }
+
+    if (!response.completed) {
+      promise
+        .then(val => {
+          if (!response.completed) {
+            response.send(val)
+          }
+        })
+        .catch(err => {
+          if (!response.completed) {
+            response.error(err.message || err)
+          }
+        })
     }
   } else {
     response.reject()
