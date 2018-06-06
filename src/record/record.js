@@ -229,8 +229,6 @@ Record.prototype._invariantVersion = function () {
 Record.prototype._sendUpdate = function (newValue) {
   invariant(this.isReady, `${this.name}  cannot update non-ready record`)
 
-  this._invariantVersion()
-
   let [ start ] = this.version.split('-')
 
   if (start === 'INF' || this.hasProvider) {
@@ -267,7 +265,6 @@ Record.prototype._sendUpdate = function (newValue) {
   })
 
   this.version = nextVersion
-
   this._invariantVersion()
 }
 
@@ -293,7 +290,6 @@ Record.prototype._onUpdate = function (data) {
     }
 
     this.version = version
-
     this._invariantVersion()
 
     const oldValue = this._data
