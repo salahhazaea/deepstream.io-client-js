@@ -51,7 +51,7 @@ const RecordHandler = function (options, connection, client) {
   this._prune = new Set()
   this._sync = new Map()
   this._syncGen = 0
-  this._lz = {
+  this._lz = options.lz || {
     compress (obj, cb) {
       try {
         cb(lz.compressToUTF16(JSON.stringify(obj)))
