@@ -248,7 +248,11 @@ Record.prototype._sendUpdate = function (newValue) {
   const prevVersion = this.version || ''
   const connection = this._connection
 
+  // TODO (perf): Avoid closure allocation.
+  this.acquire()
   this._lz.compress(newValue, (raw, err) => {
+    this.discard()
+
     if (err) {
       console.error(err)
       return
@@ -275,6 +279,7 @@ Record.prototype._onUpdate = function (data) {
   }
 
   this.acquire()
+  // TODO (perf): Avoid closure allocation.
   this._lz.decompress(data[2], (value, err) => {
     this.discard()
 
