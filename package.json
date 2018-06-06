@@ -1,6 +1,6 @@
 {
   "name": "@nxtedition/deepstream.io-client-js",
-  "version": "5.9.6",
+  "version": "5.9.7",
   "description": "the javascript client for deepstream.io",
   "main": "src/client.js",
   "repository": {
