@@ -105,6 +105,44 @@ Record.prototype.set = function (pathOrData, dataOrNil) {
   return this.whenReady()
 }
 
+Record.prototype.update = function (pathOrUpdater, updaterOrNil) {
+  invariant(this.usages !== 0, `${this.name} "update" cannot use discarded record`)
+  invariant(!this.hasProvider, `${this.name} "update" cannot be called on provided record`)
+
+  if (this.usages === 0 || this.hasProvider) {
+    return Promise.resolve()
+  }
+
+  const path = arguments.length === 1 ? undefined : pathOrUpdater
+  const updater = arguments.length === 1 ? pathOrUpdater : updaterOrNil
+
+  if (typeof updater !== 'function') {
+    throw new Error('invalid argument updater')
+  }
+
+  if (path !== undefined && (typeof path !== 'string' || path.length === 0)) {
+    throw new Error('invalid argument path')
+  }
+
+  this.acquire()
+  return this
+    .whenReady()
+    .then(() => updater(record.get(path)))
+    .then(val => {
+      if (path) {
+        record.set(path, val)
+      } else {
+        record.set(val)
+      }
+      this.discard()
+      return val
+    })
+    .catch(err => {
+      this.discard()
+      throw err
+    })
+}
+
 Record.prototype.subscribe = function (path, callback, triggerNow) {
   invariant(this.usages !== 0, `${this.name} "subscribe" cannot use discarded record`)
 
@@ -171,6 +209,9 @@ Record.prototype.discard = function () {
     this._prune.add(this)
   }
 }
+
+Record.prototype.ref = Record.prototype.acquire
+Record.prototype.unref = Record.prototype.discard
 
 Record.prototype._$destroy = function () {
   invariant(this.usages === 0 && this.isReady, `${this.name} destroy cannot use active or not ready record`)

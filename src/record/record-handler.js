@@ -218,26 +218,12 @@ RecordHandler.prototype.set = function (name, pathOrData, dataOrNil) {
 }
 
 RecordHandler.prototype.update = function (name, pathOrUpdater, updaterOrNil) {
-  const path = arguments.length === 2 ? undefined : pathOrUpdater
-  const updater = arguments.length === 2 ? pathOrUpdater : updaterOrNil
-
   const record = this.getRecord(name)
-  return record
-    .whenReady()
-    .then(() => updater(record.get(path)))
-    .then(val => {
-      if (path) {
-        record.set(path, val)
-      } else {
-        record.set(val)
-      }
-      record.discard()
-      return val
-    })
-    .catch(err => {
-      record.discard()
-      throw err
-    })
+  const promise = arguments.length === 2
+    ? record.update(pathOrData)
+    : record.update(pathOrData, dataOrNil)
+  record.discard()
+  return promise
 }
 
 RecordHandler.prototype.observe = function (name) {
