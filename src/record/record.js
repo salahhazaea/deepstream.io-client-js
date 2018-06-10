@@ -191,7 +191,6 @@ Record.prototype._$destroy = function () {
   this._patchQueue = null
 
   this._client.off('connectionStateChanged', this._handleConnectionStateChange)
-  this._changeEmitter.off()
 
   this.off()
 }
