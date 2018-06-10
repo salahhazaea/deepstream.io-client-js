@@ -132,7 +132,7 @@ RecordHandler.prototype.sync = function () {
     }, 1)
   }
 
-  return new Promise(resolve => this._syncEmitter.once('token', resolve))
+  return new Promise(resolve => this._syncEmitter.once(token, resolve))
 }
 
 RecordHandler.prototype.get = function (name, pathOrNil) {
