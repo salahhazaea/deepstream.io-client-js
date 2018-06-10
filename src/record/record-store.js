@@ -52,7 +52,7 @@ RecordStore.prototype._flush = function () {
   }
 
   const docs = this._docs.splice(0, 256)
-  this._sync = this
+  this._sync = this._handler
     .sync()
     .then(() => utils.schedule(() => {
       this._sync = null
