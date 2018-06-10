@@ -220,8 +220,8 @@ RecordHandler.prototype.set = function (name, pathOrData, dataOrNil) {
 RecordHandler.prototype.update = function (name, pathOrUpdater, updaterOrNil) {
   const record = this.getRecord(name)
   const promise = arguments.length === 2
-    ? record.update(pathOrData)
-    : record.update(pathOrData, dataOrNil)
+    ? record.update(pathOrUpdater)
+    : record.update(pathOrUpdater, updaterOrNil)
   record.discard()
   return promise
 }
