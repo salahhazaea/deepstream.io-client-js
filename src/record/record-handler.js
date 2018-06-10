@@ -6,6 +6,7 @@ const LRU = require('lru-cache')
 const invariant = require('invariant')
 const LZ = require('./lz')
 const utils = require('../utils/utils')
+const EventEmitter = require('component-emitter2')
 
 const schedule = utils.isNode ? cb => cb() : (cb, options) => window.requestIdleCallback(cb, options)
 
@@ -48,8 +49,9 @@ const RecordHandler = function (options, connection, client) {
     }
   }
   this._prune = new Set()
-  this._sync = new Map()
-  this._syncGen = 0
+  this._syncEmitter = new EventEmitter()
+  this._syncTimeout = null
+  this._syncCounter = 0
   this._lz = options.lz || new LZ()
 
   this._handleConnectionStateChange = this._handleConnectionStateChange.bind(this)
@@ -168,18 +170,20 @@ RecordHandler.prototype.provide = function (pattern, callback, recursive = false
 }
 
 RecordHandler.prototype.sync = function () {
-  // TODO (perf): setTimeout and share sync.
-  return new Promise(resolve => {
-    this._syncGen = (this._syncGen + 1) & 2147483647
+  const token = this._syncCounter.toString(16)
 
-    const token = this._syncGen.toString(16)
+  if (!this._syncTimeout) {
+    this._syncTimeout = setTimeout(() => {
+      if (this._isConnected) {
+        this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.SYNC, [ token ])
+      }
 
-    if (this._isConnected) {
-      this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.SYNC, [ token ])
-    }
+      this._syncTimeout = null
+      this._syncCounter = (this._syncCounter + 1) & 2147483647
+    }, 1)
+  }
 
-    this._sync.set(token, resolve)
-  })
+  return new Promise(resolve => this._syncEmitter.once('token', resolve))
 }
 
 RecordHandler.prototype.get = function (name, pathOrNil) {
@@ -266,10 +270,7 @@ RecordHandler.prototype._$handle = function (message) {
   }
 
   if (message.action === C.ACTIONS.SYNC) {
-    const resolve = this._sync.get(message.data[0])
-    if (resolve) {
-      resolve()
-    }
+    this._syncEmitter.emit(message.data[0])
     return
   }
 
@@ -288,9 +289,11 @@ RecordHandler.prototype._handleConnectionStateChange = function () {
   const state = this._client.getConnectionState()
 
   if (state === C.CONNECTION_STATE.OPEN) {
-    for (const token of this._sync.keys()) {
+    for (const token of this._syncEmitter.eventNames()) {
       this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.SYNC, [ token ])
     }
+  } else {
+    clearTimeout(this._syncTimeout)
   }
 }
 
