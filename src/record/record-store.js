@@ -39,7 +39,7 @@ RecordStore.prototype.get = function (name, callback) {
 
 RecordStore.prototype.set = function (name, data, version) {
   if (this._db && /^[^I0]/.test(version)) {
-    docs.push(Object.assign({ _id: name, _rev: version, }, data))
+    this._docs.push(Object.assign({ _id: name, _rev: version, }, data))
     this._flush()
   }
 
