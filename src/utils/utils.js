@@ -4,8 +4,11 @@ const hasUrlProtocol = /^wss:|^ws:|^\/\//
 const unsupportedProtocol = /^http:|^https:/
 
 const NODE_ENV = process.env.NODE_ENV
+const isNode = isNode = typeof process !== 'undefined' && process.toString() === '[object process]'
 
-module.exports.isNode = typeof process !== 'undefined' && process.toString() === '[object process]'
+module.exports.isNode = isNode
+
+module.exports.schedule = isNode ? cb => cb() : (cb, options) => window.requestIdleCallback(cb, options)
 
 module.exports.deepFreeze = function (o) {
   if (NODE_ENV === 'production') {

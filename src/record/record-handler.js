@@ -2,52 +2,21 @@ const Record = require('./record')
 const Listener = require('../utils/listener')
 const C = require('../constants/constants')
 const { Observable } = require('rxjs')
-const LRU = require('lru-cache')
 const invariant = require('invariant')
 const LZ = require('./lz')
 const utils = require('../utils/utils')
 const EventEmitter = require('component-emitter2')
-
-const schedule = utils.isNode ? cb => cb() : (cb, options) => window.requestIdleCallback(cb, options)
-
-const EMPTY = {}
+const RecordStore = require('./record-store')
 
 const RecordHandler = function (options, connection, client) {
   this.isAsync = true
-  this._lru = options.lru || new LRU({ max: options.cacheSize || 512 })
-  this._db = options.cacheDb || options.db
   this._pool = []
   this._options = options
   this._connection = connection
   this._client = client
   this._records = new Map()
   this._listeners = new Map()
-  this._cache = {
-    get: (name, callback) => {
-      const val = this._lru.get(name)
-      if (val) {
-        callback(null, val[0], val[1])
-      } else if (this._db) {
-        // TODO (perf): allDocs
-        this._db.get(name, (err, doc) => {
-          if (err) {
-            callback(err)
-          } else {
-            const version = doc._rev
-            if (doc._deleted) {
-              doc = EMPTY
-            } else {
-              delete doc._id
-              delete doc._rev
-            }
-            callback(null, doc, version)
-          }
-        })
-      } else {
-        callback(null, null)
-      }
-    }
-  }
+  this._store = new RecordStore(options, this)
   this._prune = new Set()
   this._syncEmitter = new EventEmitter()
   this._syncTimeout = null
@@ -62,7 +31,6 @@ const RecordHandler = function (options, connection, client) {
 
   const prune = () => {
     const now = Date.now()
-    const docs = []
 
     for (const rec of this._prune) {
       if (rec.usages !== 0) {
@@ -82,14 +50,7 @@ const RecordHandler = function (options, connection, client) {
         continue
       }
 
-      if (this._db && /^[^I0]/.test(rec.version)) {
-        docs.push(Object.assign({
-          _id: rec.name,
-          _rev: rec.version,
-        }, rec._data))
-      }
-
-      this._lru.set(rec.name, [ rec._data, rec.version ])
+      this._store.set(rec.name, rec.get(), rec.version)
       this._records.delete(rec.name)
 
       rec._$destroy()
@@ -98,19 +59,7 @@ const RecordHandler = function (options, connection, client) {
       this._pool.push(rec)
     }
 
-    if (this._db && docs.length > 0) {
-      this
-        .sync()
-        .then(() => schedule(() => this._db
-          .bulkDocs(docs, { new_edits: false }, err => {
-            if (err) {
-              console.error(err)
-            }
-          })
-        ))
-    }
-
-    setTimeout(() => schedule(prune, { timeout: 1000 }), 1000)
+    setTimeout(() => utils.schedule(prune, { timeout: 1000 }), 1000)
   }
 
   prune()

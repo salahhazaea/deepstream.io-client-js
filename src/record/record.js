@@ -8,7 +8,7 @@ const invariant = require('invariant')
 
 const Record = function (handler) {
   this._handler = handler
-  this._cache = handler._cache
+  this._store = handler._store
   this._prune = handler._prune
   this._lz = handler._lz
 
@@ -44,7 +44,7 @@ Record.prototype.init = function (name) {
 
   this.name = name
   this.ref()
-  this._cache.get(name, (err, data, version) => {
+  this._store.get(name, (err, data, version) => {
     this.unref()
 
     if (!err && data && version) {
