@@ -146,7 +146,7 @@ RecordHandler.prototype.getRecord = function (name) {
     this._records.set(name, record)
   }
 
-  record.acquire()
+  record.ref()
 
   return record
 }
@@ -203,7 +203,7 @@ RecordHandler.prototype.get = function (name, pathOrNil) {
     .whenReady()
     .then(() => {
       const val = record.get(pathOrNil)
-      record.discard()
+      record.unref()
       return val
     })
 }
@@ -215,7 +215,7 @@ RecordHandler.prototype.set = function (name, pathOrData, dataOrNil) {
       ? record.set(pathOrData)
       : record.set(pathOrData, dataOrNil)
   } finally {
-    record.discard()
+    record.unref()
   }
 }
 
@@ -226,23 +226,22 @@ RecordHandler.prototype.update = function (name, pathOrUpdater, updaterOrNil) {
       ? record.update(pathOrUpdater)
       : record.update(pathOrUpdater, updaterOrNil)
   } finally {
-    record.discard()
+    record.unref()
   }
 }
 
 RecordHandler.prototype.observe = function (name) {
   return Observable
     .create(o => {
-      try {
-        const record = this.getRecord(name)
-        const onValue = value => o.next(value)
-        record.subscribe(onValue, true)
-        return () => {
-          record.unsubscribe(onValue)
-          record.discard()
-        }
-      } catch (err) {
-        o.error(err)
+      const record = this.getRecord(name)
+      const onUpdate = () => o.next(record.get())
+      record.on('data', onUpdate)
+      if (record.version) {
+        onUpdate()
+      }
+      return () => {
+        record.off('data', onUpdate)
+        record.unref()
       }
     })
 }
@@ -250,65 +249,25 @@ RecordHandler.prototype.observe = function (name) {
 RecordHandler.prototype.observe2 = function (name) {
   return Observable
     .create(o => {
-      try {
-        const record = this.getRecord(name)
-        const onUpdate = () => o.next({
-          data: record.get(),
-          ready: record.isReady,
-          empty: Object.keys(record.get()).length === 0,
-          provided: record.isReady && record.hasProvider,
-          version: record.version
-        })
-        record.subscribe(onUpdate)
-        record.on('ready', onUpdate)
-        record.on('hasProviderChanged', onUpdate)
+      const record = this.getRecord(name)
+      const onUpdate = () => o.next({
+        data: record.get(),
+        ready: record.isReady,
+        empty: Object.keys(record.get()).length === 0,
+        provided: record.isReady && record.hasProvider,
+        version: record.version
+      })
+      record.on('data', onUpdate)
+      record.on('ready', onUpdate)
+      record.on('hasProviderChanged', onUpdate)
+      if (record.version) {
         onUpdate()
-        return () => {
-          record.unsubscribe(onUpdate)
-          record.off('ready', onUpdate)
-          record.off('hasProviderChanged', onUpdate)
-          record.discard()
-        }
-      } catch (err) {
-        o.error(err)
       }
-    })
-}
-
-// TODO deprecate
-RecordHandler.prototype.isReady = function (name) {
-  return Observable
-    .create(o => {
-      try {
-        const record = this.getRecord(name)
-        const onReady = value => o.next(value)
-        record.on('ready', onReady)
-        onReady(record.isReady)
-        return () => {
-          record.off('ready', onReady)
-          record.discard()
-        }
-      } catch (err) {
-        o.error(err)
-      }
-    })
-}
-
-// TODO deprecate
-RecordHandler.prototype.hasProvider = function (name) {
-  return Observable
-    .create(o => {
-      try {
-        const record = this.getRecord(name)
-        const onValue = value => o.next(value)
-        record.on('hasProviderChanged', onValue)
-        onValue(record.hasProvider)
-        return () => {
-          record.off('hasProviderChanged', onValue)
-          record.discard()
-        }
-      } catch (err) {
-        o.error(err)
+      return () => {
+        record.on('data', onUpdate)
+        record.off('ready', onUpdate)
+        record.off('hasProviderChanged', onUpdate)
+        record.unref()
       }
     })
 }

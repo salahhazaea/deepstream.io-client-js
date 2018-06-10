@@ -21,7 +21,6 @@ const Record = function (handler) {
 
   this._connection = handler._connection
   this._client = handler._client
-  this._changeEmitter = new EventEmitter()
 
   this._stale = null
   this._data = null
@@ -44,14 +43,14 @@ Record.prototype.init = function (name) {
   }
 
   this.name = name
-  this.acquire()
+  this.ref()
   this._cache.get(name, (err, data, version) => {
-    this.discard()
+    this.unref()
 
     if (!err && data) {
       this._data = data
       this.version = version
-      this._applyChange(this._data)
+      this.emit('data', this._data)
     }
 
     this._client.on('connectionStateChanged', this._handleConnectionStateChange)
@@ -99,7 +98,9 @@ Record.prototype.set = function (pathOrData, dataOrNil) {
   this._data = utils.deepFreeze(newValue)
 
   this._handler.isAsync = false
-  this._applyChange(this._data, oldValue)
+  if (this._data !== oldValue) {
+    this.emit('data', this._data)
+  }
   this._handler.isAsync = true
 
   return this.whenReady()
@@ -124,7 +125,7 @@ Record.prototype.update = function (pathOrUpdater, updaterOrNil) {
     throw new Error('invalid argument path')
   }
 
-  this.acquire()
+  this.ref()
   return this
     .whenReady()
     .then(() => updater(this.get(path)))
@@ -134,55 +135,13 @@ Record.prototype.update = function (pathOrUpdater, updaterOrNil) {
       } else {
         this.set(val)
       }
-      this.discard()
+      this.unref()
       return val
     })
     .catch(err => {
-      this.discard()
+      this.unref()
       throw err
     })
-}
-
-Record.prototype.subscribe = function (path, callback, triggerNow) {
-  invariant(this.usages !== 0, `${this.name} "subscribe" cannot use discarded record`)
-
-  if (this.usages === 0) {
-    return
-  }
-
-  const args = this._normalizeArguments(arguments)
-
-  if (args.path !== undefined && (typeof args.path !== 'string' || args.path.length === 0)) {
-    throw new Error('invalid argument path')
-  }
-  if (typeof args.callback !== 'function') {
-    throw new Error('invalid argument callback')
-  }
-
-  this._changeEmitter.on(args.path, args.callback)
-
-  if (args.triggerNow && this._data) {
-    args.callback(jsonPath.get(this._data, args.path))
-  }
-}
-
-Record.prototype.unsubscribe = function (pathOrCallback, callback) {
-  invariant(this.usages !== 0, `${this.name} "unsubscribe" cannot use discarded record`)
-
-  if (this.usages === 0) {
-    return
-  }
-
-  const args = this._normalizeArguments(arguments)
-
-  if (args.path !== undefined && (typeof args.path !== 'string' || args.path.length === 0)) {
-    throw new Error('invalid argument path')
-  }
-  if (args.callback !== undefined && typeof args.callback !== 'function') {
-    throw new Error('invalid argument callback')
-  }
-
-  this._changeEmitter.off(args.path, args.callback)
 }
 
 Record.prototype.whenReady = function () {
@@ -288,9 +247,9 @@ Record.prototype._sendUpdate = function (newValue) {
   const connection = this._connection
 
   // TODO (perf): Avoid closure allocation.
-  this.acquire()
+  this.ref()
   this._lz.compress(newValue, raw => {
-    this.discard()
+    this.unref()
 
     if (!raw) {
       this._client._$onError(this._topic, C.EVENT.LZ_ERROR, [ this.name ])
@@ -316,10 +275,10 @@ Record.prototype._onUpdate = function (data) {
     return
   }
 
-  this.acquire()
+  this.ref()
   // TODO (perf): Avoid closure allocation.
   this._lz.decompress(data[2], value => {
-    this.discard()
+    this.unref()
 
     if (!value) {
       this._client._$onError(this._topic, C.EVENT.LZ_ERROR, [ this.name ])
@@ -335,7 +294,9 @@ Record.prototype._onUpdate = function (data) {
 
     const oldValue = this._data
     this._data = jsonPath.set(this._data, undefined, value)
-    this._applyChange(this._data, oldValue)
+    if (this._data !== oldValue) {
+      this.emit('data', this._data)
+    }
   })
 }
 
@@ -345,9 +306,9 @@ Record.prototype._onRead = function (data) {
   }
   this._stale = null
 
-  this.acquire()
+  this.ref()
   this._lz.decompress(data[2], value => {
-    this.discard()
+    this.unref()
 
     if (!value) {
       this._client._$onError(this._topic, C.EVENT.LZ_ERROR, [ this.name ])
@@ -375,9 +336,8 @@ Record.prototype._onRead = function (data) {
 
     try {
       this.emit('ready')
-
       if (this._data !== oldValue) {
-        this._applyChange(this._data, oldValue)
+        this.emit('data', this._data)
       }
     } catch (err) {
       console.error(err)
@@ -387,22 +347,6 @@ Record.prototype._onRead = function (data) {
       this._sendUpdate(this._data)
     }
   })
-}
-
-Record.prototype._applyChange = function (newData, oldData) {
-  const paths = this._changeEmitter.eventNames()
-  for (let i = 0; i < paths.length; i++) {
-    const newValue = jsonPath.get(newData, paths[i])
-    const oldValue = jsonPath.get(oldData, paths[i])
-
-    if (newValue !== oldValue) {
-      try {
-        this._changeEmitter.emit(paths[i], newValue)
-      } catch (err) {
-        console.error(err)
-      }
-    }
-  }
 }
 
 Record.prototype._handleConnectionStateChange = function () {
@@ -416,22 +360,6 @@ Record.prototype._handleConnectionStateChange = function () {
       this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.READ, [this.name])
     }
   }
-}
-
-Record.prototype._normalizeArguments = function (args) {
-  const result = {}
-
-  for (let i = 0; i < args.length; i++) {
-    if (typeof args[i] === 'string') {
-      result.path = args[i]
-    } else if (typeof args[i] === 'function') {
-      result.callback = args[i]
-    } else if (typeof args[i] === 'boolean') {
-      result.triggerNow = args[i]
-    }
-  }
-
-  return result
 }
 
 module.exports = Record
