@@ -50,7 +50,7 @@ const RecordHandler = function (options, connection, client) {
         continue
       }
 
-      this._store.set(rec.name, rec.get(), rec.version)
+      this._store.set(rec.name, rec._data, rec.version)
       this._records.delete(rec.name)
 
       rec._$destroy()
