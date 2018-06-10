@@ -4,7 +4,7 @@ const hasUrlProtocol = /^wss:|^ws:|^\/\//
 const unsupportedProtocol = /^http:|^https:/
 
 const NODE_ENV = process.env.NODE_ENV
-const isNode = isNode = typeof process !== 'undefined' && process.toString() === '[object process]'
+const isNode = typeof process !== 'undefined' && process.toString() === '[object process]'
 
 module.exports.isNode = isNode
 
