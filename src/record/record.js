@@ -358,7 +358,7 @@ Record.prototype._handleConnectionStateChange = function () {
     } else {
       this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.READ, [this.name])
     }
-  } else {
+  } else if (state === C.CONNECTION_STATE.RECONNECTING) {
     this._updateHasProvider(false)
   }
 }

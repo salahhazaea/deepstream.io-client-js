@@ -292,7 +292,7 @@ RecordHandler.prototype._handleConnectionStateChange = function () {
     for (const token of this._syncEmitter.eventNames()) {
       this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.SYNC, [ token ])
     }
-  } else {
+  } else if (state === C.CONNECTION_STATE.RECONNECTING) {
     clearTimeout(this._syncTimeout)
   }
 }
