@@ -127,12 +127,12 @@ Record.prototype.update = function (pathOrUpdater, updaterOrNil) {
   this.acquire()
   return this
     .whenReady()
-    .then(() => updater(record.get(path)))
+    .then(() => updater(this.get(path)))
     .then(val => {
       if (path) {
-        record.set(path, val)
+        this.set(path, val)
       } else {
-        record.set(val)
+        this.set(val)
       }
       this.discard()
       return val
