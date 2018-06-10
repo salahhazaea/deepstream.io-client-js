@@ -47,7 +47,7 @@ Record.prototype.init = function (name) {
   this._cache.get(name, (err, data, version) => {
     this.unref()
 
-    if (!err && data) {
+    if (!err && data && version) {
       this._data = data
       this.version = version
       this.emit('data', this._data)
