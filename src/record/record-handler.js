@@ -4,7 +4,7 @@ const C = require('../constants/constants')
 const { Observable } = require('rxjs')
 const LRU = require('lru-cache')
 const invariant = require('invariant')
-const lz = require('@nxtedition/lz-string')
+const LZ = require('./lz')
 const utils = require('../utils/utils')
 
 const schedule = utils.isNode ? cb => cb() : (cb, options) => window.requestIdleCallback(cb, options)
@@ -50,22 +50,7 @@ const RecordHandler = function (options, connection, client) {
   this._prune = new Set()
   this._sync = new Map()
   this._syncGen = 0
-  this._lz = options.lz || {
-    compress (obj, cb) {
-      try {
-        cb(lz.compressToUTF16(JSON.stringify(obj)))
-      } catch (err) {
-        cb(null)
-      }
-    },
-    decompress (raw, cb) {
-      try {
-        cb(typeof raw === 'string' ? JSON.parse(lz.decompressFromUTF16(raw)) : raw)
-      } catch (err) {
-        cb(null)
-      }
-    }
-  }
+  this._lz = options.lz || new LZ()
 
   this._handleConnectionStateChange = this._handleConnectionStateChange.bind(this)
 
