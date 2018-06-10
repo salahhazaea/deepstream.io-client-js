@@ -253,7 +253,7 @@ RecordHandler.prototype.observe2 = function (name) {
         onUpdate()
       }
       return () => {
-        record.on('data', onUpdate)
+        record.off('data', onUpdate)
         record.off('ready', onUpdate)
         record.off('hasProviderChanged', onUpdate)
         record.unref()
