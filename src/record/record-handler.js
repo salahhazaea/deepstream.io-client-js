@@ -243,7 +243,7 @@ RecordHandler.prototype.observe2 = function (name) {
         data: record.get(),
         ready: record.isReady,
         empty: Object.keys(record.get()).length === 0,
-        provided: record.isReady && record.hasProvider,
+        provided: record.hasProvider,
         version: record.version
       })
       record.on('data', onUpdate)
