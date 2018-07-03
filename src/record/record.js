@@ -130,6 +130,9 @@ Record.prototype.update = function (pathOrUpdater, updaterOrNil) {
     .whenReady()
     .then(() => updater(this.get(path)))
     .then(val => {
+      if (val === undefined) {
+        return this.get()
+      }
       if (path) {
         this.set(path, val)
       } else {
