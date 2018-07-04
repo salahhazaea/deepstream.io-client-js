@@ -128,18 +128,21 @@ Record.prototype.update = function (pathOrUpdater, updaterOrNil) {
   this.ref()
   return this
     .whenReady()
-    .then(() => updater(this.get(path)))
-    .then(val => {
-      if (val === undefined) {
-        return this.get()
+    .then(() => {
+      const prev = this.get(path)
+      return Promise.resolve(updater(prev)).then(next => [ prev, next ])
+    })
+    .then(([ prev, next ]) => {
+      if (next === undefined) {
+        return prev
       }
       if (path) {
-        this.set(path, val)
+        this.set(path, next)
       } else {
-        this.set(val)
+        this.set(next)
       }
       this.unref()
-      return val
+      return next
     })
     .catch(err => {
       this.unref()
