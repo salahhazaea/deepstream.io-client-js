@@ -89,8 +89,10 @@ RpcHandler.prototype.make = function (name, data, callback) {
 
   const provider = this._providers.get(name)
   if (provider) {
-    utils.nextTick(() => provider(new class Response {
-      constructor () {
+    class Response {
+      constructor (callback, reject) {
+        this._callback = callback
+        this._reject = reject
         this.completed = false
       }
       reject() {
@@ -99,7 +101,7 @@ RpcHandler.prototype.make = function (name, data, callback) {
         }
         this.completed = true
 
-        send()
+        this._reject()
       }
       error (err) {
         if (this.completed) {
@@ -107,7 +109,7 @@ RpcHandler.prototype.make = function (name, data, callback) {
         }
         this.completed = true
 
-        callback(err)
+        this._callback(err)
       }
       send (val) {
         if (this.completed) {
@@ -115,9 +117,11 @@ RpcHandler.prototype.make = function (name, data, callback) {
         }
         this.completed = true
 
-        callback(null, val)
+        this._callback(null, val)
       }
-    }))
+    }
+
+    utils.nextTick(() => provider(new Response(callback, send)))
   } else {
     send()
   }
