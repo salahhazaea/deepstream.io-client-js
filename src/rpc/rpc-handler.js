@@ -121,7 +121,7 @@ RpcHandler.prototype.make = function (name, data, callback) {
       }
     }
 
-    utils.nextTick(() => provider(new Response(callback, send)))
+    utils.nextTick(() => provider(data, new Response(callback, send)))
   } else {
     send()
   }
