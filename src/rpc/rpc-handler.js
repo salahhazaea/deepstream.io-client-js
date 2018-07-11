@@ -2,6 +2,7 @@ const C = require('../constants/constants')
 const RpcResponse = require('./rpc-response')
 const messageParser = require('../message/message-parser')
 const messageBuilder = require('../message/message-builder')
+const utils = require('../utils/utils')
 
 const RpcHandler = function (options, connection, client) {
   this._options = options
@@ -76,13 +77,50 @@ RpcHandler.prototype.make = function (name, data, callback) {
     throw new Error('invalid argument callback')
   }
 
-  const id = this._client.getUid()
-  this._rpcs.set(id, {
-    id,
-    name,
-    callback
-  })
-  this._connection.sendMsg(C.TOPIC.RPC, C.ACTIONS.REQUEST, [ name, id, messageBuilder.typed(data) ])
+  function send () {
+    const id = this._client.getUid()
+    this._rpcs.set(id, {
+      id,
+      name,
+      callback
+    })
+    this._connection.sendMsg(C.TOPIC.RPC, C.ACTIONS.REQUEST, [ name, id, messageBuilder.typed(data) ])
+  }
+
+  const provider = this._providers.get(name)
+  if (provider) {
+    utils.nextTick(() => provider(new class Response {
+      constructor () {
+        this.completed = false
+      }
+      reject() {
+        if (this.completed) {
+          throw new Error(`Rpc ${this._name} already completed`)
+        }
+        this.completed = true
+
+        send()
+      }
+      error (err) {
+        if (this.completed) {
+          throw new Error(`Rpc ${this._name} already completed`)
+        }
+        this.completed = true
+
+        callback(err)
+      }
+      send (val) {
+        if (this.completed) {
+          throw new Error(`Rpc ${this._name} already completed`)
+        }
+        this.completed = true
+
+        callback(null, val)
+      }
+    }))
+  } else {
+    send()
+  }
 
   return promise
 }
