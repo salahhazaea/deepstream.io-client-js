@@ -77,8 +77,9 @@ RpcHandler.prototype.make = function (name, data, callback) {
     throw new Error('invalid argument callback')
   }
 
+  const id = client.getUid()
+
   function send () {
-    const id = this._client.getUid()
     this._rpcs.set(id, {
       id,
       name,
