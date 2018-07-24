@@ -133,12 +133,9 @@ Record.prototype.update = function (pathOrUpdater, updaterOrNil) {
       return Promise.resolve(updater(prev)).then(next => [ prev, next ])
     })
     .then(([ prev, next ]) => {
-      if (!path && next == null) {
-        return prev
-      }
       if (path) {
         this.set(path, next)
-      } else {
+      } else if (next) {
         this.set(next)
       }
       this.unref()
