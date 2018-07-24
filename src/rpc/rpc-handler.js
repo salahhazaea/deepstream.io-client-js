@@ -152,7 +152,7 @@ RpcHandler.prototype._respond = function (message) {
         })
         .catch(err => {
           if (!response.completed) {
-            response.error(err.message || err)
+            response.error(err)
           }
         })
     }
