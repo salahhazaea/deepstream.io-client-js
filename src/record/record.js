@@ -135,8 +135,10 @@ Record.prototype.update = function (pathOrUpdater, updaterOrNil) {
     .then(([ prev, next ]) => {
       if (path) {
         this.set(path, next)
-      } else if (next) {
+      } else if (next != null) {
         this.set(next)
+      } else {
+        next = prev
       }
       this.unref()
       return next
