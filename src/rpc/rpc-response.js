@@ -35,7 +35,7 @@ RpcResponse.prototype.error = function (error) {
 }
 
 RpcResponse.prototype.send = function (data) {
-  if (this.completed === true) {
+  if (this.completed) {
     throw new Error(`Rpc ${this._name} already completed`)
   }
   this.completed = true
