@@ -98,10 +98,13 @@ Record.prototype.set = function (pathOrData, dataOrNil) {
   this._data = utils.deepFreeze(newValue)
 
   this._handler.isAsync = false
-  if (this._data !== oldValue) {
-    this.emit('data', this._data)
+  try {
+    if (this._data !== oldValue) {
+      this.emit('data', this._data)
+    }
+  } finally {
+    this._handler.isAsync = true
   }
-  this._handler.isAsync = true
 
   return this.whenReady()
 }
