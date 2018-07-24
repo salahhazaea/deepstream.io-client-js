@@ -47,10 +47,14 @@ Record.prototype.init = function (name) {
   this._store.get(name, (err, data, version) => {
     this.unref()
 
-    if (!err && data && version) {
-      this._data = data
-      this.version = version
-      this.emit('data', this._data)
+    try {
+      if (!err && data && version) {
+        this._data = data
+        this.version = version
+        this.emit('data', this._data)
+      }
+    } catch (err) {
+      this._client._$onError(C.TOPIC.RECORD, C.EVENT.USER_ERROR, err)
     }
 
     this._client.on('connectionStateChanged', this._handleConnectionStateChange)
@@ -102,6 +106,8 @@ Record.prototype.set = function (pathOrData, dataOrNil) {
     if (this._data !== oldValue) {
       this.emit('data', this._data)
     }
+  } catch (err) {
+    this._client._$onError(C.TOPIC.RECORD, C.EVENT.USER_ERROR, err)
   } finally {
     this._handler.isAsync = true
   }
@@ -218,7 +224,11 @@ Record.prototype._$onMessage = function (message) {
 Record.prototype._updateHasProvider = function (hasProvider) {
   if (this.hasProvider !== hasProvider) {
     this.hasProvider = hasProvider
-    this.emit('hasProviderChanged', this.hasProvider)
+    try {
+      this.emit('hasProviderChanged', this.hasProvider)
+    } catch (err) {
+      this._client._$onError(C.TOPIC.RECORD, C.EVENT.USER_ERROR, err)
+    }
   }
 }
 
@@ -259,7 +269,7 @@ Record.prototype._sendUpdate = function (newValue) {
     this.unref()
 
     if (!raw) {
-      this._client._$onError(this._topic, C.EVENT.LZ_ERROR, [ this.name ])
+      this._client._$onError(this._topic, C.EVENT.LZ_ERROR, new Error(this.name))
       return
     }
 
@@ -288,7 +298,7 @@ Record.prototype._onUpdate = function (data) {
     this.unref()
 
     if (!value) {
-      this._client._$onError(this._topic, C.EVENT.LZ_ERROR, [ this.name ])
+      this._client._$onError(this._topic, C.EVENT.LZ_ERROR, new Error(this.name))
       return
     }
 
@@ -301,8 +311,13 @@ Record.prototype._onUpdate = function (data) {
 
     const oldValue = this._data
     this._data = jsonPath.set(this._data, undefined, value)
-    if (this._data !== oldValue) {
-      this.emit('data', this._data)
+
+    try {
+      if (this._data !== oldValue) {
+        this.emit('data', this._data)
+      }
+    } catch (err) {
+      this._client._$onError(C.TOPIC.RECORD, C.EVENT.USER_ERROR, err)
     }
   })
 }
@@ -318,7 +333,7 @@ Record.prototype._onRead = function (data) {
     this.unref()
 
     if (!value) {
-      this._client._$onError(this._topic, C.EVENT.LZ_ERROR, [ this.name ])
+      this._client._$onError(this._topic, C.EVENT.LZ_ERROR, new Error(this.name))
       return
     }
 
@@ -347,7 +362,7 @@ Record.prototype._onRead = function (data) {
         this.emit('data', this._data)
       }
     } catch (err) {
-      console.error(err)
+      this._client._$onError(C.TOPIC.RECORD, C.EVENT.USER_ERROR, err)
     }
 
     if (this._data !== value) {

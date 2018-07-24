@@ -71,19 +71,17 @@ Client.prototype._$onMessage = function (message) {
 Client.prototype._$onError = function (topic, event, msg) {
   let errorMsg
 
+  const error = msg && msg.message ? msg : new Error(msg)
+  error.topic = topic
+  error.event = event
+
   if (this.hasListeners('error')) {
-    this.emit('error', msg, event, topic)
-    this.emit(event, topic, msg)
+    this.emit('error', error)
+    this.emit(event, error)
   } else {
     console.log('--- You can catch all deepstream errors by subscribing to the error event ---')
 
-    errorMsg = `${event}: ${msg}`
-
-    if (topic) {
-      errorMsg += ` (${topic})`
-    }
-
-    throw new Error(errorMsg)
+    throw error
   }
 }
 

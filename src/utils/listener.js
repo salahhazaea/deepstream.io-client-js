@@ -81,7 +81,7 @@ Listener.prototype._$onMessage = function (message) {
           // TODO (perf): Avoid closure allocation.
           this._lz.compress(value, raw => {
             if (!raw) {
-              this._client._$onError(this._topic, C.EVENT.LZ_ERROR, [ this._pattern ])
+              this._client._$onError(this._topic, C.EVENT.LZ_ERROR, new Error(this._pattern))
               return
             }
 
@@ -101,7 +101,7 @@ Listener.prototype._$onMessage = function (message) {
       error: err => {
         provider.value$ = null
         this._connection.sendMsg(this._topic, C.ACTIONS.LISTEN_REJECT, [ this._pattern, name ])
-        this._client._$onError(this._topic, C.EVENT.LISTENER_ERROR, [ this._pattern, err.message || err ])
+        this._client._$onError(this._topic, C.EVENT.LISTENER_ERROR, err)
       }
     }
     provider.patternSubscription = Observable
@@ -142,7 +142,7 @@ Listener.prototype._$onMessage = function (message) {
         error: err => {
           provider.value$ = null
           this._connection.sendMsg(this._topic, C.ACTIONS.LISTEN_REJECT, [ this._pattern, name ])
-          this._client._$onError(this._topic, C.EVENT.LISTENER_ERROR, [ this._pattern, err.message || err ])
+          this._client._$onError(this._topic, C.EVENT.LISTENER_ERROR, err)
         }
       })
 

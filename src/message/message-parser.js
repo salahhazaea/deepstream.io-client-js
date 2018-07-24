@@ -29,8 +29,8 @@ MessageParser.prototype.convertTyped = function (value, client) {
   if (type === C.TYPES.OBJECT) {
     try {
       return JSON.parse(value.substr(1))
-    } catch (e) {
-      client._$onError(C.TOPIC.ERROR, C.EVENT.MESSAGE_PARSE_ERROR, `${e.toString()}(${value})`)
+    } catch (err) {
+      client._$onError(C.TOPIC.ERROR, C.EVENT.MESSAGE_PARSE_ERROR, err)
       return undefined
     }
   }
@@ -55,7 +55,7 @@ MessageParser.prototype.convertTyped = function (value, client) {
     return undefined
   }
 
-  client._$onError(C.TOPIC.ERROR, C.EVENT.MESSAGE_PARSE_ERROR, `UNKNOWN_TYPE (${value})`)
+  client._$onError(C.TOPIC.ERROR, C.EVENT.MESSAGE_PARSE_ERROR, new Error(`UNKNOWN_TYPE (${value})`))
 
   return undefined
 }
@@ -92,12 +92,12 @@ MessageParser.prototype.parseMessage = function (message, client, result) {
   const parts = message.split(C.MESSAGE_PART_SEPERATOR)
 
   if (parts.length < 2) {
-    client._$onError(C.TOPIC.ERROR, C.EVENT.MESSAGE_PARSE_ERROR, 'Insufficiant message parts')
+    client._$onError(C.TOPIC.ERROR, C.EVENT.MESSAGE_PARSE_ERROR, new Error('Insufficiant message parts'))
     return null
   }
 
   if (this._actions[parts[1]] === undefined) {
-    client._$onError(C.TOPIC.ERROR, C.EVENT.MESSAGE_PARSE_ERROR, `Unknown action ${parts[1]}`)
+    client._$onError(C.TOPIC.ERROR, C.EVENT.MESSAGE_PARSE_ERROR, new Error(`Unknown action ${parts[1]}`))
     return null
   }
 

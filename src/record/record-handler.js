@@ -96,7 +96,7 @@ RecordHandler.prototype.provide = function (pattern, callback, recursive = false
   }
 
   if (this._listeners.has(pattern)) {
-    this._client._$onError(C.TOPIC.RECORD, C.EVENT.LISTENER_EXISTS, pattern)
+    this._client._$onError(C.TOPIC.RECORD, C.EVENT.LISTENER_EXISTS, new Error(pattern))
     return
   }
 
