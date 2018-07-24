@@ -123,12 +123,13 @@ RecordHandler.prototype.sync = function () {
 
   if (!this._syncTimeout) {
     this._syncTimeout = setTimeout(() => {
-      if (this._isConnected) {
-        this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.SYNC, [ token ])
+      if (!this._isConnected) {
+        return
       }
 
-      this._syncTimeout = null
+      this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.SYNC, [ token ])
       this._syncCounter = (this._syncCounter + 1) & 2147483647
+      this._syncTimeout = null
     }, 1)
   }
 
@@ -245,6 +246,8 @@ RecordHandler.prototype._handleConnectionStateChange = function () {
     for (const token of this._syncEmitter.eventNames()) {
       this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.SYNC, [ token ])
     }
+    this._syncCounter = (this._syncCounter + 1) & 2147483647
+    this._syncTimeout = null
   } else {
     clearTimeout(this._syncTimeout)
   }
