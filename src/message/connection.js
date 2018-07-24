@@ -5,15 +5,6 @@ const messageBuilder = require('./message-builder')
 const utils = require('../utils/utils')
 const C = require('../constants/constants')
 
-/**
- * Establishes a connection to a deepstream server using websockets
- *
- * @param {Client} client
- * @param {String} url     Short url, e.g. <host>:<port>. Deepstream works out the protocol
- * @param {Object} options connection options
- *
- * @constructor
- */
 const Connection = function (client, url, options) {
   this._client = client
   this._options = options
@@ -52,28 +43,10 @@ const Connection = function (client, url, options) {
   this._createEndpoint()
 }
 
-/**
- * Returns the current connection state.
- * (One of constants.CONNECTION_STATE)
- *
- * @public
- * @returns {String} connectionState
- */
 Connection.prototype.getState = function () {
   return this._state
 }
 
-/**
- * Sends the specified authentication parameters
- * to the server. Can be called up to <maxAuthAttempts>
- * times for the same connection.
- *
- * @param   {Object}   authParams A map of user defined auth parameters. E.g. { username:<String>, password:<String> }
- * @param   {Function} callback   A callback that will be invoked with the authenticationr result
- *
- * @public
- * @returns {void}
- */
 Connection.prototype.authenticate = function (authParams, callback) {
   this._authParams = authParams
   this._authCallback = callback
@@ -92,32 +65,10 @@ Connection.prototype.authenticate = function (authParams, callback) {
   }
 }
 
-/**
- * High level send message method. Creates a deepstream message
- * string and invokes the actual send method.
- *
- * @param   {String} topic  One of C.TOPIC
- * @param   {String} action One of C.ACTIONS
- * @param   {[Mixed]} data   Date that will be added to the message. Primitive values will
- *                          be appended directly, objects and arrays will be serialized as JSON
- *
- * @private
- * @returns {void}
- */
 Connection.prototype.sendMsg = function (topic, action, data) {
   this.send(messageBuilder.getMsg(topic, action, data))
 }
 
-/**
- * Main method for sending messages. Doesn't send messages instantly,
- * but instead achieves conflation by adding them to the message
- * buffer that will be drained on the next tick
- *
- * @param   {String} message deepstream message
- *
- * @public
- * @returns {void}
- */
 Connection.prototype.send = function (message) {
   this._queuedMessages.push(message)
   if (this._queuedMessages.length > this._options.maxMessagesPerPacket) {
@@ -128,14 +79,6 @@ Connection.prototype.send = function (message) {
   }
 }
 
-/**
- * Closes the connection. Using this method
- * sets a _deliberateClose flag that will prevent the client from
- * reconnecting.
- *
- * @public
- * @returns {void}
- */
 Connection.prototype.close = function () {
   this._sendQueuedMessages()
   this._reset()
@@ -143,13 +86,6 @@ Connection.prototype.close = function () {
   this._endpoint.close()
 }
 
-/**
- * Creates the endpoint to connect to using the url deepstream
- * was initialised with.
- *
- * @private
- * @returns {void}
- */
 Connection.prototype._createEndpoint = function () {
   this._endpoint = BrowserWebSocket ? new BrowserWebSocket(this._url) : new NodeWebSocket(this._url)
 
@@ -159,14 +95,6 @@ Connection.prototype._createEndpoint = function () {
   this._endpoint.onmessage = this._onMessage.bind(this)
 }
 
-/**
- * Concatenates the messages in the current message queue
- * and sends them as a single package. This will also
- * empty the message queue and conclude the send process.
- *
- * @private
- * @returns {void}
- */
 Connection.prototype._sendQueuedMessages = function (deadline) {
   if (this._state !== C.CONNECTION_STATE.OPEN || this._endpoint.readyState !== this._endpoint.OPEN) {
     return
@@ -179,15 +107,6 @@ Connection.prototype._sendQueuedMessages = function (deadline) {
   this._messageSender = null
 }
 
-/**
- * Sends a message to over the endpoint connection directly
- *
- * Will generate a connection error if the websocket was closed
- * prior to an onclose event.
- *
- * @private
- * @returns {void}
- */
 Connection.prototype._submit = function (message) {
   if (this._endpoint.readyState === this._endpoint.OPEN) {
     this._endpoint.send(message)
@@ -196,24 +115,12 @@ Connection.prototype._submit = function (message) {
   }
 }
 
-/**
- * Sends authentication params to the server. Please note, this
- * doesn't use the queued message mechanism, but rather sends the message directly
- *
- * @private
- * @returns {void}
- */
 Connection.prototype._sendAuthParams = function () {
   this._setState(C.CONNECTION_STATE.AUTHENTICATING)
   const authMessage = messageBuilder.getMsg(C.TOPIC.AUTH, C.ACTIONS.REQUEST, [ this._authParams ])
   this._submit(authMessage)
 }
 
-/**
- * Ensures that a heartbeat was not missed more than once, otherwise it considers the connection
- * to have been lost and closes it for reconnection.
- * @return {void}
- */
 Connection.prototype._checkHeartBeat = function () {
   const heartBeatTolerance = this._options.heartbeatInterval * 3
 
@@ -227,14 +134,6 @@ Connection.prototype._checkHeartBeat = function () {
   }
 }
 
-/**
- * Will be invoked once the connection is established. The client
- * can't send messages yet, and needs to get a connection ACK or REDIRECT
- * from the server before authenticating
- *
- * @private
- * @returns {void}
- */
 Connection.prototype._onOpen = function () {
   this._clearReconnect()
   this._lastHeartBeat = Date.now()
@@ -242,18 +141,6 @@ Connection.prototype._onOpen = function () {
   this._setState(C.CONNECTION_STATE.AWAITING_CONNECTION)
 }
 
-/**
- * Callback for generic connection errors. Forwards
- * the error to the client.
- *
- * The connection is considered broken once this method has been
- * invoked.
- *
- * @param   {String|Error} error connection error
- *
- * @private
- * @returns {void}
- */
 Connection.prototype._onError = function (err) {
   this._reset()
 
@@ -269,10 +156,9 @@ Connection.prototype._onError = function (err) {
     err.message = 'socket error'
   }
 
-  /*
-   * If the implementation isn't listening on the error event this will throw
-   * an error. So let's defer it to allow the reconnection to kick in.
-   */
+
+  // NOTE: If the implementation isn't listening on the error event this will throw
+  // an error. So let's defer it to allow the reconnection to kick in.
   setTimeout(() => {
     let msg
     if (err.code === 'ECONNRESET' || err.code === 'ECONNREFUSED') {
@@ -284,17 +170,6 @@ Connection.prototype._onError = function (err) {
   }, 1)
 }
 
-/**
- * Callback when the connection closes. This might have been a deliberate
- * close triggered by the client or the result of the connection getting
- * lost.
- *
- * In the latter case the client will try to reconnect using the configured
- * strategy.
- *
- * @private
- * @returns {void}
- */
 Connection.prototype._onClose = function () {
   this._reset()
 
@@ -308,14 +183,6 @@ Connection.prototype._onClose = function () {
   }
 }
 
-/**
- * Callback for messages received on the connection.
- *
- * @param   {String} message deepstream message
- *
- * @private
- * @returns {void}
- */
 Connection.prototype._onMessage = function (message) {
   this._rawMessages.push(message.data)
 
@@ -371,28 +238,6 @@ Connection.prototype._reset = function () {
   }
 }
 
-/**
- * The connection response will indicate whether the deepstream connection
- * can be used or if it should be forwarded to another instance. This
- * allows us to introduce load-balancing if needed.
- *
- * If authentication parameters are already provided this will kick of
- * authentication immediately. The actual 'open' event won't be emitted
- * by the client until the authentication is successful.
- *
- * If a challenge is received, the user will send the url to the server
- * in response to get the appropriate redirect. If the URL is invalid the
- * server will respond with a REJECTION resulting in the client connection
- * being permanently closed.
- *
- * If a redirect is received, this connection is closed and updated with
- * a connection to the url supplied in the message.
- *
- * @param   {Object} message parsed connection message
- *
- * @private
- * @returns {void}
- */
 Connection.prototype._handleConnectionResponse = function (message) {
   if (message.action === C.ACTIONS.PING) {
     this._lastHeartBeat = Date.now()
@@ -421,17 +266,6 @@ Connection.prototype._handleConnectionResponse = function (message) {
   }
 }
 
-/**
- * Callback for messages received for the AUTH topic. If
- * the authentication was successful this method will
- * open the connection and send all messages that the client
- * tried to send so far.
- *
- * @param   {Object} message parsed auth message
- *
- * @private
- * @returns {void}
- */
 Connection.prototype._handleAuthResponse = function (message) {
   if (message.action === C.ACTIONS.ERROR) {
     if (message.data[ 0 ] === C.EVENT.TOO_MANY_AUTH_ATTEMPTS) {
@@ -455,15 +289,6 @@ Connection.prototype._handleAuthResponse = function (message) {
   }
 }
 
-/**
- * Checks if data is present with login ack and converts it
- * to the correct type
- *
- * @param {Object} message parsed and validated deepstream message
- *
- * @private
- * @returns {object}
- */
 Connection.prototype._getAuthData = function (data) {
   if (data === undefined) {
     return null
@@ -472,13 +297,6 @@ Connection.prototype._getAuthData = function (data) {
   }
 }
 
-/**
- * Updates the connection state and emits the
- * connectionStateChanged event on the client
- *
- * @private
- * @returns {void}
- */
 Connection.prototype._setState = function (state) {
   if (this._state === state) {
     return
@@ -487,16 +305,6 @@ Connection.prototype._setState = function (state) {
   this._client.emit(C.EVENT.CONNECTION_STATE_CHANGED, state)
 }
 
-/**
- * If the connection drops or is closed in error this
- * method schedules increasing reconnection intervals
- *
- * If the number of failed reconnection attempts exceeds
- * options.maxReconnectAttempts the connection is closed
- *
- * @private
- * @returns {void}
- */
 Connection.prototype._tryReconnect = function () {
   if (this._reconnectTimeout) {
     return
@@ -519,12 +327,6 @@ Connection.prototype._tryReconnect = function () {
   }
 }
 
-/**
- * Attempts to open a errourosly closed connection
- *
- * @private
- * @returns {void}
- */
 Connection.prototype._tryOpen = function () {
   if (this._originalUrl !== this._url) {
     this._url = this._originalUrl
@@ -533,15 +335,6 @@ Connection.prototype._tryOpen = function () {
   this._reconnectTimeout = null
 }
 
-/**
- * Stops all further reconnection attempts,
- * either because the connection is open again
- * or because the maximal number of reconnection
- * attempts has been exceeded
- *
- * @private
- * @returns {void}
- */
 Connection.prototype._clearReconnect = function () {
   clearTimeout(this._reconnectTimeout)
   this._reconnectTimeout = null
