@@ -480,6 +480,9 @@ Connection.prototype._getAuthData = function (data) {
  * @returns {void}
  */
 Connection.prototype._setState = function (state) {
+  if (this._state === state) {
+    return
+  }
   this._state = state
   this._client.emit(C.EVENT.CONNECTION_STATE_CHANGED, state)
 }
