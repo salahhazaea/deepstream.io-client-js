@@ -168,7 +168,7 @@ Listener.prototype._handleConnectionStateChange = function () {
 
   if (state === C.CONNECTION_STATE.OPEN) {
     this._connection.sendMsg(this._topic, C.ACTIONS.LISTEN, [ this._pattern ])
-  } else if (state === C.CONNECTION_STATE.RECONNECTING) {
+  } else {
     this._reset()
   }
 }
