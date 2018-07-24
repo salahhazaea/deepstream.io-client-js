@@ -144,6 +144,10 @@ RecordHandler.prototype.get = function (name, pathOrNil) {
       record.unref()
       return val
     })
+    .catch(err => {
+      record.unref()
+      throw err
+    })
 }
 
 RecordHandler.prototype.set = function (name, pathOrData, dataOrNil) {
