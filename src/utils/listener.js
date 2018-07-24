@@ -32,7 +32,10 @@ Listener.prototype._$destroy = function () {
   if (this._isConnected) {
     this._connection.sendMsg(this._topic, C.ACTIONS.UNLISTEN, [ this._pattern ])
   }
+
   this._reset()
+
+  this._client.off('connectionStateChanged', this._handleConnectionStateChange)
 }
 
 Listener.prototype._$onMessage = function (message) {
