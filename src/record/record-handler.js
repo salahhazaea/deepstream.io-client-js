@@ -253,5 +253,4 @@ RecordHandler.prototype._handleConnectionStateChange = function () {
   }
 }
 
-
 module.exports = RecordHandler
