@@ -50,7 +50,7 @@ Listener.prototype._$onMessage = function (message) {
 
     provider = {
       value$: null,
-      raw: null
+      valueSubscription: null
     }
     provider.dispose = () => {
       provider.value$ = null
@@ -68,14 +68,6 @@ Listener.prototype._$onMessage = function (message) {
         if (this._topic === C.TOPIC.EVENT) {
           this._handler.emit(name, value)
         } else if (this._topic === C.TOPIC.RECORD) {
-          const raw = JSON.stringify(value)
-
-          if (provider.raw === raw) {
-            return
-          }
-
-          provider.raw = raw
-
           const version = `INF-${xuid()}`
 
           // TODO (perf): Avoid closure allocation.
@@ -104,24 +96,12 @@ Listener.prototype._$onMessage = function (message) {
         this._client._$onError(this._topic, C.EVENT.LISTENER_ERROR, err)
       }
     }
-    provider.patternSubscription = Observable
-      .defer(() => Promise.resolve(this._callback(name)))
-      // recursive=false: Observable<T>|value|null
-      // recursive=true: Observable< Observable<T>|value|null >
-      .map(value => value == null || value.subscribe ? value : Observable.of(value))
-      // recursive=false: Observable<T|value>|null
-      // recursive=true: Observable< Observable<T>|value|null >
-      .switchMap(value$ => this.recursive ? value$ : Observable.of(value$))
-      // recursive=false: Observable<T|value|null>
-      // recursive=true: Observable<T>|value|null
-      .map(value$ => value$ == null || value$.subscribe ? value$ : Observable.of(value$))
-      // Observable<T|value>|null
+    provider.patternSubscription = this._callback(name)
       .subscribe({
         next: value$ => {
           if (value$) {
             if (!provider.value$) {
               this._connection.sendMsg(this._topic, C.ACTIONS.LISTEN_ACCEPT, [ this._pattern, name ])
-              provider.raw = null
             }
 
             if (provider.valueSubscription) {
@@ -131,7 +111,6 @@ Listener.prototype._$onMessage = function (message) {
           } else {
             if (provider.value$) {
               this._connection.sendMsg(this._topic, C.ACTIONS.LISTEN_REJECT, [ this._pattern, name ])
-              provider.raw = null
             }
 
             if (provider.valueSubscription) {
