@@ -121,7 +121,9 @@ Listener.prototype._$onMessage = function (message) {
           if (value$) {
             if (!provider.value$) {
               this._connection.sendMsg(this._topic, C.ACTIONS.LISTEN_ACCEPT, [ this._pattern, name ])
+              provider.raw = null
             }
+
 
             if (provider.valueSubscription) {
               provider.valueSubscription.unsubscribe()
@@ -130,6 +132,7 @@ Listener.prototype._$onMessage = function (message) {
           } else {
             if (provider.value$) {
               this._connection.sendMsg(this._topic, C.ACTIONS.LISTEN_REJECT, [ this._pattern, name ])
+              provider.raw = null
             }
 
             if (provider.valueSubscription) {
