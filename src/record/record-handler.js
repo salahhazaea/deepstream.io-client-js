@@ -130,12 +130,14 @@ RecordHandler.prototype._$syncUnref = function () {
 }
 
 RecordHandler.prototype._syncFlush = function () {
-  if (this._syncRef === 0) {
-    for (const sync of this._syncQueue) {
-      this._syncEmitter.emit(sync)
-    }
-    this._syncQueue = []
+  if (this._syncRef !== 0) {
+    return
   }
+
+  for (const sync of this._syncQueue) {
+    this._syncEmitter.emit(sync)
+  }
+  this._syncQueue = []
 }
 
 RecordHandler.prototype.sync = function () {
