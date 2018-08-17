@@ -18,6 +18,8 @@ const RecordHandler = function (options, connection, client) {
   this._listeners = new Map()
   this._store = new RecordStore(options, this)
   this._prune = new Set()
+  this._syncRef = 0
+  this._syncQueue = []
   this._syncEmitter = new EventEmitter()
   this._syncTimeout = null
   this._syncCounter = 0
@@ -115,6 +117,24 @@ RecordHandler.prototype.provide = function (pattern, callback, recursive = false
   return () => {
     listener._$destroy()
     this._listeners.delete(pattern)
+  }
+}
+
+RecordHandler.prototype._$syncRef = function () {
+  this._syncRef += 1
+}
+
+RecordHandler.prototype._$syncUnref = function () {
+  this._syncRef -= 1
+  this._syncFlush()
+}
+
+RecordHandler.prototype._syncFlush = function () {
+  if (this._syncRef === 0) {
+    for (const sync of this._syncQueue) {
+      this._syncEmitter.emit(sync)
+    }
+    this._syncQueue = []
   }
 }
 
@@ -224,7 +244,8 @@ RecordHandler.prototype._$handle = function (message) {
   }
 
   if (message.action === C.ACTIONS.SYNC) {
-    this._syncEmitter.emit(message.data[0])
+    this._syncQueue.push(message.data[0])
+    this._syncFlush()
     return
   }
 

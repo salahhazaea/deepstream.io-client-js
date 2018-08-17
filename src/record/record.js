@@ -292,32 +292,34 @@ Record.prototype._onUpdate = function (data) {
     return
   }
 
+  this._handler._$syncRef()
   this.ref()
   // TODO (perf): Avoid closure allocation.
   this._lz.decompress(data[2], value => {
-    this.unref()
-
-    if (!value) {
-      this._client._$onError(this._topic, C.EVENT.LZ_ERROR, new Error(this.name))
-      return
-    }
-
-    if (utils.isSameOrNewer(this.version, version)) {
-      return
-    }
-
-    this.version = version
-    this._invariantVersion()
-
-    const oldValue = this._data
-    this._data = jsonPath.set(this._data, undefined, value)
-
     try {
+      if (!value) {
+        this._client._$onError(this._topic, C.EVENT.LZ_ERROR, new Error(this.name))
+        return
+      }
+
+      if (utils.isSameOrNewer(this.version, version)) {
+        return
+      }
+
+      this.version = version
+      this._invariantVersion()
+
+      const oldValue = this._data
+      this._data = jsonPath.set(this._data, undefined, value)
+
       if (this._data !== oldValue) {
         this.emit('data', this._data)
       }
     } catch (err) {
       this._client._$onError(C.TOPIC.RECORD, C.EVENT.USER_ERROR, err)
+    } finally {
+      this.unref()
+      this._handler._$syncUnref()
     }
   })
 }
