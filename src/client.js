@@ -6,6 +6,7 @@ const RpcHandler = require('./rpc/rpc-handler')
 const RecordHandler = require('./record/record-handler')
 const defaultOptions = require('./default-options')
 const xuid = require('xuid')
+const utils = require('./utils/utils')
 
 const Client = function (url, options) {
   this._url = url
@@ -107,6 +108,7 @@ function createDeepstream (url, options) {
   return new Client(url, options)
 }
 
+Client.prototype.isSameOrNewer = utils.isSameOrNewer
 Client.prototype.CONSTANTS = C
 createDeepstream.CONSTANTS = C
 
