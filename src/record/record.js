@@ -279,6 +279,8 @@ Record.prototype._sendUpdate = function (newValue) {
         raw,
         prevVersion
       ])
+    } catch (err) {
+      this._client._$onError(C.TOPIC.RECORD, C.EVENT.USER_ERROR, err)
     } finally {
       this.unref()
       this._handler._$syncUnref()
