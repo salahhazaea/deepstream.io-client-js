@@ -264,21 +264,25 @@ Record.prototype._sendUpdate = function (newValue) {
   const connection = this._connection
 
   // TODO (perf): Avoid closure allocation.
+  this._handler._$syncRef()
   this.ref()
   this._lz.compress(newValue, raw => {
-    this.unref()
+    try {
+      if (!raw) {
+        this._client._$onError(this._topic, C.EVENT.LZ_ERROR, new Error(this.name))
+        return
+      }
 
-    if (!raw) {
-      this._client._$onError(this._topic, C.EVENT.LZ_ERROR, new Error(this.name))
-      return
+      connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.UPDATE, [
+        name,
+        nextVersion,
+        raw,
+        prevVersion
+      ])
+    } finally {
+      this.unref()
+      this._handler._$syncUnref()
     }
-
-    connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.UPDATE, [
-      name,
-      nextVersion,
-      raw,
-      prevVersion
-    ])
   })
 
   this.version = nextVersion
@@ -330,45 +334,47 @@ Record.prototype._onRead = function (data) {
   }
   this._stale = null
 
+  this._handler._$syncRef()
   this.ref()
   this._lz.decompress(data[2], value => {
-    this.unref()
-
-    if (!value) {
-      this._client._$onError(this._topic, C.EVENT.LZ_ERROR, new Error(this.name))
-      return
-    }
-
-    if (this.isReady && utils.isSameOrNewer(this.version, data[1])) {
-      return
-    }
-
-    this.version = data[1]
-    this._invariantVersion()
-
-    const oldValue = this._data
-    this._data = value
-
-    if (this._patchQueue) {
-      for (let i = 0; i < this._patchQueue.length; i += 2) {
-        this._data = jsonPath.set(this._data, this._patchQueue[i + 0], this._patchQueue[i + 1])
-      }
-      this._patchQueue = null
-    }
-
-    this.isReady = true
-
     try {
+      if (!value) {
+        this._client._$onError(this._topic, C.EVENT.LZ_ERROR, new Error(this.name))
+        return
+      }
+
+      if (this.isReady && utils.isSameOrNewer(this.version, data[1])) {
+        return
+      }
+
+      this.version = data[1]
+      this._invariantVersion()
+
+      const oldValue = this._data
+      this._data = value
+
+      if (this._patchQueue) {
+        for (let i = 0; i < this._patchQueue.length; i += 2) {
+          this._data = jsonPath.set(this._data, this._patchQueue[i + 0], this._patchQueue[i + 1])
+        }
+        this._patchQueue = null
+      }
+
+      this.isReady = true
+
       this.emit('ready')
       if (this._data !== oldValue) {
         this.emit('data', this._data)
       }
+
+      if (this._data !== value) {
+        this._sendUpdate(this._data)
+      }
     } catch (err) {
       this._client._$onError(C.TOPIC.RECORD, C.EVENT.USER_ERROR, err)
-    }
-
-    if (this._data !== value) {
-      this._sendUpdate(this._data)
+    } finally {
+      this.unref()
+      this._handler._$syncUnref()
     }
   })
 }
