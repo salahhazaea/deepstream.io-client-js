@@ -130,7 +130,7 @@ RecordHandler.prototype._$syncUnref = function () {
 }
 
 RecordHandler.prototype._syncFlush = function () {
-  if (this._syncRef !== 0) {
+  if (this._syncRef !== 0 || this._syncQueue.length === 0) {
     return
   }
 
