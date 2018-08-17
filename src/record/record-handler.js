@@ -1,6 +1,5 @@
 const Record = require('./record')
 const Listener = require('../utils/listener')
-const Listener2 = require('../utils/listener2')
 const C = require('../constants/constants')
 const { Observable } = require('rxjs')
 const invariant = require('invariant')
@@ -102,37 +101,6 @@ RecordHandler.prototype.provide = function (pattern, callback, recursive = false
   }
 
   const listener = new Listener(
-    C.TOPIC.RECORD,
-    pattern,
-    callback,
-    this._options,
-    this._client,
-    this._connection,
-    this,
-    recursive
-  )
-
-  this._listeners.set(pattern, listener)
-  return () => {
-    listener._$destroy()
-    this._listeners.delete(pattern)
-  }
-}
-
-RecordHandler.prototype.provide2 = function (pattern, callback, recursive = false) {
-  if (typeof pattern !== 'string' || pattern.length === 0) {
-    throw new Error('invalid argument pattern')
-  }
-  if (typeof callback !== 'function') {
-    throw new Error('invalid argument callback')
-  }
-
-  if (this._listeners.has(pattern)) {
-    this._client._$onError(C.TOPIC.RECORD, C.EVENT.LISTENER_EXISTS, new Error(pattern))
-    return
-  }
-
-  const listener = new Listener2(
     C.TOPIC.RECORD,
     pattern,
     callback,
