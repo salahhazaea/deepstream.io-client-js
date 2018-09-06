@@ -42,6 +42,9 @@ Record.prototype.init = function (name) {
     throw new Error('invalid argument name')
   }
 
+  this.isReady = false
+  this._handler._$syncRef()
+
   this.name = name
   this.ref()
   this._store.get(name, (err, data, version) => {
@@ -363,6 +366,7 @@ Record.prototype._onRead = function (data) {
       }
 
       this.isReady = true
+      this._handler._$syncUnref()
 
       this.emit('ready')
       if (this._data !== oldValue) {

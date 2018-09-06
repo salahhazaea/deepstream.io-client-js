@@ -19,7 +19,8 @@ const RecordHandler = function (options, connection, client) {
   this._store = new RecordStore(options, this)
   this._prune = new Set()
   this._syncRef = 0
-  this._syncQueue = []
+  this._syncSendQueue = []
+  this._syncEmitQueue = []
   this._syncEmitter = new EventEmitter()
   this._syncTimeout = null
   this._syncCounter = 0
@@ -130,14 +131,22 @@ RecordHandler.prototype._$syncUnref = function () {
 }
 
 RecordHandler.prototype._syncFlush = function () {
-  if (this._syncRef !== 0 || this._syncQueue.length === 0) {
+  if (
+    this._syncRef !== 0 ||
+    (this._syncEmitQueue.length === 0 && this._syncSendQueue.length === 0)
+  ) {
     return
   }
 
-  for (const sync of this._syncQueue) {
+  for (const sync of this._syncEmitQueue) {
     this._syncEmitter.emit(sync)
   }
-  this._syncQueue = []
+  this._syncEmitQueue = []
+
+  for (const token of this._syncSendQueue) {
+    this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.SYNC, [ token ])
+  }
+  this._syncSendQueue = []
 }
 
 RecordHandler.prototype.sync = function () {
@@ -149,7 +158,9 @@ RecordHandler.prototype.sync = function () {
         return
       }
 
-      this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.SYNC, [ token ])
+      this._syncSendQueue.push(token)
+      this._syncFlush()
+
       this._syncCounter = (this._syncCounter + 1) & 2147483647
       this._syncTimeout = null
     }, 1)
@@ -246,7 +257,7 @@ RecordHandler.prototype._$handle = function (message) {
   }
 
   if (message.action === C.ACTIONS.SYNC) {
-    this._syncQueue.push(message.data[0])
+    this._syncEmitQueue.push(message.data[0])
     this._syncFlush()
     return
   }
