@@ -188,6 +188,7 @@ Record.prototype.discard = function () {
 
 Record.prototype.ref = Record.prototype.acquire
 Record.prototype.unref = Record.prototype.discard
+Record.prototype.destroy = Record.prototype.destroy
 
 Record.prototype._$destroy = function () {
   invariant(this.usages === 0 && this.isReady, `${this.name} destroy cannot use active or not ready record`)
