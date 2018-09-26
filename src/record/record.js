@@ -25,6 +25,7 @@ const Record = function (handler) {
   this._stale = null
   this._data = null
   this._patchQueue = null
+  this._updatePromise = null
 
   this._handleConnectionStateChange = this._handleConnectionStateChange.bind(this)
 }
@@ -138,8 +139,7 @@ Record.prototype.update = function (pathOrUpdater, updaterOrNil) {
   }
 
   this.ref()
-  return this
-    .whenReady()
+  const promise = (this._updatePromise || this.whenReady())
     .then(() => {
       const prev = this.get(path)
       return Promise.resolve(updater(prev)).then(next => [ prev, next ])
@@ -153,12 +153,22 @@ Record.prototype.update = function (pathOrUpdater, updaterOrNil) {
         next = prev
       }
       this.unref()
+      if (this._updatePromise === promise) {
+        this._updatePromise = null
+      }
       return next
     })
     .catch(err => {
       this.unref()
+      if (this._updatePromise === promise) {
+        this._updatePromise = null
+      }
       throw err
     })
+
+  this._updatePromise = promise
+
+  return this._updatePromise
 }
 
 Record.prototype.whenReady = function () {
