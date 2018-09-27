@@ -105,15 +105,15 @@ Record.prototype.set = function (pathOrData, dataOrNil) {
   const oldValue = this._data
   this._data = utils.deepFreeze(newValue)
 
-  this._handler.isAsync = false
-  try {
-    if (this._data !== oldValue) {
+  if (this._data !== oldValue) {
+    this._handler.isAsync = false
+    try {
       this.emit('data', this._data)
+    } catch (err) {
+      this._client._$onError(C.TOPIC.RECORD, C.EVENT.USER_ERROR, err)
+    } finally {
+      this._handler.isAsync = true
     }
-  } catch (err) {
-    this._client._$onError(C.TOPIC.RECORD, C.EVENT.USER_ERROR, err)
-  } finally {
-    this._handler.isAsync = true
   }
 
   return this.whenReady()
