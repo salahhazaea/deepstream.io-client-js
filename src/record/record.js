@@ -51,14 +51,14 @@ Record.prototype.init = function (name) {
   this._store.get(name, (err, data, version) => {
     this.unref()
 
-    try {
-      if (!err && data && version) {
-        this._data = data
-        this.version = version
+    if (!err && data && version) {
+      this._data = data
+      this.version = version
+      try {
         this.emit('data', this._data)
+      } catch (err) {
+        this._client._$onError(C.TOPIC.RECORD, C.EVENT.USER_ERROR, err)
       }
-    } catch (err) {
-      this._client._$onError(C.TOPIC.RECORD, C.EVENT.USER_ERROR, err)
     }
 
     this._client.on('connectionStateChanged', this._handleConnectionStateChange)
