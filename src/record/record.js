@@ -17,13 +17,13 @@ const Record = function (handler) {
   this.isReady = false
   this.hasProvider = false
   this.version = null
+  this.data = null
   this.timestamp = null
 
   this._connection = handler._connection
   this._client = handler._client
 
   this._stale = null
-  this._data = null
   this._patchQueue = null
   this._updatePromise = null
 
@@ -49,10 +49,10 @@ Record.prototype.init = function (name) {
   this.name = name
   this._store.get(name, (err, data, version) => {
     if (!err && data && version) {
-      this._data = data
+      this.data = data
       this.version = version
       try {
-        this.emit('data', this._data)
+        this.emit('data', this.data)
       } catch (err) {
         this._client._$onError(C.TOPIC.RECORD, C.EVENT.USER_ERROR, err)
       }
@@ -66,7 +66,7 @@ Record.prototype.init = function (name) {
 Record.prototype.get = function (path) {
   invariant(this.usages !== 0, `${this.name} "get" cannot use discarded record`)
 
-  return jsonPath.get(this._data, path)
+  return jsonPath.get(this.data, path)
 }
 
 Record.prototype.set = function (pathOrData, dataOrNil) {
@@ -87,10 +87,10 @@ Record.prototype.set = function (pathOrData, dataOrNil) {
     throw new Error('invalid argument path')
   }
 
-  const newValue = jsonPath.set(this._data, path, data)
+  const newValue = jsonPath.set(this.data, path, data)
 
   if (this.isReady) {
-    if (newValue === this._data) {
+    if (newValue === this.data) {
       return Promise.resolve()
     }
     this._sendUpdate(newValue)
@@ -99,13 +99,13 @@ Record.prototype.set = function (pathOrData, dataOrNil) {
     this._patchQueue.push(path, data)
   }
 
-  const oldValue = this._data
-  this._data = utils.deepFreeze(newValue)
+  const oldValue = this.data
+  this.data = utils.deepFreeze(newValue)
 
-  if (this._data !== oldValue) {
+  if (this.data !== oldValue) {
     this._handler.isAsync = false
     try {
-      this.emit('data', this._data)
+      this.emit('data', this.data)
     } catch (err) {
       this._client._$onError(C.TOPIC.RECORD, C.EVENT.USER_ERROR, err)
     } finally {
@@ -223,7 +223,7 @@ Record.prototype._$destroy = function () {
   this.timestamp = null
 
   this._stale = null
-  this._data = null
+  this.data = null
   this._patchQueue = null
 
   this._client.off('connectionStateChanged', this._handleConnectionStateChange)
@@ -334,11 +334,11 @@ Record.prototype._onUpdate = function (data) {
       this.version = version
       this._invariantVersion()
 
-      const oldValue = this._data
-      this._data = jsonPath.set(this._data, undefined, value)
+      const oldValue = this.data
+      this.data = jsonPath.set(this.data, undefined, value)
 
-      if (this._data !== oldValue) {
-        this.emit('data', this._data)
+      if (this.data !== oldValue) {
+        this.emit('data', this.data)
       }
     } catch (err) {
       this._client._$onError(C.TOPIC.RECORD, C.EVENT.USER_ERROR, err)
@@ -362,13 +362,13 @@ Record.prototype._onRead = function (data) {
         return
       }
 
-      const oldValue = this._data
+      const oldValue = this.data
 
       if (utils.isSameOrNewer(this.version, data[1])) {
-        value = this._data
+        value = this.data
       } else {
         this.version = data[1]
-        this._data = value
+        this.data = value
       }
 
       this._invariantVersion()
@@ -376,7 +376,7 @@ Record.prototype._onRead = function (data) {
       if (!this.isReady) {
         if (this._patchQueue) {
           for (let i = 0; i < this._patchQueue.length; i += 2) {
-            this._data = jsonPath.set(this._data, this._patchQueue[i + 0], this._patchQueue[i + 1])
+            this.data = jsonPath.set(this.data, this._patchQueue[i + 0], this._patchQueue[i + 1])
           }
           this._patchQueue = null
         }
@@ -386,12 +386,12 @@ Record.prototype._onRead = function (data) {
         this.emit('ready')
       }
 
-      if (this._data !== oldValue) {
-        this.emit('data', this._data)
+      if (this.data !== oldValue) {
+        this.emit('data', this.data)
       }
 
-      if (this._data !== value) {
-        this._sendUpdate(this._data)
+      if (this.data !== value) {
+        this._sendUpdate(this.data)
       }
     } catch (err) {
       this._client._$onError(C.TOPIC.RECORD, C.EVENT.USER_ERROR, err)
@@ -406,7 +406,7 @@ Record.prototype._handleConnectionStateChange = function () {
 
   if (state === C.CONNECTION_STATE.OPEN) {
     if (this.version) {
-      this._stale = [ this.name, this.version, this._data ]
+      this._stale = [ this.name, this.version, this.data ]
       this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.READ, [this.name, this.version])
     } else {
       this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.READ, [this.name])
