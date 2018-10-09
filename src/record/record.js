@@ -47,10 +47,7 @@ Record.prototype.init = function (name) {
   this._ref() // NOTE: ref for READ
 
   this.name = name
-  this.ref()
   this._store.get(name, (err, data, version) => {
-    this.unref()
-
     if (!err && data && version) {
       this._data = data
       this.version = version
