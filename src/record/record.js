@@ -365,33 +365,32 @@ Record.prototype._onRead = function (data) {
         return
       }
 
-      if (this.isReady && utils.isSameOrNewer(this.version, data[1])) {
-        return
-      }
-
-      this.version = data[1]
-      this._invariantVersion()
-
       const oldValue = this._data
-      this._data = value
 
-      if (this._patchQueue) {
-        for (let i = 0; i < this._patchQueue.length; i += 2) {
-          this._data = jsonPath.set(this._data, this._patchQueue[i + 0], this._patchQueue[i + 1])
-        }
-        this._patchQueue = null
+      if (!utils.isSameOrNewer(this.version, data[1])) {
+        this.version = data[1]
+        this._invariantVersion()
+        this._data = value
       }
 
-      this.isReady = true
-      this._unref()
+      if (!this.isReady) {
+        if (this._patchQueue) {
+          for (let i = 0; i < this._patchQueue.length; i += 2) {
+            this._data = jsonPath.set(this._data, this._patchQueue[i + 0], this._patchQueue[i + 1])
+          }
+          this._patchQueue = null
+        }
 
-      this.emit('ready')
+        this._unref()
+        this.isReady = true
+        this.emit('ready')
+      }
+
       if (this._data !== oldValue) {
         this.emit('data', this._data)
-      }
-
-      if (this._data !== value) {
-        this._sendUpdate(this._data)
+        if (this._data !== value) {
+          this._sendUpdate(this._data)
+        }
       }
     } catch (err) {
       this._client._$onError(C.TOPIC.RECORD, C.EVENT.USER_ERROR, err)
