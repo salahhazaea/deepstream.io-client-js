@@ -254,17 +254,6 @@ Record.prototype._updateHasProvider = function (hasProvider) {
   }
 }
 
-Record.prototype._invariantVersion = function () {
-  invariant(this.version && typeof this.version === 'string', `${this.name} invalid version ${this.version}`)
-
-  if (!this.version || typeof this.version !== 'string') {
-    this.version = '0-0000000000'
-  }
-
-  const [start, rev] = this.version.split('-')
-  invariant((start === 'INF' || parseInt(start, 10) >= 0) && rev, `${this.name} invalid version ${this.version}`)
-}
-
 Record.prototype._sendUpdate = function (newValue) {
   invariant(this.isReady, `${this.name}  cannot update non-ready record`)
 
@@ -275,9 +264,6 @@ Record.prototype._sendUpdate = function (newValue) {
   }
 
   start = parseInt(start, 10)
-
-  invariant(start >= 0, `invalid version ${this.version}`)
-
   start = start >= 0 ? start : 0
 
   const name = this.name
@@ -308,7 +294,6 @@ Record.prototype._sendUpdate = function (newValue) {
   })
 
   this.version = nextVersion
-  this._invariantVersion()
 }
 
 Record.prototype._onUpdate = function (data) {
@@ -331,10 +316,9 @@ Record.prototype._onUpdate = function (data) {
         return
       }
 
-      this.version = version
-      this._invariantVersion()
-
       const oldValue = this.data
+
+      this.version = version
       this.data = jsonPath.set(this.data, undefined, value)
 
       if (this.data !== oldValue) {
@@ -368,8 +352,6 @@ Record.prototype._onRead = function (data) {
         value = this.data
       } else {
         this.version = data[1]
-        this._invariantVersion()
-
         this.data = value
       }
 
