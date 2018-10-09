@@ -38,6 +38,24 @@ Object.defineProperty(Record.prototype, '_isConnected', {
   }
 })
 
+Object.defineProperty(Record.prototype, 'empty', {
+  get: function empty () {
+    return Object.keys(this.data).length === 0
+  }
+})
+
+Object.defineProperty(Record.prototype, 'ready', {
+  get: function ready () {
+    return this.isReady
+  }
+})
+
+Object.defineProperty(Record.prototype, 'provided', {
+  get: function provided () {
+    return this.hasProvider
+  }
+})
+
 Record.prototype.init = function (name) {
   if (typeof name !== 'string' || name.length === 0 || name.includes('[object Object]')) {
     throw new Error('invalid argument name')
