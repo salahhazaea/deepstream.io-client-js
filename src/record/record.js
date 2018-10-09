@@ -414,8 +414,12 @@ Record.prototype._handleConnectionStateChange = function () {
   const state = this._client.getConnectionState()
 
   if (state === C.CONNECTION_STATE.OPEN) {
-    this._stale = [ this.name, this.version, this.data ]
-    this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.READ, this.version ? [ this.name, this.version ] : [ this.name ])
+    if (this.version) {
+      this._stale = [ this.name, this.version, this._data ]
+      this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.READ, [ this.name, this.version ])
+    } else {
+      this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.READ, [ this.name ])
+    }
   } else {
     this._updateHasProvider(false)
   }
