@@ -23,6 +23,7 @@ const Record = function (handler) {
   this._connection = handler._connection
   this._client = handler._client
 
+  this._stale = null
   this._patchQueue = null
   this._updatePromise = null
 
@@ -221,6 +222,7 @@ Record.prototype._$destroy = function () {
   this.data = null
   this.timestamp = null
 
+  this._stale = null
   this._patchQueue = null
   this._updatePromise = null
 
@@ -346,18 +348,10 @@ Record.prototype._onUpdate = function (data) {
   })
 }
 
-Record.prototype._onReady = function () {
-  if (!this.isReady) {
-    this._unref()
-    this.isReady = true
-    this.emit('ready')
-  }
-}
-
 Record.prototype._onRead = function (data) {
   if (data[1] == null || data[2] == null) {
-    this._onReady()
-    return
+    data = this._stale
+    this._stale = null
   }
 
   this._ref()
@@ -386,7 +380,11 @@ Record.prototype._onRead = function (data) {
         this._patchQueue = null
       }
 
-      this._onReady()
+      if (!this.isReady) {
+        this._unref()
+        this.isReady = true
+        this.emit('ready')
+      }
 
       if (this.data !== oldValue) {
         this.emit('data', this.data)
@@ -407,6 +405,7 @@ Record.prototype._handleConnectionStateChange = function () {
   const state = this._client.getConnectionState()
 
   if (state === C.CONNECTION_STATE.OPEN) {
+    this._stale = [ this.name, this.version, this.data ]
     this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.READ, this.version ? [ this.name, this.version ] : [ this.name ])
   } else {
     this._updateHasProvider(false)
