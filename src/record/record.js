@@ -23,7 +23,6 @@ const Record = function (handler) {
   this._connection = handler._connection
   this._client = handler._client
 
-  this._stale = null
   this._patchQueue = null
   this._updatePromise = null
 
@@ -44,7 +43,7 @@ Record.prototype.init = function (name) {
   }
 
   this.isReady = false
-  this._ref() // NOTE: ref for READ
+  this._ref()
 
   this.name = name
   this._store.get(name, (err, data, version) => {
@@ -348,11 +347,19 @@ Record.prototype._onUpdate = function (data) {
   })
 }
 
+Record.prototype._onReady = function () {
+  if (!this.isReady) {
+    this._unref()
+    this.isReady = true
+    this.emit('ready')
+  }
+}
+
 Record.prototype._onRead = function (data) {
   if (data[1] == null || data[2] == null) {
-    data = this._stale
+    this._onReady()
+    return
   }
-  this._stale = null
 
   this._ref()
   this._lz.decompress(data[2], value => {
@@ -373,18 +380,14 @@ Record.prototype._onRead = function (data) {
 
       this._invariantVersion()
 
-      if (!this.isReady) {
-        if (this._patchQueue) {
-          for (let i = 0; i < this._patchQueue.length; i += 2) {
-            this.data = jsonPath.set(this.data, this._patchQueue[i + 0], this._patchQueue[i + 1])
-          }
-          this._patchQueue = null
+      if (this._patchQueue) {
+        for (let i = 0; i < this._patchQueue.length; i += 2) {
+          this.data = jsonPath.set(this.data, this._patchQueue[i + 0], this._patchQueue[i + 1])
         }
-
-        this._unref()
-        this.isReady = true
-        this.emit('ready')
+        this._patchQueue = null
       }
+
+      this._onReady()
 
       if (this.data !== oldValue) {
         this.emit('data', this.data)
@@ -406,10 +409,9 @@ Record.prototype._handleConnectionStateChange = function () {
 
   if (state === C.CONNECTION_STATE.OPEN) {
     if (this.version) {
-      this._stale = [ this.name, this.version, this.data ]
-      this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.READ, [this.name, this.version])
+      this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.READ, [ this.name, this.version ])
     } else {
-      this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.READ, [this.name])
+      this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.READ, [ this.name ])
     }
   } else {
     this._updateHasProvider(false)
