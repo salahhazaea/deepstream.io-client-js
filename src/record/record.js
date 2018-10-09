@@ -289,8 +289,8 @@ Record.prototype._sendUpdate = function (newValue) {
   const prevVersion = this.version || ''
   const connection = this._connection
 
-  // TODO (perf): Avoid closure allocation.
   this._ref()
+  // TODO (perf): Avoid closure allocation.
   this._lz.compress(newValue, raw => {
     try {
       if (!raw) {
@@ -358,6 +358,7 @@ Record.prototype._onRead = function (data) {
   }
 
   this._ref()
+  // TODO (perf): Avoid closure allocation.
   this._lz.decompress(data[2], value => {
     try {
       if (!value) {
