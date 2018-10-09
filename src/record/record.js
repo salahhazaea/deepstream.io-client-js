@@ -44,7 +44,7 @@ Record.prototype.init = function (name) {
   }
 
   this.isReady = false
-  this._handler._ref() // NOTE: ref for READ
+  this._ref() // NOTE: ref for READ
 
   this.name = name
   this.ref()
@@ -383,7 +383,7 @@ Record.prototype._onRead = function (data) {
       }
 
       this.isReady = true
-      this._handler._unref()
+      this._unref()
 
       this.emit('ready')
       if (this._data !== oldValue) {
