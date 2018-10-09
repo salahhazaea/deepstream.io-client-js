@@ -138,7 +138,7 @@ Record.prototype.update = function (pathOrUpdater, updaterOrNil) {
     throw new Error('invalid argument path')
   }
 
-  this.ref()
+  this._ref()
   const promise = (this._updatePromise || this.whenReady())
     .then(() => {
       const prev = this.get(path)
@@ -152,14 +152,14 @@ Record.prototype.update = function (pathOrUpdater, updaterOrNil) {
       } else {
         next = prev
       }
-      this.unref()
+      this._unref()
       if (this._updatePromise === promise) {
         this._updatePromise = null
       }
       return next
     })
     .catch(err => {
-      this.unref()
+      this._unref()
       if (this._updatePromise === promise) {
         this._updatePromise = null
       }
