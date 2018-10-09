@@ -44,7 +44,7 @@ Record.prototype.init = function (name) {
   }
 
   this.isReady = false
-  this._handler._ref()
+  this._handler._ref() // NOTE: ref for READ
 
   this.name = name
   this.ref()
@@ -138,6 +138,7 @@ Record.prototype.update = function (pathOrUpdater, updaterOrNil) {
     throw new Error('invalid argument path')
   }
 
+  // TODO (refactor)
   this._ref()
   const promise = (this._updatePromise || this.whenReady())
     .then(() => {
