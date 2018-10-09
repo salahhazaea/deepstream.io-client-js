@@ -209,12 +209,12 @@ RecordHandler.prototype.update = function (name, pathOrUpdater, updaterOrNil) {
 RecordHandler.prototype.observe = function (name) {
   return Observable
     .create(o => {
+      const onUpdate = record => o.next(record.data)
       const record = this.getRecord(name)
-      const onUpdate = () => o.next(record.data)
-      record.on('update', onUpdate)
       if (record.version) {
-        onUpdate()
+        onUpdate(record)
       }
+      record.on('update', onUpdate)
       return () => {
         record.off('update', onUpdate)
         record.unref()
@@ -226,18 +226,18 @@ RecordHandler.prototype.observe = function (name) {
 RecordHandler.prototype.observe2 = function (name) {
   return Observable
     .create(o => {
-      const record = this.getRecord(name)
-      const onUpdate = (self) => o.next({
-        data: self.data,
-        ready: self.isReady,
-        empty: Object.keys(self.data).length === 0,
-        provided: self.hasProvider,
-        version: self.version
+      const onUpdate = record => o.next({
+        data: record.data,
+        ready: record.isReady,
+        empty: Object.keys(record.data).length === 0,
+        provided: record.hasProvider,
+        version: record.version
       })
-      record.on('update', onUpdate)
+      const record = this.getRecord(name)
       if (record.version) {
-        onUpdate()
+        onUpdate(record)
       }
+      record.on('update', onUpdate)
       return () => {
         record.off('update', onUpdate)
         record.unref()
