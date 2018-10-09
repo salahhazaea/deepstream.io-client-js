@@ -374,10 +374,10 @@ Record.prototype._onRead = function (data) {
         value = this.data
       } else {
         this.version = data[1]
+        this._invariantVersion()
+
         this.data = value
       }
-
-      this._invariantVersion()
 
       if (this._patchQueue) {
         for (let i = 0; i < this._patchQueue.length; i += 2) {
