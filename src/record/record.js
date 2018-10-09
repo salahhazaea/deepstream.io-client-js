@@ -367,11 +367,14 @@ Record.prototype._onRead = function (data) {
 
       const oldValue = this._data
 
-      if (!utils.isSameOrNewer(this.version, data[1])) {
+      if (utils.isSameOrNewer(this.version, data[1])) {
+        value = this._data
+      } else {
         this.version = data[1]
-        this._invariantVersion()
         this._data = value
       }
+
+      this._invariantVersion()
 
       if (!this.isReady) {
         if (this._patchQueue) {
@@ -388,9 +391,10 @@ Record.prototype._onRead = function (data) {
 
       if (this._data !== oldValue) {
         this.emit('data', this._data)
-        if (this._data !== value) {
-          this._sendUpdate(this._data)
-        }
+      }
+
+      if (this._data !== value) {
+        this._sendUpdate(this._data)
       }
     } catch (err) {
       this._client._$onError(C.TOPIC.RECORD, C.EVENT.USER_ERROR, err)
