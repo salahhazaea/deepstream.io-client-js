@@ -93,7 +93,7 @@ Record.prototype.set = function (pathOrData, dataOrNil) {
     }
     this._sendUpdate(newValue)
   } else {
-    this._patchQueue = (path && this._patchQueue) || []
+    this._patchQueue = path ? this._patchQueue : []
     this._patchQueue.push(path, data)
   }
 
