@@ -44,7 +44,7 @@ Record.prototype.init = function (name) {
   }
 
   this.isReady = false
-  this._handler._$syncRef()
+  this._handler._ref()
 
   this.name = name
   this.ref()
@@ -181,11 +181,11 @@ Record.prototype.whenReady = function () {
   return this.isReady ? Promise.resolve() : new Promise(resolve => this.once('ready', resolve))
 }
 
-Record.prototype.acquire = function () {
+Record.prototype.ref = function () {
   this.usages += 1
 }
 
-Record.prototype.discard = function () {
+Record.prototype.unref = function () {
   invariant(this.usages !== 0, `${this.name} "discard" cannot use discarded record`)
 
   this.usages = Math.max(0, this.usages - 1)
@@ -196,8 +196,18 @@ Record.prototype.discard = function () {
   }
 }
 
-Record.prototype.ref = Record.prototype.acquire
-Record.prototype.unref = Record.prototype.discard
+Record.prototype._ref = function () {
+  this.ref()
+  this._handler._$syncRef()
+}
+
+Record.prototype._unref = function () {
+  this.unref()
+  this._handler._$syncUnref()
+}
+
+Record.prototype.acquire = Record.prototype.ref
+Record.prototype.discard = Record.prototype.unref
 Record.prototype.destroy = Record.prototype.destroy
 
 Record.prototype._$destroy = function () {
@@ -278,8 +288,7 @@ Record.prototype._sendUpdate = function (newValue) {
   const connection = this._connection
 
   // TODO (perf): Avoid closure allocation.
-  this._handler._$syncRef()
-  this.ref()
+  this._ref()
   this._lz.compress(newValue, raw => {
     try {
       if (!raw) {
@@ -296,8 +305,7 @@ Record.prototype._sendUpdate = function (newValue) {
     } catch (err) {
       this._client._$onError(C.TOPIC.RECORD, C.EVENT.USER_ERROR, err)
     } finally {
-      this.unref()
-      this._handler._$syncUnref()
+      this._unref()
     }
   })
 
@@ -312,8 +320,7 @@ Record.prototype._onUpdate = function (data) {
     return
   }
 
-  this._handler._$syncRef()
-  this.ref()
+  this._ref()
   // TODO (perf): Avoid closure allocation.
   this._lz.decompress(data[2], value => {
     try {
@@ -338,8 +345,7 @@ Record.prototype._onUpdate = function (data) {
     } catch (err) {
       this._client._$onError(C.TOPIC.RECORD, C.EVENT.USER_ERROR, err)
     } finally {
-      this.unref()
-      this._handler._$syncUnref()
+      this._unref()
     }
   })
 }
@@ -350,8 +356,7 @@ Record.prototype._onRead = function (data) {
   }
   this._stale = null
 
-  this._handler._$syncRef()
-  this.ref()
+  this._ref()
   this._lz.decompress(data[2], value => {
     try {
       if (!value) {
@@ -377,7 +382,7 @@ Record.prototype._onRead = function (data) {
       }
 
       this.isReady = true
-      this._handler._$syncUnref()
+      this._handler._unref()
 
       this.emit('ready')
       if (this._data !== oldValue) {
@@ -390,8 +395,7 @@ Record.prototype._onRead = function (data) {
     } catch (err) {
       this._client._$onError(C.TOPIC.RECORD, C.EVENT.USER_ERROR, err)
     } finally {
-      this.unref()
-      this._handler._$syncUnref()
+      this._unref()
     }
   })
 }
