@@ -52,7 +52,7 @@ Record.prototype.init = function (name) {
       if (!err && data && version) {
         this.data = data
         this.version = version
-        this.emit('data', this.data)
+        this.emit('update', this)
       }
       this._client.on('connectionStateChanged', this._handleConnectionStateChange)
       this._handleConnectionStateChange()
@@ -104,7 +104,7 @@ Record.prototype.set = function (pathOrData, dataOrNil) {
   if (this.data !== oldValue) {
     this._handler.isAsync = false
     try {
-      this.emit('data', this.data)
+      this.emit('update', this)
     } catch (err) {
       this._client._$onError(C.TOPIC.RECORD, C.EVENT.USER_ERROR, err)
     } finally {
@@ -247,7 +247,7 @@ Record.prototype._updateHasProvider = function (hasProvider) {
   if (this.hasProvider !== hasProvider) {
     this.hasProvider = hasProvider
     try {
-      this.emit('hasProviderChanged', this.hasProvider)
+      this.emit('update', this)
     } catch (err) {
       this._client._$onError(C.TOPIC.RECORD, C.EVENT.USER_ERROR, err)
     }
@@ -316,13 +316,14 @@ Record.prototype._onUpdate = function (data) {
         return
       }
 
+      const oldVersion = this.version
       const oldValue = this.data
 
       this.version = version
       this.data = jsonPath.set(this.data, undefined, value)
 
-      if (this.data !== oldValue) {
-        this.emit('data', this.data)
+      if (this.data !== oldValue || this.version !== oldVersion) {
+        this.emit('update', this)
       }
     } catch (err) {
       this._client._$onError(C.TOPIC.RECORD, C.EVENT.USER_ERROR, err)
@@ -346,6 +347,8 @@ Record.prototype._onRead = function (data) {
         return
       }
 
+      const oldIsReady = this.isReady
+      const oldVersion = this.version
       const oldValue = this.data
 
       if (utils.isSameOrNewer(this.version, data[1])) {
@@ -368,8 +371,8 @@ Record.prototype._onRead = function (data) {
         this.emit('ready')
       }
 
-      if (this.data !== oldValue) {
-        this.emit('data', this.data)
+      if (this.data !== oldValue || this.version !== oldVersion || this.isReady !== oldIsReady) {
+        this.emit('update', this)
       }
 
       if (this.data !== value) {

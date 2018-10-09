@@ -210,39 +210,36 @@ RecordHandler.prototype.observe = function (name) {
   return Observable
     .create(o => {
       const record = this.getRecord(name)
-      const onUpdate = () => o.next(record.get())
-      record.on('data', onUpdate)
+      const onUpdate = () => o.next(record.data)
+      record.on('update', onUpdate)
       if (record.version) {
         onUpdate()
       }
       return () => {
-        record.off('data', onUpdate)
+        record.off('update', onUpdate)
         record.unref()
       }
     })
+    .distinctUntilChanged()
 }
 
 RecordHandler.prototype.observe2 = function (name) {
   return Observable
     .create(o => {
       const record = this.getRecord(name)
-      const onUpdate = () => o.next({
-        data: record.get(),
-        ready: record.isReady,
-        empty: Object.keys(record.get()).length === 0,
-        provided: record.hasProvider,
-        version: record.version
+      const onUpdate = (self) => o.next({
+        data: self.data,
+        ready: self.isReady,
+        empty: Object.keys(self.data).length === 0,
+        provided: self.hasProvider,
+        version: self.version
       })
-      record.on('data', onUpdate)
-      record.on('ready', onUpdate)
-      record.on('hasProviderChanged', onUpdate)
+      record.on('update', onUpdate)
       if (record.version) {
         onUpdate()
       }
       return () => {
-        record.off('data', onUpdate)
-        record.off('ready', onUpdate)
-        record.off('hasProviderChanged', onUpdate)
+        record.off('update', onUpdate)
         record.unref()
       }
     })
