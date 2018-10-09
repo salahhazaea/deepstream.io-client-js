@@ -126,7 +126,7 @@ RecordHandler.prototype._$syncRef = function () {
 }
 
 RecordHandler.prototype._$syncUnref = function () {
-  this._syncRef -= 1
+  this._syncRef = Math.max(0, this._syncRef - 1)
   this._syncFlush()
 }
 
