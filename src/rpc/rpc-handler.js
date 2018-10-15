@@ -95,7 +95,7 @@ RpcHandler.prototype.make = function (name, data, callback) {
         this._reject = reject
         this.completed = false
       }
-      reject() {
+      reject () {
         if (this.completed) {
           throw new Error(`Rpc ${this._name} already completed`)
         }

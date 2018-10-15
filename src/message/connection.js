@@ -156,7 +156,6 @@ Connection.prototype._onError = function (err) {
     err.message = 'socket error'
   }
 
-
   // NOTE: If the implementation isn't listening on the error event this will throw
   // an error. So let's defer it to allow the reconnection to kick in.
   setTimeout(() => {

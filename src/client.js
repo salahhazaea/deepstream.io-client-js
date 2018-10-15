@@ -70,8 +70,6 @@ Client.prototype._$onMessage = function (message) {
 }
 
 Client.prototype._$onError = function (topic, event, msg) {
-  let errorMsg
-
   const error = msg && msg.message ? msg : new Error(msg)
   error.topic = topic
   error.event = event

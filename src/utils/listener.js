@@ -1,6 +1,5 @@
 const C = require('../constants/constants')
 const xuid = require('xuid')
-const lz = require('@nxtedition/lz-string')
 const { Observable } = require('rxjs')
 
 const Listener = function (topic, pattern, callback, options, client, connection, handler, recursive) {

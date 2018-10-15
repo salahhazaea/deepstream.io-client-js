@@ -5,7 +5,7 @@ const EMPTY = {}
 
 function RecordStore (options, handler) {
   this._lru = options.lru || new LRU({ max: options.cacheSize || 512 })
-  this._db = options.cacheDb || options.db
+  this._db = options.cacheDb || options.db
   this._handler = handler
 
   this._docs = []
@@ -39,7 +39,7 @@ RecordStore.prototype.get = function (name, callback) {
 
 RecordStore.prototype.set = function (name, data, version) {
   if (this._db && /^[^I0]/.test(version)) {
-    this._docs.push(Object.assign({ _id: name, _rev: version, }, data))
+    this._docs.push(Object.assign({ _id: name, _rev: version }, data))
     this._flush()
   }
 
