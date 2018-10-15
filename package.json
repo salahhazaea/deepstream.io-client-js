@@ -29,5 +29,8 @@
   "bugs": {
     "url": "https://github.com/deepstreamIO/deepstream.io-client-js/issues"
   },
-  "homepage": "http://deepstream.io"
+  "homepage": "http://deepstream.io",
+  "devDependencies": {
+    "standard": "^12.0.1"
+  }
 }
