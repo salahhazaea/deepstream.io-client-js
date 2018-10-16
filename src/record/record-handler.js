@@ -206,6 +206,10 @@ RecordHandler.prototype.update = function (name, pathOrUpdater, updaterOrNil) {
   }
 }
 
+RecordHandler.prototype.invalidate = function (name) {
+  this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.INVALIDATE, [ name ])
+}
+
 RecordHandler.prototype.observe = function (name) {
   return Observable
     .create(o => {
