@@ -17,7 +17,7 @@ const RecordHandler = function (options, connection, client) {
   this._records = new Map()
   this._listeners = new Map()
   this._store = new RecordStore(options, this)
-  this._prune = new Set()
+  this._prune = new Map()
   this._syncRef = 0
   this._syncSendQueue = []
   this._syncEmitQueue = []
@@ -35,7 +35,7 @@ const RecordHandler = function (options, connection, client) {
   const prune = () => {
     const now = Date.now()
 
-    for (const rec of this._prune) {
+    for (const [ rec, timestamp ] of this._prune) {
       if (rec.usages !== 0) {
         this._prune.delete(rec)
         continue
@@ -49,7 +49,7 @@ const RecordHandler = function (options, connection, client) {
         ? 1000
         : 10000
 
-      if (now - rec.timestamp <= minAge) {
+      if (now - timestamp <= minAge) {
         continue
       }
 

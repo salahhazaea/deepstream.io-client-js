@@ -18,7 +18,6 @@ const Record = function (handler) {
   this.hasProvider = false
   this.version = null
   this.data = null
-  this.timestamp = null
 
   this._connection = handler._connection
   this._client = handler._client
@@ -200,7 +199,6 @@ Record.prototype.ref = function () {
   this.usages += 1
 
   if (this.usages === 1) {
-    this.timestamp = null
     this._prune.delete(this)
   }
 }
@@ -211,8 +209,7 @@ Record.prototype.unref = function () {
   this.usages = Math.max(0, this.usages - 1)
 
   if (this.usages === 0) {
-    this.timestamp = Date.now()
-    this._prune.add(this)
+    this._prune.set(this, Date.now())
   }
 }
 
@@ -243,7 +240,6 @@ Record.prototype._$destroy = function () {
   this.hasProvider = false
   this.version = null
   this.data = null
-  this.timestamp = null
 
   this._stale = null
   this._patchQueue = null
