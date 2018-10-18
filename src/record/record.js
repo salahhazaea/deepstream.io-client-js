@@ -346,7 +346,8 @@ Record.prototype._onUpdate = function (data) {
       this.data = jsonPath.set(this.data, undefined, value)
 
       // NOTE: This should never happen.
-      if (!this.version) {
+      if (!this.version || this.version.indexOf('-') === -1) {
+        this._client._$onError(C.TOPIC.RECORD, C.EVENT.USER_ERROR, `U: invalid version ${this.version}`)
         this.version = '0-00000000000000'
       }
 
@@ -388,7 +389,8 @@ Record.prototype._onRead = function (data) {
       }
 
       // NOTE: This should never happen.
-      if (!this.version) {
+      if (!this.version || this.version.indexOf('-') === -1) {
+        this._client._$onError(C.TOPIC.RECORD, C.EVENT.USER_ERROR, `R: invalid version ${this.version}`)
         this.version = '0-00000000000000'
       }
 
