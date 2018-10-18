@@ -198,6 +198,11 @@ Record.prototype.whenReady = function () {
 
 Record.prototype.ref = function () {
   this.usages += 1
+
+  if (this.usages === 1) {
+    this.timestamp = null
+    this._prune.delete(this)
+  }
 }
 
 Record.prototype.unref = function () {
@@ -214,11 +219,6 @@ Record.prototype.unref = function () {
 Record.prototype._ref = function () {
   this.ref()
   this._handler._$syncRef()
-
-  if (this.usages === 1) {
-    this.timestamp = null
-    this._prune.delete(this)
-  }
 }
 
 Record.prototype._unref = function () {
