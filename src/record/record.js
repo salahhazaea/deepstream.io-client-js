@@ -280,7 +280,7 @@ Record.prototype._updateHasProvider = function (hasProvider) {
 Record.prototype._sendUpdate = function (newValue) {
   invariant(this.isReady, `${this.name}  cannot update non-ready record`)
 
-  let [ start ] = this.version.split('-')
+  let [ start ] = this.version ? this.version.split('-') : [ '0' ]
 
   if (start === 'INF' || this.hasProvider) {
     return
@@ -345,6 +345,11 @@ Record.prototype._onUpdate = function (data) {
       this.version = version
       this.data = jsonPath.set(this.data, undefined, value)
 
+      // NOTE: This should never happen.
+      if (!this.version) {
+        this.version = '0-00000000000000'
+      }
+
       if (this.data !== oldValue || this.version !== oldVersion) {
         this.emit('update', this)
       }
@@ -380,6 +385,11 @@ Record.prototype._onRead = function (data) {
       } else {
         this.version = data[1]
         this.data = value
+      }
+
+      // NOTE: This should never happen.
+      if (!this.version) {
+        this.version = '0-00000000000000'
       }
 
       if (this._patchQueue) {
