@@ -49,7 +49,9 @@ Listener.prototype._$onMessage = function (message) {
 
     provider = {
       value$: null,
-      raw: null
+      version: null,
+      body: null,
+      ready: false
     }
     provider.dispose = () => {
       provider.value$ = null
@@ -73,33 +75,34 @@ Listener.prototype._$onMessage = function (message) {
         if (this._topic === C.TOPIC.EVENT) {
           this._handler.emit(name, value)
         } else if (this._topic === C.TOPIC.RECORD) {
-          const raw = JSON.stringify(value)
-
-          if (provider.raw === raw) {
-            return
-          }
-
-          provider.raw = raw
-
-          const version = `INF-${xuid()}`
-
+          // TODO (perf): Check for equality before compression.
           // TODO (perf): Avoid closure allocation.
-          this._lz.compress(value, raw => {
-            if (!raw) {
+          this._lz.compress(value, body => {
+            if (!body) {
               this._client._$onError(this._topic, C.EVENT.LZ_ERROR, new Error(this._pattern))
               return
             }
 
+            if (provider.ready && provider.body === body) {
+              return
+            }
+
+            const version = provider.body === body ? provider.version : `INF-${xuid()}`
+
             this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.UPDATE, [
               name,
               version,
-              raw
+              body
             ])
-          })
 
-          this._handler._$handle({
-            action: C.ACTIONS.UPDATE,
-            data: [ name, version, value ]
+            this._handler._$handle({
+              action: C.ACTIONS.UPDATE,
+              data: [ name, version, value ]
+            })
+
+            provider.ready = true
+            provider.version = version
+            provider.body = body
           })
         }
       },
@@ -126,7 +129,6 @@ Listener.prototype._$onMessage = function (message) {
           if (value$) {
             if (!provider.value$) {
               this._connection.sendMsg(this._topic, C.ACTIONS.LISTEN_ACCEPT, [ this._pattern, name ])
-              provider.raw = null
             }
 
             if (provider.valueSubscription) {
@@ -136,7 +138,6 @@ Listener.prototype._$onMessage = function (message) {
           } else {
             if (provider.value$) {
               this._connection.sendMsg(this._topic, C.ACTIONS.LISTEN_REJECT, [ this._pattern, name ])
-              provider.raw = null
             }
 
             if (provider.valueSubscription) {
@@ -161,6 +162,10 @@ Listener.prototype._$onMessage = function (message) {
     }
 
     if (!provider.valueSubscription) {
+      const [ version, body ] = message.data.slice(2)
+      provider.ready = false
+      provider.version = version
+      provider.body = body
       provider.valueSubscription = provider.value$.subscribe(provider.observer)
     }
   } else if (message.action === C.ACTIONS.SUBSCRIPTION_FOR_PATTERN_REMOVED) {
