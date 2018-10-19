@@ -51,7 +51,9 @@ Listener.prototype._$onMessage = function (message) {
       value$: null,
       version: null,
       body: null,
-      ready: false
+      ready: false,
+      patternSubscription: null,
+      valueSubscription: null
     }
     provider.dispose = () => {
       provider.value$ = null
