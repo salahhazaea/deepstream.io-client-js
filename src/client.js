@@ -69,10 +69,11 @@ Client.prototype._$onMessage = function (message) {
   }
 }
 
-Client.prototype._$onError = function (topic, event, msg) {
-  const error = msg && msg.message ? msg : new Error(msg)
+Client.prototype._$onError = function (topic, event, msgOrError, data) {
+  const error = msgOrError && msgOrError.message ? msgOrError : new Error(msgOrError)
   error.topic = topic
   error.event = event
+  error.data = data
 
   if (this.hasListeners('error')) {
     this.emit('error', error)

@@ -292,10 +292,11 @@ Record.prototype._sendUpdate = function (newValue) {
 
   this._ref()
   // TODO (perf): Avoid closure allocation.
-  this._lz.compress(newValue, raw => {
+  this._lz.compress(newValue, (raw, err) => {
     try {
-      if (!raw) {
-        this._client._$onError(this._topic, C.EVENT.LZ_ERROR, new Error(this.name))
+      if (!raw || err) {
+        err = err || new Error(this.name)
+        this._client._$onError(this._topic, C.EVENT.LZ_ERROR, err, newValue)
         return
       }
 
@@ -324,10 +325,11 @@ Record.prototype._onUpdate = function (data) {
 
   this._ref()
   // TODO (perf): Avoid closure allocation.
-  this._lz.decompress(data[2], value => {
+  this._lz.decompress(data[2], (value, err) => {
     try {
-      if (!value) {
-        this._client._$onError(this._topic, C.EVENT.LZ_ERROR, new Error(this.name))
+      if (!value || err) {
+        err = err || new Error(this.name)
+        this._client._$onError(this._topic, C.EVENT.LZ_ERROR, err, data)
         return
       }
 
@@ -343,7 +345,7 @@ Record.prototype._onUpdate = function (data) {
 
       // NOTE: This should never happen.
       if (!this.version || this.version.indexOf('-') === -1) {
-        this._client._$onError(C.TOPIC.RECORD, C.EVENT.USER_ERROR, `U: invalid version ${this.version}`)
+        this._client._$onError(C.TOPIC.RECORD, C.EVENT.USER_ERROR, `invalid version`, data)
         this.version = '0-00000000000000'
       }
 
@@ -351,7 +353,7 @@ Record.prototype._onUpdate = function (data) {
         this.emit('update', this)
       }
     } catch (err) {
-      this._client._$onError(C.TOPIC.RECORD, C.EVENT.USER_ERROR, err)
+      this._client._$onError(C.TOPIC.RECORD, C.EVENT.USER_ERROR, err, data)
     } finally {
       this._unref()
     }
@@ -366,10 +368,11 @@ Record.prototype._onRead = function (data) {
 
   this._ref()
   // TODO (perf): Avoid closure allocation.
-  this._lz.decompress(data[2], value => {
+  this._lz.decompress(data[2], (value, err) => {
     try {
       if (!value) {
-        this._client._$onError(this._topic, C.EVENT.LZ_ERROR, new Error(this.name))
+        err = err || new Error(this.name)
+        this._client._$onError(this._topic, C.EVENT.LZ_ERROR, err, data)
         return
       }
 
@@ -386,7 +389,7 @@ Record.prototype._onRead = function (data) {
 
       // NOTE: This should never happen.
       if (!this.version || this.version.indexOf('-') === -1) {
-        this._client._$onError(C.TOPIC.RECORD, C.EVENT.USER_ERROR, `R: invalid version ${this.version}`)
+        this._client._$onError(C.TOPIC.RECORD, C.EVENT.USER_ERROR, `invalid version`, data)
         this.version = '0-00000000000000'
       }
 
@@ -411,7 +414,7 @@ Record.prototype._onRead = function (data) {
         this._sendUpdate(this.data)
       }
     } catch (err) {
-      this._client._$onError(C.TOPIC.RECORD, C.EVENT.USER_ERROR, err)
+      this._client._$onError(C.TOPIC.RECORD, C.EVENT.USER_ERROR, err, data)
     } finally {
       this._unref()
     }
