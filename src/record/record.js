@@ -426,7 +426,7 @@ Record.prototype._handleConnectionStateChange = function () {
 
   if (state === C.CONNECTION_STATE.OPEN) {
     if (this.version) {
-      this._stale = [ this.name, this.version, this._data ]
+      this._stale = [ this.name, this.version, this.data ]
       this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.READ, [ this.name, this.version ])
     } else {
       this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.READ, [ this.name ])
