@@ -295,7 +295,6 @@ Record.prototype._sendUpdate = function (newValue) {
   this._lz.compress(newValue, (raw, err) => {
     try {
       if (!raw || err) {
-        err = err || new Error(this.name)
         this._client._$onError(this._topic, C.EVENT.LZ_ERROR, err, newValue)
         return
       }
@@ -328,8 +327,7 @@ Record.prototype._onUpdate = function (data) {
   this._lz.decompress(data[2], (value, err) => {
     try {
       if (!value || err) {
-        err = err || new Error(this.name)
-        this._client._$onError(this._topic, C.EVENT.LZ_ERROR, err, data)
+        this._client._$onError(this._topic, C.EVENT.LZ_ERROR, err, [ this.name, data ])
         return
       }
 
@@ -345,7 +343,7 @@ Record.prototype._onUpdate = function (data) {
 
       // NOTE: This should never happen.
       if (!this.version || this.version.indexOf('-') === -1) {
-        this._client._$onError(C.TOPIC.RECORD, C.EVENT.USER_ERROR, `invalid version`, data)
+        this._client._$onError(C.TOPIC.RECORD, C.EVENT.USER_ERROR, `invalid version`, [ this.name, data ])
         this.version = '0-00000000000000'
       }
 
@@ -371,7 +369,6 @@ Record.prototype._onRead = function (data) {
   this._lz.decompress(data[2], (value, err) => {
     try {
       if (!value) {
-        err = err || new Error(this.name)
         this._client._$onError(this._topic, C.EVENT.LZ_ERROR, err, data)
         return
       }
