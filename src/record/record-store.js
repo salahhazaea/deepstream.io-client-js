@@ -5,7 +5,7 @@ const EMPTY = {}
 
 function RecordStore (options, handler) {
   this._lru = options.lru || new LRU({ max: options.cacheSize || 512 })
-  this._db = options.cacheDb || options.db
+  this._db = options.db
   this._handler = handler
 
   this._docs = []

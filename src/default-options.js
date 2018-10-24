@@ -8,5 +8,5 @@ module.exports = {
   cacheSize: 512,
   maxIdleTime: 500,
   path: '/deepstream',
-  cacheDb: null
+  db: null
 }
