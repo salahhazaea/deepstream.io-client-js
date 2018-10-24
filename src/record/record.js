@@ -7,7 +7,7 @@ const xuid = require('xuid')
 const invariant = require('invariant')
 const lz = require('@nxtedition/lz-string')
 
-const EMPTY_OBJ = {}
+const EMPTY_OBJ = utils.deepFreeze({})
 const EMPTY_BODY = lz.compressToUTF16(JSON.stringify(EMPTY_OBJ))
 
 const Record = function (handler) {
