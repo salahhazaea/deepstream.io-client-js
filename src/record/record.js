@@ -258,7 +258,7 @@ Record.prototype._$destroy = function () {
 
   this._stale = null
   this._patchQueue = null
-  this._updatePromise = null
+  this._updateQueue = []
 
   this._client.off('connectionStateChanged', this._handleConnectionStateChange)
 
