@@ -36,8 +36,8 @@ const Record = function (handler) {
 
 EventEmitter(Record.prototype)
 
-Object.defineProperty(Record.prototype, '_isConnected', {
-  get: function _isConnected () {
+Object.defineProperty(Record.prototype, 'connected', {
+  get: function connected () {
     return this._client.getConnectionState() === C.CONNECTION_STATE.OPEN
   }
 })
@@ -245,7 +245,7 @@ Record.prototype.destroy = Record.prototype.unref
 Record.prototype._$destroy = function () {
   invariant(this.usages === 0 && this.isReady, `${this.name} destroy cannot use active or not ready record`)
 
-  if (this._isConnected) {
+  if (this.connected) {
     this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.UNSUBSCRIBE, [this.name])
   }
 
@@ -392,9 +392,7 @@ Record.prototype._onUpdate = function (data) {
 }
 
 Record.prototype._handleConnectionStateChange = function () {
-  const state = this._client.getConnectionState()
-
-  if (state === C.CONNECTION_STATE.OPEN) {
+  if (this.connected) {
     if (this.version && this.data && Object.keys(this.data).length > 0) {
       this._stale = [ this.name, this.version, this.data ]
       this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.READ, [ this.name, this.version ])
