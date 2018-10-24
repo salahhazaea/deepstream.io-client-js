@@ -336,7 +336,7 @@ Record.prototype._onUpdate = function (data) {
   // TODO (perf): Avoid closure allocation.
   this._lz.decompress(body, (value, err) => {
     try {
-      if (!value) {
+      if (!value || err) {
         this._client._$onError(this._topic, C.EVENT.LZ_ERROR, err, data)
         return
       }
