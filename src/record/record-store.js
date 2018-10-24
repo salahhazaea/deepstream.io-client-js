@@ -1,8 +1,6 @@
 const LRU = require('lru-cache')
 const utils = require('../utils/utils')
 
-const EMPTY = {}
-
 function RecordStore (options, handler) {
   this._lru = options.lru || new LRU({ max: options.cacheSize || 512 })
   this._db = options.db
@@ -23,13 +21,13 @@ RecordStore.prototype.get = function (name, callback) {
         callback(err)
       } else {
         const version = doc._rev
-        if (doc._deleted) {
-          doc = EMPTY
-        } else {
+        if (!doc._deleted) {
           delete doc._id
           delete doc._rev
+          callback(null, doc, version)
+        } else {
+          callback(null)
         }
-        callback(null, doc, version)
       }
     })
   } else {
