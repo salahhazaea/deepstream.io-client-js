@@ -179,7 +179,7 @@ Record.prototype._dispatchUpdates = function () {
 
   try {
     const prev = this.get(path)
-    return Promise
+    Promise
       .resolve(updater(prev))
       .then(next => {
         if (path) {
