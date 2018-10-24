@@ -256,11 +256,7 @@ Record.prototype._$destroy = function () {
 
 Record.prototype._$onMessage = function (message) {
   if (message.action === C.ACTIONS.UPDATE) {
-    if (!this.isReady) {
-      this._onRead(message.data)
-    } else {
-      this._onUpdate(message.data)
-    }
+    this._onUpdate(message.data)
   } else if (message.action === C.ACTIONS.SUBSCRIPTION_HAS_PROVIDER) {
     this._updateHasProvider(messageParser.convertTyped(message.data[1], this._client))
   }
@@ -320,9 +316,15 @@ Record.prototype._sendUpdate = function (newValue) {
 }
 
 Record.prototype._onUpdate = function (data) {
+  if (data[2] == null) {
+    data = this._stale
+  }
+
+  this._stale = null
+
   let [ version, body ] = data.slice(1)
 
-  if (typeof version !== 'string' || utils.isSameOrNewer(this.version, version)) {
+  if (this.isReady && utils.isSameOrNewer(this.version, version)) {
     return
   }
 
@@ -334,50 +336,12 @@ Record.prototype._onUpdate = function (data) {
   // TODO (perf): Avoid closure allocation.
   this._lz.decompress(body, (value, err) => {
     try {
-      if (!value || err) {
-        this._client._$onError(this._topic, C.EVENT.LZ_ERROR, err, [ this.name, data ])
-        return
-      }
-
-      if (utils.isSameOrNewer(this.version, version)) {
-        return
-      }
-
-      const oldVersion = this.version
-      const oldValue = this.data
-
-      this.version = version
-      this.data = value
-
-      if (this.data !== oldValue || this.version !== oldVersion) {
-        this.emit('update', this)
-      }
-    } catch (err) {
-      this._client._$onError(C.TOPIC.RECORD, C.EVENT.USER_ERROR, err, data)
-    } finally {
-      this._unref()
-    }
-  })
-}
-
-Record.prototype._onRead = function (data) {
-  if (data[1] == null || data[2] == null) {
-    data = this._stale
-    this._stale = null
-  }
-
-  let [ version, body ] = data.slice(1)
-
-  if (body === EMPTY_BODY) {
-    body = EMPTY_OBJ
-  }
-
-  this._ref()
-  // TODO (perf): Avoid closure allocation.
-  this._lz.decompress(body, (value, err) => {
-    try {
       if (!value) {
         this._client._$onError(this._topic, C.EVENT.LZ_ERROR, err, data)
+        return
+      }
+
+      if (this.isReady && utils.isSameOrNewer(this.version, version)) {
         return
       }
 
