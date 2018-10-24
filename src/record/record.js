@@ -395,7 +395,7 @@ Record.prototype._handleConnectionStateChange = function () {
   const state = this._client.getConnectionState()
 
   if (state === C.CONNECTION_STATE.OPEN) {
-    if (this.version && Object.keys(this.data).length > 0) {
+    if (this.version && this.data && Object.keys(this.data).length > 0) {
       this._stale = [ this.name, this.version, this.data ]
       this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.READ, [ this.name, this.version ])
     } else {
