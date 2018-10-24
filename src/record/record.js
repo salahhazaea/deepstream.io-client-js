@@ -364,9 +364,11 @@ Record.prototype._onRead = function (data) {
     this._stale = null
   }
 
+  const [ version, body ] = data.slice(1)
+
   this._ref()
   // TODO (perf): Avoid closure allocation.
-  this._lz.decompress(data[2], (value, err) => {
+  this._lz.decompress(body, (value, err) => {
     try {
       if (!value) {
         this._client._$onError(this._topic, C.EVENT.LZ_ERROR, err, data)
@@ -377,12 +379,8 @@ Record.prototype._onRead = function (data) {
       const oldVersion = this.version
       const oldValue = this.data
 
-      if (utils.isSameOrNewer(this.version, data[1])) {
-        value = this.data
-      } else {
-        this.version = data[1]
-        this.data = value
-      }
+      this.version = version
+      this.data = value
 
       // NOTE: This should never happen.
       if (!this.version || this.version.indexOf('-') === -1) {
@@ -422,7 +420,7 @@ Record.prototype._handleConnectionStateChange = function () {
   const state = this._client.getConnectionState()
 
   if (state === C.CONNECTION_STATE.OPEN) {
-    if (this.version) {
+    if (this.version && Object.keys(this.data).length > 0) {
       this._stale = [ this.name, this.version, this.data ]
       this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.READ, [ this.name, this.version ])
     } else {
