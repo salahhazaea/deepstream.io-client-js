@@ -5,6 +5,10 @@ const C = require('../constants/constants')
 const messageParser = require('../message/message-parser')
 const xuid = require('xuid')
 const invariant = require('invariant')
+const lz = require('@nxtedition/lz-string')
+
+const EMPTY_OBJ = {}
+const EMPTY_BODY = lz.compressToUTF16(JSON.stringify(EMPTY_OBJ))
 
 const Record = function (handler) {
   this._handler = handler
@@ -316,15 +320,19 @@ Record.prototype._sendUpdate = function (newValue) {
 }
 
 Record.prototype._onUpdate = function (data) {
-  const version = data[1]
+  let [ version, body ] = data.slice(1)
 
   if (typeof version !== 'string' || utils.isSameOrNewer(this.version, version)) {
     return
   }
 
+  if (body === EMPTY_BODY) {
+    body = EMPTY_OBJ
+  }
+
   this._ref()
   // TODO (perf): Avoid closure allocation.
-  this._lz.decompress(data[2], (value, err) => {
+  this._lz.decompress(body, (value, err) => {
     try {
       if (!value || err) {
         this._client._$onError(this._topic, C.EVENT.LZ_ERROR, err, [ this.name, data ])
@@ -339,7 +347,7 @@ Record.prototype._onUpdate = function (data) {
       const oldValue = this.data
 
       this.version = version
-      this.data = jsonPath.set(this.data, undefined, value)
+      this.data = value
 
       // NOTE: This should never happen.
       if (!this.version || this.version.indexOf('-') === -1) {
@@ -364,7 +372,11 @@ Record.prototype._onRead = function (data) {
     this._stale = null
   }
 
-  const [ version, body ] = data.slice(1)
+  let [ version, body ] = data.slice(1)
+
+  if (body === EMPTY_BODY) {
+    body = EMPTY_OBJ
+  }
 
   this._ref()
   // TODO (perf): Avoid closure allocation.
