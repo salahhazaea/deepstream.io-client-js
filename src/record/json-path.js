@@ -2,7 +2,9 @@ const utils = require('../utils/utils')
 const PARTS_REG_EXP = /([^.[\]\s]+)/g
 
 const cache = new Map()
-const EMPTY = {}
+const EMPTY = utils.deepFreeze({})
+
+module.exports.EMPTY = EMPTY
 
 module.exports.get = function (data, path) {
   const tokens = module.exports.tokenize(path)
