@@ -44,7 +44,7 @@ Object.defineProperty(Record.prototype, 'connected', {
 
 Object.defineProperty(Record.prototype, 'empty', {
   get: function empty () {
-    return Object.keys(this.data).length === 0
+    return !this.data || Object.keys(this.data).length === 0
   }
 })
 
