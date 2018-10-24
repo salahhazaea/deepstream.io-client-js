@@ -89,7 +89,9 @@ Listener.prototype._$onMessage = function (message) {
               return
             }
 
-            const version = provider.body === body ? provider.version : `INF-${xuid()}`
+            const version = provider.version && provider.version.startsWith('INF') && provider.body === body
+              ? provider.version
+              : `INF-${xuid()}`
 
             this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.UPDATE, [
               name,
