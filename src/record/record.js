@@ -349,12 +349,6 @@ Record.prototype._onUpdate = function (data) {
       this.version = version
       this.data = value
 
-      // NOTE: This should never happen.
-      if (!this.version || this.version.indexOf('-') === -1) {
-        this._client._$onError(C.TOPIC.RECORD, C.EVENT.USER_ERROR, `invalid version`, [ this.name, data ])
-        this.version = '0-00000000000000'
-      }
-
       if (this.data !== oldValue || this.version !== oldVersion) {
         this.emit('update', this)
       }
@@ -393,12 +387,6 @@ Record.prototype._onRead = function (data) {
 
       this.version = version
       this.data = value
-
-      // NOTE: This should never happen.
-      if (!this.version || this.version.indexOf('-') === -1) {
-        this._client._$onError(C.TOPIC.RECORD, C.EVENT.USER_ERROR, `invalid version`, data)
-        this.version = '0-00000000000000'
-      }
 
       if (this._patchQueue) {
         for (let i = 0; i < this._patchQueue.length; i += 2) {
