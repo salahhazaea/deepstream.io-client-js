@@ -187,7 +187,7 @@ Record.prototype._dispatchUpdates = function () {
         } else if (next) {
           this.set(next)
         } else {
-          next = prev
+          next = this.get(path)
         }
         return next
       })
