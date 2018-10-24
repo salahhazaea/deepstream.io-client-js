@@ -28,8 +28,9 @@ const Record = function (handler) {
 
   this._stale = null
   this._patchQueue = null
-  this._updatePromise = null
+  this._updateQueue = []
 
+  this._dispatchUpdates = this._dispatchUpdates.bind(this)
   this._handleConnectionStateChange = this._handleConnectionStateChange.bind(this)
 }
 
@@ -155,38 +156,48 @@ Record.prototype.update = function (pathOrUpdater, updaterOrNil) {
     throw new Error('invalid argument path')
   }
 
-  // TODO (refactor)
-  this._ref()
-  const promise = (this._updatePromise || this.whenReady())
-    .then(() => {
-      const prev = this.get(path)
-      return Promise.resolve(updater(prev)).then(next => [ prev, next ])
-    })
-    .then(([ prev, next ]) => {
-      if (path) {
-        this.set(path, next)
-      } else if (next != null) {
-        this.set(next)
-      } else {
-        next = prev
-      }
-      this._unref()
-      if (this._updatePromise === promise) {
-        this._updatePromise = null
-      }
-      return next
-    })
-    .catch(err => {
-      this._unref()
-      if (this._updatePromise === promise) {
-        this._updatePromise = null
-      }
-      throw err
-    })
+  return new Promise((resolve, reject) => {
+    this._updateQueue.push([ path, updater, resolve, reject ])
+    if (this._updateQueue.length === 1) {
+      this._ref()
+      this._dispatchUpdates()
+    }
+  })
+}
 
-  this._updatePromise = promise
+Record.prototype._dispatchUpdates = function () {
+  if (this._updateQueue.length === 0) {
+    this._unref()
+    return
+  }
 
-  return this._updatePromise
+  if (!this.isReady) {
+    return this.whenReady().then(this._dispatchUpdates)
+  }
+
+  const [ path, updater, resolve, reject ] = this._updateQueue.shift()
+
+  try {
+    const prev = this.get(path)
+    return Promise
+      .resolve(updater(prev))
+      .then(next => {
+        if (path) {
+          this.set(path, next)
+        } else if (next) {
+          this.set(next)
+        } else {
+          next = prev
+        }
+        return next
+      })
+      .then(resolve)
+      .catch(reject)
+      .then(this._dispatchUpdates)
+  } catch (err) {
+    reject(err)
+    this._dispatchUpdates()
+  }
 }
 
 Record.prototype.whenReady = function () {
