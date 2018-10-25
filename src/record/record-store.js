@@ -52,7 +52,10 @@ RecordStore.prototype._flushRead = function () {
           const { doc } = rows[n]
           const { callback } = read[n]
 
-          if (!doc._deleted) {
+          read[n] = null
+          rows[n] = null
+
+          if (doc && !doc._deleted) {
             const version = doc._rev
             delete doc._id
             delete doc._rev
@@ -63,13 +66,18 @@ RecordStore.prototype._flushRead = function () {
         }
       })
       .catch(err => {
+        // TODO
+        console.error(err)
+
         for (let n = 0; n < read.length; ++n) {
-          const callback = read[n][1]
-          callback(err)
+          const { callback } = read[n]
+          if (callback) {
+            callback(err)
+          }
         }
       })
       .then(() => {
-        this._reading = false
+        this._reading = null
         this._flushRead()
       })
   }, 1)
@@ -87,6 +95,7 @@ RecordStore.prototype._flushWrite = function () {
       .then(() => utils.schedule(() => this._db
         .bulkDocs(docs, { new_edits: false })
         .catch(err => {
+          // TODO
           console.error(err)
         })
         .then(() => {
