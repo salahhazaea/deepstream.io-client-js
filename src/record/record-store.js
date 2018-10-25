@@ -56,8 +56,8 @@ RecordStore.prototype._flushRead = function () {
           const { doc } = rows[n]
           const { callback } = read[n]
 
-          read[n] = null
           rows[n] = null
+          read[n] = null
 
           if (doc && !doc._deleted) {
             const version = doc._rev
