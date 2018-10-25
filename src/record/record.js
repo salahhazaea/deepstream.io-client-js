@@ -21,7 +21,6 @@ const Record = function (name, handler) {
 
   this.name = name
   this.usages = 0
-  this.isReady = false
   this.hasProvider = false
   this.version = null
   this.data = null
@@ -29,7 +28,7 @@ const Record = function (name, handler) {
   this._connection = handler._connection
   this._client = handler._client
 
-  this._patchQueue = null
+  this._patchQueue = []
   this._updateQueue = []
 
   this._dispatchUpdates = this._dispatchUpdates.bind(this)
@@ -55,7 +54,13 @@ Object.defineProperty(Record.prototype, 'empty', {
 
 Object.defineProperty(Record.prototype, 'ready', {
   get: function ready () {
-    return this.isReady
+    return !this._patchQueue
+  }
+})
+
+Object.defineProperty(Record.prototype, 'isReady', {
+  get: function ready () {
+    return !this._patchQueue
   }
 })
 
@@ -91,19 +96,19 @@ Record.prototype.set = function (pathOrData, dataOrNil) {
 
   const newValue = jsonPath.set(this.data, path, data)
 
-  if (this.isReady) {
-    if (newValue === this.data) {
-      return
-    }
-
-    this._sendUpdate(newValue)
-  } else {
-    this._patchQueue = (path && this._patchQueue) || []
+  if (this._patchQueue) {
+    this._patchQueue = path ? this._patchQueue : []
     this._patchQueue.push(path, data)
 
     if (newValue === this.data) {
       return
     }
+  } else {
+    if (newValue === this.data) {
+      return
+    }
+
+    this._sendUpdate(newValue)
   }
 
   this.data = utils.deepFreeze(newValue)
@@ -311,7 +316,6 @@ Record.prototype._onUpdate = function (data) {
       return
     }
 
-    const oldIsReady = this.isReady
     const oldVersion = this.version
     const oldValue = this.data
 
@@ -323,14 +327,9 @@ Record.prototype._onUpdate = function (data) {
         this.data = jsonPath.set(this.data, this._patchQueue[i + 0], this._patchQueue[i + 1])
       }
       this._patchQueue = null
-    }
-
-    if (!this.isReady) {
-      this.isReady = true
       this.emit('ready')
-    }
-
-    if (this.data !== oldValue || this.version !== oldVersion || this.isReady !== oldIsReady) {
+      this.emit('update', this)
+    } else if (this.data !== oldValue || this.version !== oldVersion) {
       this.emit('update', this)
     }
 
