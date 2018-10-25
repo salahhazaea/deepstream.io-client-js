@@ -222,7 +222,7 @@ Record.prototype._$destroy = function () {
   invariant(this.usages === 0 && this.isReady, `${this.name} destroy cannot use active or not ready record`)
 
   if (this.connected) {
-    this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.UNSUBSCRIBE, [this.name])
+    this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.UNSUBSCRIBE, [ this.name ])
   }
 
   this._client.off('connectionStateChanged', this._handleConnectionStateChange)
