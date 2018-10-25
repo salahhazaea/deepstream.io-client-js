@@ -267,10 +267,10 @@ Record.prototype._sendUpdate = function (newValue) {
 
   // TODO (perf): Avoid closure allocation.
   this._ref()
-  this._lz.compress(newValue, (raw, err) => {
+  this._lz.compress(newValue, (body, err) => {
     this._unref()
 
-    if (!raw || err) {
+    if (!body || err) {
       this._client._$onError(this._topic, C.EVENT.LZ_ERROR, err, newValue)
       return
     }
@@ -278,7 +278,7 @@ Record.prototype._sendUpdate = function (newValue) {
     connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.UPDATE, [
       name,
       nextVersion,
-      raw,
+      body,
       prevVersion
     ])
   })
