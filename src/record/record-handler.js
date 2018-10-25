@@ -6,7 +6,6 @@ const invariant = require('invariant')
 const LZ = require('./lz')
 const utils = require('../utils/utils')
 const EventEmitter = require('component-emitter2')
-const RecordStore = require('./record-store')
 
 const RecordHandler = function (options, connection, client) {
   this.isAsync = true
@@ -16,7 +15,6 @@ const RecordHandler = function (options, connection, client) {
   this._client = client
   this._records = new Map()
   this._listeners = new Map()
-  this._store = new RecordStore(options, this)
   this._prune = new Map()
   this._syncRef = 0
   this._syncSend = new Set()
@@ -52,7 +50,6 @@ const RecordHandler = function (options, connection, client) {
         continue
       }
 
-      this._store.set(rec.name, rec.data, rec.version)
       this._records.delete(rec.name)
 
       rec._$destroy()

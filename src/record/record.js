@@ -12,7 +12,6 @@ const EMPTY_BODY = lz.compressToUTF16(JSON.stringify(EMPTY_OBJ))
 
 const Record = function (handler) {
   this._handler = handler
-  this._store = handler._store
   this._prune = handler._prune
   this._lz = handler._lz
 
@@ -26,7 +25,6 @@ const Record = function (handler) {
   this._connection = handler._connection
   this._client = handler._client
 
-  this._stale = null
   this._patchQueue = null
   this._updateQueue = []
 
@@ -66,22 +64,9 @@ Record.prototype.init = function (name) {
   }
 
   this.isReady = false
-  this._ref()
-
   this.name = name
-  this._store.get(name, (err, data, version) => {
-    try {
-      if (!err && data && version) {
-        this.data = data
-        this.version = version
-        this.emit('update', this)
-      }
-      this._client.on('connectionStateChanged', this._handleConnectionStateChange)
-      this._handleConnectionStateChange()
-    } catch (err) {
-      this._client._$onError(C.TOPIC.RECORD, C.EVENT.USER_ERROR, err)
-    }
-  })
+  this._client.on('connectionStateChanged', this._handleConnectionStateChange)
+  this._handleConnectionStateChange()
 }
 
 Record.prototype.get = function (path) {
@@ -256,7 +241,6 @@ Record.prototype._$destroy = function () {
   this.version = null
   this.data = null
 
-  this._stale = null
   this._patchQueue = null
   this._updateQueue = []
 
@@ -327,12 +311,6 @@ Record.prototype._sendUpdate = function (newValue) {
 }
 
 Record.prototype._onUpdate = function (data) {
-  if (data[2] == null) {
-    data = this._stale
-  }
-
-  this._stale = null
-
   let [ version, body ] = data.slice(1)
 
   if (this.isReady && utils.isSameOrNewer(this.version, version)) {
@@ -371,7 +349,6 @@ Record.prototype._onUpdate = function (data) {
       }
 
       if (!this.isReady) {
-        this._unref()
         this.isReady = true
         this.emit('ready')
       }
@@ -393,12 +370,7 @@ Record.prototype._onUpdate = function (data) {
 
 Record.prototype._handleConnectionStateChange = function () {
   if (this.connected) {
-    if (this.version && this.data && Object.keys(this.data).length > 0) {
-      this._stale = [ this.name, this.version, this.data ]
-      this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.READ, [ this.name, this.version ])
-    } else {
-      this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.READ, [ this.name ])
-    }
+    this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.READ, [ this.name ])
   } else {
     this._updateHasProvider(false)
   }

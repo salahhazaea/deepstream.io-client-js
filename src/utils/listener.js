@@ -17,7 +17,6 @@ const Listener = function (topic, pattern, callback, options, client, connection
   this._handleConnectionStateChange = this._handleConnectionStateChange.bind(this)
 
   this._client.on('connectionStateChanged', this._handleConnectionStateChange)
-
   this._handleConnectionStateChange()
 }
 
