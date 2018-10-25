@@ -53,9 +53,7 @@ const RecordHandler = function (options, connection, client) {
         continue
       }
 
-      if (rec.version && !rec.version.startsWith('0')) {
-        this._store.set(rec.name, rec.data, rec.version)
-      }
+      this._store.set(rec.name, rec.data, rec.version)
       this._records.delete(rec.name)
 
       rec._$destroy()

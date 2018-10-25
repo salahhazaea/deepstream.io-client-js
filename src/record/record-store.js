@@ -27,6 +27,10 @@ RecordStore.prototype.get = function (name, callback) {
 }
 
 RecordStore.prototype.set = function (name, data, version) {
+  if (!version || !data) {
+    return
+  }
+
   if (this._db && /^[^I0]/.test(version)) {
     this._write.push(Object.assign({ _id: name, _rev: version }, data))
     this._flushWrite()
