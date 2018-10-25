@@ -5,6 +5,7 @@ module.exports = {
   maxReconnectAttempts: Infinity,
   maxMessagesPerPacket: 128,
   sendDelay: 5,
+  syncDelay: 5,
   cacheSize: 512,
   maxIdleTime: 500,
   path: '/deepstream',
