@@ -327,7 +327,7 @@ Record.prototype._onUpdate = function (data) {
       this._patchQueue = null
 
       if (this.data !== newValue) {
-        this._sendUpdate(newValue)
+        this._sendUpdate(this.data)
       }
 
       this.emit('ready')
