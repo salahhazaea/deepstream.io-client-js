@@ -135,8 +135,8 @@ RecordHandler.prototype._syncFlush = function () {
   }
 
   if (this._syncEmit.size > 0) {
-    for (const sync of this._syncEmit) {
-      this._syncEmitter.emit(sync)
+    for (const token of this._syncEmit) {
+      this._syncEmitter.emit(token)
     }
     this._syncEmit.clear()
   }
