@@ -105,11 +105,11 @@ Record.prototype.set = function (pathOrData, dataOrNil) {
     return
   }
 
-  if (!this._patchQueue) {
-    this._sendUpdate(newValue)
-  }
-
   this.data = utils.deepFreeze(newValue)
+
+  if (!this._patchQueue) {
+    this._sendUpdate(this.data)
+  }
 
   this._handler.isAsync = false
   this.emit('update', this)
