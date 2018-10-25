@@ -99,15 +99,13 @@ Record.prototype.set = function (pathOrData, dataOrNil) {
   if (this._patchQueue) {
     this._patchQueue = path ? this._patchQueue : []
     this._patchQueue.push(path, data)
+  }
 
-    if (newValue === this.data) {
-      return
-    }
-  } else {
-    if (newValue === this.data) {
-      return
-    }
+  if (newValue === this.data) {
+    return
+  }
 
+  if (!this._patchQueue) {
     this._sendUpdate(newValue)
   }
 
