@@ -326,12 +326,12 @@ Record.prototype._onUpdate = function (data) {
       }
       this._patchQueue = null
 
-      this.emit('ready')
-      this.emit('update', this)
-
       if (this.data !== newValue) {
         this._sendUpdate(newValue)
       }
+
+      this.emit('ready')
+      this.emit('update', this)
     } else if (this.data !== oldValue || this.version !== oldVersion) {
       this.emit('update', this)
     }
