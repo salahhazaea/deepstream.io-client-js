@@ -106,13 +106,8 @@ Record.prototype.set = function (pathOrData, dataOrNil) {
 
   if (this.data !== oldValue) {
     this._handler.isAsync = false
-    try {
-      this.emit('update', this)
-    } catch (err) {
-      this._client._$onError(C.TOPIC.RECORD, C.EVENT.USER_ERROR, err)
-    } finally {
-      this._handler.isAsync = true
-    }
+    this.emit('update', this)
+    this._handler.isAsync = true
   }
 
   return this.whenReady()
@@ -270,26 +265,22 @@ Record.prototype._sendUpdate = function (newValue) {
   const prevVersion = this.version || ''
   const connection = this._connection
 
-  this._ref()
   // TODO (perf): Avoid closure allocation.
+  this._ref()
   this._lz.compress(newValue, (raw, err) => {
-    try {
-      if (!raw || err) {
-        this._client._$onError(this._topic, C.EVENT.LZ_ERROR, err, newValue)
-        return
-      }
+    this._unref()
 
-      connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.UPDATE, [
-        name,
-        nextVersion,
-        raw,
-        prevVersion
-      ])
-    } catch (err) {
-      this._client._$onError(C.TOPIC.RECORD, C.EVENT.USER_ERROR, err)
-    } finally {
-      this._unref()
+    if (!raw || err) {
+      this._client._$onError(this._topic, C.EVENT.LZ_ERROR, err, newValue)
+      return
     }
+
+    connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.UPDATE, [
+      name,
+      nextVersion,
+      raw,
+      prevVersion
+    ])
   })
 
   this.version = nextVersion
@@ -306,49 +297,45 @@ Record.prototype._onUpdate = function (data) {
     body = EMPTY_OBJ
   }
 
-  this._ref()
   // TODO (perf): Avoid closure allocation.
+  this._ref()
   this._lz.decompress(body, (value, err) => {
-    try {
-      if (!value || err) {
-        this._client._$onError(this._topic, C.EVENT.LZ_ERROR, err, data)
-        return
+    this._unref()
+
+    if (!value || err) {
+      this._client._$onError(this._topic, C.EVENT.LZ_ERROR, err, data)
+      return
+    }
+
+    if (this.isReady && utils.isSameOrNewer(this.version, version)) {
+      return
+    }
+
+    const oldIsReady = this.isReady
+    const oldVersion = this.version
+    const oldValue = this.data
+
+    this.version = version
+    this.data = value
+
+    if (this._patchQueue) {
+      for (let i = 0; i < this._patchQueue.length; i += 2) {
+        this.data = jsonPath.set(this.data, this._patchQueue[i + 0], this._patchQueue[i + 1])
       }
+      this._patchQueue = null
+    }
 
-      if (this.isReady && utils.isSameOrNewer(this.version, version)) {
-        return
-      }
+    if (!this.isReady) {
+      this.isReady = true
+      this.emit('ready')
+    }
 
-      const oldIsReady = this.isReady
-      const oldVersion = this.version
-      const oldValue = this.data
+    if (this.data !== oldValue || this.version !== oldVersion || this.isReady !== oldIsReady) {
+      this.emit('update', this)
+    }
 
-      this.version = version
-      this.data = value
-
-      if (this._patchQueue) {
-        for (let i = 0; i < this._patchQueue.length; i += 2) {
-          this.data = jsonPath.set(this.data, this._patchQueue[i + 0], this._patchQueue[i + 1])
-        }
-        this._patchQueue = null
-      }
-
-      if (!this.isReady) {
-        this.isReady = true
-        this.emit('ready')
-      }
-
-      if (this.data !== oldValue || this.version !== oldVersion || this.isReady !== oldIsReady) {
-        this.emit('update', this)
-      }
-
-      if (this.data !== value) {
-        this._sendUpdate(this.data)
-      }
-    } catch (err) {
-      this._client._$onError(C.TOPIC.RECORD, C.EVENT.USER_ERROR, err, data)
-    } finally {
-      this._unref()
+    if (this.data !== value) {
+      this._sendUpdate(this.data)
     }
   })
 }
