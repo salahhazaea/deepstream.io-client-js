@@ -10,12 +10,16 @@ const lz = require('@nxtedition/lz-string')
 const EMPTY_OBJ = jsonPath.EMPTY
 const EMPTY_BODY = lz.compressToUTF16(JSON.stringify(EMPTY_OBJ))
 
-const Record = function (handler) {
+const Record = function (name, handler) {
+  if (typeof name !== 'string' || name.length === 0 || name.includes('[object Object]')) {
+    throw new Error('invalid argument name')
+  }
+
   this._handler = handler
   this._prune = handler._prune
   this._lz = handler._lz
 
-  this.name = null
+  this.name = name
   this.usages = 0
   this.isReady = false
   this.hasProvider = false
@@ -30,6 +34,9 @@ const Record = function (handler) {
 
   this._dispatchUpdates = this._dispatchUpdates.bind(this)
   this._handleConnectionStateChange = this._handleConnectionStateChange.bind(this)
+
+  this._client.on('connectionStateChanged', this._handleConnectionStateChange)
+  this._handleConnectionStateChange()
 }
 
 EventEmitter(Record.prototype)
@@ -57,17 +64,6 @@ Object.defineProperty(Record.prototype, 'provided', {
     return this.hasProvider
   }
 })
-
-Record.prototype.init = function (name) {
-  if (typeof name !== 'string' || name.length === 0 || name.includes('[object Object]')) {
-    throw new Error('invalid argument name')
-  }
-
-  this.isReady = false
-  this.name = name
-  this._client.on('connectionStateChanged', this._handleConnectionStateChange)
-  this._handleConnectionStateChange()
-}
 
 Record.prototype.get = function (path) {
   invariant(this.usages !== 0, `${this.name} "get" cannot use discarded record`)
@@ -234,18 +230,7 @@ Record.prototype._$destroy = function () {
     this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.UNSUBSCRIBE, [this.name])
   }
 
-  this.name = null
-  this.usages = 0
-  this.isReady = false
-  this.hasProvider = false
-  this.version = null
-  this.data = null
-
-  this._patchQueue = null
-  this._updateQueue = []
-
   this._client.off('connectionStateChanged', this._handleConnectionStateChange)
-
   this.off()
 }
 

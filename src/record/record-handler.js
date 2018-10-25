@@ -9,7 +9,6 @@ const EventEmitter = require('component-emitter2')
 
 const RecordHandler = function (options, connection, client) {
   this.isAsync = true
-  this._pool = []
   this._options = options
   this._connection = connection
   this._client = client
@@ -55,7 +54,6 @@ const RecordHandler = function (options, connection, client) {
       rec._$destroy()
 
       this._prune.delete(rec)
-      this._pool.push(rec)
     }
 
     setTimeout(() => utils.schedule(prune, { timeout: 1000 }), 1000)
@@ -76,8 +74,7 @@ RecordHandler.prototype.getRecord = function (name) {
   let record = this._records.get(name)
 
   if (!record) {
-    record = this._pool.pop() || new Record(this)
-    record.init(name)
+    record = new Record(name, this)
     this._records.set(name, record)
   }
 
