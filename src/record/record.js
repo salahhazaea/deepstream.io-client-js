@@ -59,7 +59,7 @@ Object.defineProperty(Record.prototype, 'ready', {
 })
 
 Object.defineProperty(Record.prototype, 'isReady', {
-  get: function ready () {
+  get: function isReady () {
     return !this._patchQueue
   }
 })
