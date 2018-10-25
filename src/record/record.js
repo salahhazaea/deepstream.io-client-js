@@ -76,7 +76,7 @@ Record.prototype.set = function (pathOrData, dataOrNil) {
   invariant(!this.hasProvider, `${this.name} "set" cannot be called on provided record`)
 
   if (this.usages === 0 || this.hasProvider) {
-    return Promise.resolve()
+    return
   }
 
   const path = arguments.length === 1 ? undefined : pathOrData
@@ -93,24 +93,24 @@ Record.prototype.set = function (pathOrData, dataOrNil) {
 
   if (this.isReady) {
     if (newValue === this.data) {
-      return Promise.resolve()
+      return
     }
+
     this._sendUpdate(newValue)
   } else {
     this._patchQueue = (path && this._patchQueue) || []
     this._patchQueue.push(path, data)
+
+    if (newValue === this.data) {
+      return
+    }
   }
 
-  const oldValue = this.data
   this.data = utils.deepFreeze(newValue)
 
-  if (this.data !== oldValue) {
-    this._handler.isAsync = false
-    this.emit('update', this)
-    this._handler.isAsync = true
-  }
-
-  return this.whenReady()
+  this._handler.isAsync = false
+  this.emit('update', this)
+  this._handler.isAsync = true
 }
 
 Record.prototype.update = function (pathOrUpdater, updaterOrNil) {
