@@ -302,10 +302,10 @@ Record.prototype._onUpdate = function (data) {
 
   // TODO (perf): Avoid closure allocation.
   this._ref()
-  this._lz.decompress(body, (value, err) => {
+  this._lz.decompress(body, (newValue, err) => {
     this._unref()
 
-    if (!value || err) {
+    if (!newValue || err) {
       this._client._$onError(this._topic, C.EVENT.LZ_ERROR, err, data)
       return
     }
@@ -318,21 +318,22 @@ Record.prototype._onUpdate = function (data) {
     const oldValue = this.data
 
     this.version = version
-    this.data = value
+    this.data = newValue
 
     if (this._patchQueue) {
       for (let i = 0; i < this._patchQueue.length; i += 2) {
         this.data = jsonPath.set(this.data, this._patchQueue[i + 0], this._patchQueue[i + 1])
       }
       this._patchQueue = null
+
       this.emit('ready')
       this.emit('update', this)
+
+      if (this.data !== newValue) {
+        this._sendUpdate(newValue)
+      }
     } else if (this.data !== oldValue || this.version !== oldVersion) {
       this.emit('update', this)
-    }
-
-    if (this.data !== value) {
-      this._sendUpdate(this.data)
     }
   })
 }
