@@ -4,11 +4,6 @@ const EventEmitter = require('component-emitter2')
 const C = require('../constants/constants')
 const messageParser = require('../message/message-parser')
 const xuid = require('xuid')
-const invariant = require('invariant')
-const lz = require('@nxtedition/lz-string')
-
-const EMPTY_OBJ = jsonPath.EMPTY
-const EMPTY_BODY = lz.compressToUTF16(JSON.stringify(EMPTY_OBJ))
 
 const Record = function (name, handler) {
   if (typeof name !== 'string' || name.length === 0 || name.includes('[object Object]')) {
@@ -71,15 +66,10 @@ Object.defineProperty(Record.prototype, 'hasProvider', {
 })
 
 Record.prototype.get = function (path) {
-  invariant(this.usages !== 0, `${this.name} "get" cannot use discarded record`)
-
   return jsonPath.get(this.data, path)
 }
 
 Record.prototype.set = function (pathOrData, dataOrNil) {
-  invariant(this.usages !== 0, `${this.name} "set" cannot use discarded record`)
-  invariant(!this.provided, `${this.name} "set" cannot be called on provided record`)
-
   if (this.usages === 0 || this.provided) {
     return
   }
@@ -108,7 +98,7 @@ Record.prototype.set = function (pathOrData, dataOrNil) {
   this.data = utils.deepFreeze(newValue)
 
   if (!this._patchQueue) {
-    this._sendUpdate(this.data)
+    this._sendUpdate()
   }
 
   this._handler.isAsync = false
@@ -117,9 +107,6 @@ Record.prototype.set = function (pathOrData, dataOrNil) {
 }
 
 Record.prototype.update = function (pathOrUpdater, updaterOrNil) {
-  invariant(this.usages !== 0, `${this.name} "update" cannot use discarded record`)
-  invariant(!this.provided, `${this.name} "update" cannot be called on provided record`)
-
   if (this.usages === 0 || this.provided) {
     return Promise.resolve()
   }
@@ -150,8 +137,10 @@ Record.prototype._dispatchUpdates = function () {
     return
   }
 
-  if (!this.isReady) {
-    return this.whenReady().then(this._dispatchUpdates)
+  if (!this.ready) {
+    return this
+      .whenReady()
+      .then(this._dispatchUpdates)
   }
 
   const [ path, updater, resolve, reject ] = this._updateQueue.shift()
@@ -180,8 +169,6 @@ Record.prototype._dispatchUpdates = function () {
 }
 
 Record.prototype.whenReady = function () {
-  invariant(this.usages !== 0, `${this.name} "whenReady" cannot use discarded record`)
-
   if (this.usages === 0) {
     return Promise.reject(new Error('discarded'))
   }
@@ -198,8 +185,6 @@ Record.prototype.ref = function () {
 }
 
 Record.prototype.unref = function () {
-  invariant(this.usages !== 0, `${this.name} "discard" cannot use discarded record`)
-
   this.usages = Math.max(0, this.usages - 1)
 
   if (this.usages === 0) {
@@ -222,8 +207,6 @@ Record.prototype.discard = Record.prototype.unref
 Record.prototype.destroy = Record.prototype.unref
 
 Record.prototype._$destroy = function () {
-  invariant(this.usages === 0 && this.isReady, `${this.name} destroy cannot use active or not ready record`)
-
   if (this.connected) {
     this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.UNSUBSCRIBE, [ this.name ])
   }
@@ -251,44 +234,6 @@ Record.prototype._updateHasProvider = function (provided) {
   }
 }
 
-Record.prototype._sendUpdate = function (newValue) {
-  invariant(this.isReady, `${this.name}  cannot update non-ready record`)
-
-  let [ start ] = this.version ? this.version.split('-') : [ '0' ]
-
-  if (start === 'INF' || this.provided) {
-    return
-  }
-
-  start = parseInt(start, 10)
-  start = start >= 0 ? start : 0
-
-  const name = this.name
-  const nextVersion = `${start + 1}-${xuid()}`
-  const prevVersion = this.version || ''
-  const connection = this._connection
-
-  // TODO (perf): Avoid closure allocation.
-  this._ref()
-  this._lz.compress(newValue, (body, err) => {
-    this._unref()
-
-    if (!body || err) {
-      this._client._$onError(this._topic, C.EVENT.LZ_ERROR, err, newValue)
-      return
-    }
-
-    connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.UPDATE, [
-      name,
-      nextVersion,
-      body,
-      prevVersion
-    ])
-  })
-
-  this.version = nextVersion
-}
-
 Record.prototype._onUpdate = function (data) {
   let [ version, body ] = data.slice(1)
 
@@ -296,16 +241,12 @@ Record.prototype._onUpdate = function (data) {
     return
   }
 
-  if (body === EMPTY_BODY) {
-    body = EMPTY_OBJ
-  }
-
   // TODO (perf): Avoid closure allocation.
   this._ref()
-  this._lz.decompress(body, (newValue, err) => {
+  this._lz.decompress(body, (data, err) => {
     this._unref()
 
-    if (!newValue || err) {
+    if (!data || err) {
       this._client._$onError(this._topic, C.EVENT.LZ_ERROR, err, data)
       return
     }
@@ -318,7 +259,7 @@ Record.prototype._onUpdate = function (data) {
     const oldValue = this.data
 
     this.version = version
-    this.data = newValue
+    this.data = data
 
     if (this._patchQueue) {
       for (let i = 0; i < this._patchQueue.length; i += 2) {
@@ -326,8 +267,8 @@ Record.prototype._onUpdate = function (data) {
       }
       this._patchQueue = null
 
-      if (this.data !== newValue) {
-        this._sendUpdate(this.data)
+      if (this.data !== data) {
+        this._sendUpdate()
       }
 
       this.emit('ready')
@@ -336,6 +277,40 @@ Record.prototype._onUpdate = function (data) {
       this.emit('update', this)
     }
   })
+}
+
+Record.prototype._sendUpdate = function () {
+  let [ start ] = this.version ? this.version.split('-') : [ '0' ]
+
+  if (start === 'INF' || this.provided) {
+    return
+  }
+
+  start = parseInt(start, 10)
+  start = start >= 0 ? start : 0
+
+  const nextVersion = `${start + 1}-${xuid()}`
+  const prevVersion = this.version || ''
+
+  // TODO (perf): Avoid closure allocation.
+  this._ref()
+  this._lz.compress(this.data, (body, err) => {
+    this._unref()
+
+    if (!body || err) {
+      this._client._$onError(this._topic, C.EVENT.LZ_ERROR, err)
+      return
+    }
+
+    this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.UPDATE, [
+      this.name,
+      nextVersion,
+      body,
+      prevVersion
+    ])
+  })
+
+  this.version = nextVersion
 }
 
 Record.prototype._handleConnectionStateChange = function () {
