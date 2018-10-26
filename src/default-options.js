@@ -7,6 +7,7 @@ module.exports = {
   sendDelay: 5,
   syncDelay: 5,
   maxIdleTime: 500,
+  readTimeout: 60000,
   cacheFilter: (name, version, data) => {
     return /^[^{]/.test(name) && /^[^0]/.test(version)
   },

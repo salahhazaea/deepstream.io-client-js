@@ -7,6 +7,7 @@ const xuid = require('xuid')
 
 const Record = function (handler) {
   this._handler = handler
+  this._options = handler._options
   this._prune = handler._prune
   this._cache = handler._cache
   this._lz = handler._lz
@@ -27,6 +28,7 @@ Record.prototype._reset = function () {
   this.version = null
   this.data = null
 
+  this._readTimeout = null
   this._patchQueue = []
   this._updateQueue = []
 }
@@ -39,6 +41,11 @@ Record.prototype._$construct = function (name) {
   if (typeof name !== 'string' || name.length === 0 || name.includes('[object Object]')) {
     throw new Error('invalid argument: name')
   }
+
+  this._readTimeout = setTimeout(() => {
+    const err = new Error('timeout')
+    this._client._$onError(C.TOPIC.RECORD, C.EVENT.TIMEOUT, err, [ this.name ])
+  }, this._options.readTimeout || 30000)
 
   this.name = name
 
@@ -298,6 +305,9 @@ Record.prototype._onUpdate = function (data) {
       if (this.data !== data) {
         this._sendUpdate()
       }
+
+      clearTimeout(this._readTimeout)
+      this._readTimeout = null
 
       this.emit('ready')
       this.emit('update', this)
