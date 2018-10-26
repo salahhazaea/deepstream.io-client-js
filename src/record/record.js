@@ -21,7 +21,7 @@ const Record = function (name, handler) {
 
   this.name = name
   this.usages = 0
-  this.hasProvider = false
+  this.provided = false
   this.version = null
   this.data = null
 
@@ -64,9 +64,9 @@ Object.defineProperty(Record.prototype, 'isReady', {
   }
 })
 
-Object.defineProperty(Record.prototype, 'provided', {
-  get: function provided () {
-    return this.hasProvider
+Object.defineProperty(Record.prototype, 'hasProvider', {
+  get: function hasProvider () {
+    return this.provided
   }
 })
 
@@ -78,9 +78,9 @@ Record.prototype.get = function (path) {
 
 Record.prototype.set = function (pathOrData, dataOrNil) {
   invariant(this.usages !== 0, `${this.name} "set" cannot use discarded record`)
-  invariant(!this.hasProvider, `${this.name} "set" cannot be called on provided record`)
+  invariant(!this.provided, `${this.name} "set" cannot be called on provided record`)
 
-  if (this.usages === 0 || this.hasProvider) {
+  if (this.usages === 0 || this.provided) {
     return
   }
 
@@ -118,9 +118,9 @@ Record.prototype.set = function (pathOrData, dataOrNil) {
 
 Record.prototype.update = function (pathOrUpdater, updaterOrNil) {
   invariant(this.usages !== 0, `${this.name} "update" cannot use discarded record`)
-  invariant(!this.hasProvider, `${this.name} "update" cannot be called on provided record`)
+  invariant(!this.provided, `${this.name} "update" cannot be called on provided record`)
 
-  if (this.usages === 0 || this.hasProvider) {
+  if (this.usages === 0 || this.provided) {
     return Promise.resolve()
   }
 
@@ -240,9 +240,9 @@ Record.prototype._$onMessage = function (message) {
   }
 }
 
-Record.prototype._updateHasProvider = function (hasProvider) {
-  if (this.hasProvider !== hasProvider) {
-    this.hasProvider = hasProvider
+Record.prototype._updateHasProvider = function (provided) {
+  if (this.provided !== provided) {
+    this.provided = provided
     try {
       this.emit('update', this)
     } catch (err) {
@@ -256,7 +256,7 @@ Record.prototype._sendUpdate = function (newValue) {
 
   let [ start ] = this.version ? this.version.split('-') : [ '0' ]
 
-  if (start === 'INF' || this.hasProvider) {
+  if (start === 'INF' || this.provided) {
     return
   }
 
