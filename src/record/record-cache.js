@@ -28,8 +28,10 @@ RecordCache.prototype.set = function (name, version, data) {
 }
 
 RecordCache.prototype.flush = function (callback) {
-  this._batch.write(callback)
-  this._batch = this._db.batch()
+  if (this._batch) {
+    this._batch.write(callback)
+    this._batch = this._db.batch()
+  }
 }
 
 module.exports = RecordCache
