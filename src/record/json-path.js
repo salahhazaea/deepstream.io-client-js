@@ -97,6 +97,10 @@ module.exports.patch = function (oldValue, newValue) {
 }
 
 module.exports.tokenize = function (path) {
+  if (!path) {
+    return []
+  }
+
   let parts = cache.get(path)
 
   if (parts) {
