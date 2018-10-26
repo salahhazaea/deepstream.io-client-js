@@ -5,32 +5,59 @@ const C = require('../constants/constants')
 const messageParser = require('../message/message-parser')
 const xuid = require('xuid')
 
-const Record = function (name, handler) {
-  if (typeof name !== 'string' || name.length === 0 || name.includes('[object Object]')) {
-    throw new Error('invalid argument name')
-  }
-
+const Record = function (handler) {
   this._handler = handler
   this._prune = handler._prune
   this._lz = handler._lz
+  this._connection = handler._connection
+  this._client = handler._client
+  this._dispatchUpdates = this._dispatchUpdates.bind(this)
+  this._handleConnectionStateChange = this._handleConnectionStateChange.bind(this)
 
-  this.name = name
+  this._reset()
+}
+
+Record.prototype._reset = function () {
+  this.name = null
   this.usages = 0
   this.provided = false
   this.version = null
   this.data = null
 
-  this._connection = handler._connection
-  this._client = handler._client
-
   this._patchQueue = []
   this._updateQueue = []
+}
 
-  this._dispatchUpdates = this._dispatchUpdates.bind(this)
-  this._handleConnectionStateChange = this._handleConnectionStateChange.bind(this)
+Record.prototype._$construct = function (name) {
+  if (this.usages !== 0) {
+    throw new Error('invalid operation: cannot construct referenced record')
+  }
 
+  if (typeof name !== 'string' || name.length === 0 || name.includes('[object Object]')) {
+    throw new Error('invalid argument: name')
+  }
+
+  this.name = name
   this._client.on('connectionStateChanged', this._handleConnectionStateChange)
   this._handleConnectionStateChange()
+
+  return this
+}
+
+Record.prototype._$destroy = function () {
+  if (this.usages !== 0) {
+    throw new Error('invalid operation: cannot destroy referenced record')
+  }
+
+  if (this.connected) {
+    this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.UNSUBSCRIBE, [ this.name ])
+  }
+
+  this._reset()
+  this._client.off('connectionStateChanged', this._handleConnectionStateChange)
+  this.off()
+
+  return this
 }
 
 EventEmitter(Record.prototype)
@@ -78,10 +105,10 @@ Record.prototype.set = function (pathOrData, dataOrNil) {
   const data = arguments.length === 1 ? pathOrData : dataOrNil
 
   if (path === undefined && (typeof data !== 'object' || data === null)) {
-    throw new Error('invalid argument data')
+    throw new Error('invalid argument: data')
   }
   if (path !== undefined && (typeof path !== 'string' || path.length === 0)) {
-    throw new Error('invalid argument path')
+    throw new Error('invalid argument: path')
   }
 
   const newData = jsonPath.set(this.data, path, data)
@@ -115,11 +142,11 @@ Record.prototype.update = function (pathOrUpdater, updaterOrNil) {
   const updater = arguments.length === 1 ? pathOrUpdater : updaterOrNil
 
   if (typeof updater !== 'function') {
-    throw new Error('invalid argument updater')
+    throw new Error('invalid argument: updater')
   }
 
   if (path !== undefined && (typeof path !== 'string' || path.length === 0)) {
-    throw new Error('invalid argument path')
+    throw new Error('invalid argument: path')
   }
 
   return new Promise((resolve, reject) => {
@@ -205,15 +232,6 @@ Record.prototype._unref = function () {
 Record.prototype.acquire = Record.prototype.ref
 Record.prototype.discard = Record.prototype.unref
 Record.prototype.destroy = Record.prototype.unref
-
-Record.prototype._$destroy = function () {
-  if (this.connected) {
-    this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.UNSUBSCRIBE, [ this.name ])
-  }
-
-  this._client.off('connectionStateChanged', this._handleConnectionStateChange)
-  this.off()
-}
 
 Record.prototype._$onMessage = function (message) {
   if (message.action === C.ACTIONS.UPDATE) {

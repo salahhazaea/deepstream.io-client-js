@@ -14,6 +14,7 @@ const RecordHandler = function (options, connection, client) {
   this._client = client
   this._records = new Map()
   this._listeners = new Map()
+  this._pool = []
   this._prune = new Map()
   this._syncRef = 0
   this._syncSend = new Set()
@@ -50,9 +51,7 @@ const RecordHandler = function (options, connection, client) {
       }
 
       this._records.delete(rec.name)
-
-      rec._$destroy()
-
+      this._pool.push(rec._$destroy())
       this._prune.delete(rec)
     }
 
@@ -74,7 +73,7 @@ RecordHandler.prototype.getRecord = function (name) {
   let record = this._records.get(name)
 
   if (!record) {
-    record = new Record(name, this)
+    record = (this._pool.pop() || new Record(this))._$construct(name)
     this._records.set(name, record)
   }
 
