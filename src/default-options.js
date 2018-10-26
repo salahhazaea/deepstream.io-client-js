@@ -7,5 +7,7 @@ module.exports = {
   sendDelay: 5,
   syncDelay: 5,
   maxIdleTime: 500,
+  cacheDb: null,
+  cacheSize: 1024,
   path: '/deepstream'
 }

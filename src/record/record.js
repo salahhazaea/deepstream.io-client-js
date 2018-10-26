@@ -8,6 +8,7 @@ const xuid = require('xuid')
 const Record = function (handler) {
   this._handler = handler
   this._prune = handler._prune
+  this._cache = handler._cache
   this._lz = handler._lz
   this._connection = handler._connection
   this._client = handler._client
@@ -16,6 +17,8 @@ const Record = function (handler) {
 
   this._reset()
 }
+
+EventEmitter(Record.prototype)
 
 Record.prototype._reset = function () {
   this.name = null
@@ -38,8 +41,19 @@ Record.prototype._$construct = function (name) {
   }
 
   this.name = name
-  this._client.on('connectionStateChanged', this._handleConnectionStateChange)
-  this._handleConnectionStateChange()
+
+  this._cache.get(this.name, (err, entry) => {
+    if (err && !err.notFound) {
+      this._client._$onError(C.TOPIC.RECORD, C.EVENT.CACHE_ERROR, err)
+    } else if (entry) {
+      const [ version, data ] = entry
+      this.version = version
+      this.data = data
+      this.emit('update', this)
+    }
+    this._client.on('connectionStateChanged', this._handleConnectionStateChange)
+    this._handleConnectionStateChange()
+  })
 
   return this
 }
@@ -59,8 +73,6 @@ Record.prototype._$destroy = function () {
 
   return this
 }
-
-EventEmitter(Record.prototype)
 
 Object.defineProperty(Record.prototype, 'connected', {
   get: function connected () {
@@ -263,7 +275,7 @@ Record.prototype._onUpdate = function (data) {
     this._unref()
 
     if (!data || err) {
-      this._client._$onError(this._topic, C.EVENT.LZ_ERROR, err, data)
+      this._client._$onError(C.TOPIC.RECORD, C.EVENT.LZ_ERROR, err, data)
       return
     }
 
@@ -314,7 +326,7 @@ Record.prototype._sendUpdate = function () {
     this._unref()
 
     if (!body || err) {
-      this._client._$onError(this._topic, C.EVENT.LZ_ERROR, err)
+      this._client._$onError(C.TOPIC.RECORD, C.EVENT.LZ_ERROR, err)
       return
     }
 
@@ -331,6 +343,7 @@ Record.prototype._sendUpdate = function () {
 
 Record.prototype._handleConnectionStateChange = function () {
   if (this.connected) {
+    // TODO (perf): short version
     this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.READ, [ this.name ])
   } else {
     this._updateHasProvider(false)

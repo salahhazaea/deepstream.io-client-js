@@ -6,6 +6,7 @@ const invariant = require('invariant')
 const LZ = require('./lz')
 const utils = require('../utils/utils')
 const EventEmitter = require('component-emitter2')
+const RecordCache = require('./record-cache')
 
 const RecordHandler = function (options, connection, client) {
   this.isAsync = true
@@ -16,6 +17,7 @@ const RecordHandler = function (options, connection, client) {
   this._listeners = new Map()
   this._pool = []
   this._prune = new Map()
+  this._cache = new RecordCache(options, this)
   this._syncRef = 0
   this._syncSend = new Set()
   this._syncEmit = new Set()
@@ -51,12 +53,17 @@ const RecordHandler = function (options, connection, client) {
       }
 
       this._records.delete(rec.name)
+      this._cache.set(rec.name, rec.version, rec.data)
       this._pool.push(rec._$destroy())
       this._prune.delete(rec)
     }
 
     setTimeout(() => utils.schedule(prune, { timeout: 1000 }), 1000)
   }
+
+  this._cache.flush(err => {
+    this._client._$onError(C.TOPIC.RECORD, C.EVENT.CACHE_ERROR, err)
+  })
 
   prune()
 }
