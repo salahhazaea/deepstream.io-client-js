@@ -84,18 +84,18 @@ Record.prototype.set = function (pathOrData, dataOrNil) {
     throw new Error('invalid argument path')
   }
 
-  const newValue = jsonPath.set(this.data, path, data)
+  const newData = jsonPath.set(this.data, path, data)
 
   if (this._patchQueue) {
     this._patchQueue = path ? this._patchQueue : []
     this._patchQueue.push(path, data)
   }
 
-  if (newValue === this.data) {
+  if (newData === this.data) {
     return
   }
 
-  this.data = utils.deepFreeze(newValue)
+  this.data = utils.deepFreeze(newData)
 
   if (!this._patchQueue) {
     this._sendUpdate()
