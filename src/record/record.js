@@ -280,6 +280,10 @@ Record.prototype._onUpdate = function (data) {
     return
   }
 
+  if (version === this.version) {
+    body = this.data
+  }
+
   // TODO (perf): Avoid closure allocation.
   this._ref()
   this._lz.decompress(body, (data, err) => {
