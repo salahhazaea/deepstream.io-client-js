@@ -28,6 +28,7 @@ Record.prototype._reset = function () {
   this.version = null
   this.data = null
 
+  this._stale = null
   this._readTimeout = null
   this._patchQueue = []
   this._updateQueue = []
@@ -274,6 +275,12 @@ Record.prototype._onUpdate = function (data) {
   let [ version, body ] = data.slice(1)
 
   if (!body) {
+    const data = this._stale
+
+    if (this.data !== data) {
+      this._sendUpdate()
+    }
+
     this._onReady()
     return
   }
@@ -321,6 +328,7 @@ Record.prototype._onUpdate = function (data) {
 Record.prototype._onReady = function () {
   this._unref()
 
+  this._stale = null
   this._patchQueue = null
   clearTimeout(this._readTimeout)
   this._readTimeout = null
@@ -366,6 +374,7 @@ Record.prototype._sendUpdate = function () {
 Record.prototype._handleConnectionStateChange = function () {
   if (this.connected) {
     if (this.version) {
+      this._stale = this.data
       this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.READ, [ this.name, this.version ])
     } else {
       this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.READ, [ this.name ])
