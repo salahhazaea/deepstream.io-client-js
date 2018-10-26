@@ -5,7 +5,7 @@ const RecordCache = function (options, handler) {
   this._handler = handler
   this._lru = new LRU({ max: options.cacheSize || 512 })
   this._db = options.cacheDb ? levelup(options.cacheDb) : null
-  this._batch = this._db.batch()
+  this._batch = this._db ? this._db.batch() : null
 }
 
 RecordCache.prototype.get = function (name, callback) {
