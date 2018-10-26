@@ -224,14 +224,12 @@ Record.prototype._$onMessage = function (message) {
 }
 
 Record.prototype._updateHasProvider = function (provided) {
-  if (this.provided !== provided) {
-    this.provided = provided
-    try {
-      this.emit('update', this)
-    } catch (err) {
-      this._client._$onError(C.TOPIC.RECORD, C.EVENT.USER_ERROR, err)
-    }
+  if (this.provided === provided) {
+    return
   }
+
+  this.provided = provided
+  this.emit('update', this)
 }
 
 Record.prototype._onUpdate = function (data) {
