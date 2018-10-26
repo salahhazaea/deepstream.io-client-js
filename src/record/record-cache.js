@@ -23,7 +23,7 @@ RecordCache.prototype.get = function (name, callback) {
 RecordCache.prototype.set = function (name, version, data) {
   const entry = [ version, data ]
   this._lru.set(name, entry)
-  if (this._batch && /^[^0I]/.test(version)) {
+  if (this._db && /^[^0I]/.test(version)) {
     this._batch = this._batch || this._db.batch()
     this._batch = this._batch.put(name, entry)
   }
