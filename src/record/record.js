@@ -292,7 +292,7 @@ Record.prototype._sendUpdate = function (newValue) {
 Record.prototype._onUpdate = function (data) {
   let [ version, body ] = data.slice(1)
 
-  if (this.isReady && utils.isSameOrNewer(this.version, version)) {
+  if (!this._patchQueue && utils.isSameOrNewer(this.version, version)) {
     return
   }
 
@@ -310,7 +310,7 @@ Record.prototype._onUpdate = function (data) {
       return
     }
 
-    if (this.isReady && utils.isSameOrNewer(this.version, version)) {
+    if (!this._patchQueue && utils.isSameOrNewer(this.version, version)) {
       return
     }
 
