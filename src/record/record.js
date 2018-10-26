@@ -312,22 +312,18 @@ Record.prototype._onUpdate = function (data) {
         this._sendUpdate()
       }
 
-      this._onReady()
+      this._unref()
+
+      this._patchQueue = null
+      clearTimeout(this._readTimeout)
+      this._readTimeout = null
+
+      this.emit('ready')
+      this.emit('update', this)
     } else if (this.data !== oldValue) {
       this.emit('update', this)
     }
   })
-}
-
-Record.prototype._onReady = function () {
-  this._unref()
-
-  this._patchQueue = null
-  clearTimeout(this._readTimeout)
-  this._readTimeout = null
-
-  this.emit('ready')
-  this.emit('update', this)
 }
 
 Record.prototype._sendUpdate = function () {
