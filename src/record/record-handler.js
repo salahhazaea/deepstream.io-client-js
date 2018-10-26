@@ -58,12 +58,14 @@ const RecordHandler = function (options, connection, client) {
       this._prune.delete(rec)
     }
 
+    this._cache.flush(err => {
+      if (err) {
+        this._client._$onError(C.TOPIC.RECORD, C.EVENT.CACHE_ERROR, err)
+      }
+    })
+
     setTimeout(() => utils.schedule(prune, { timeout: 1000 }), 1000)
   }
-
-  this._cache.flush(err => {
-    this._client._$onError(C.TOPIC.RECORD, C.EVENT.CACHE_ERROR, err)
-  })
 
   prune()
 }
