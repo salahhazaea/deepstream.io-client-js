@@ -28,6 +28,7 @@ Record.prototype._reset = function () {
   this.version = null
   this.data = null
 
+  this._stale = null
   this._readTimeout = null
   this._patchQueue = []
   this._updateQueue = []
@@ -276,8 +277,9 @@ Record.prototype._updateHasProvider = function (provided) {
 Record.prototype._onUpdate = function (data) {
   let [ version, body ] = data.slice(1)
 
-  if (!body) {
-    body = this._stale
+  if (this._stale) {
+    body = body || this._stale.data
+    version = version || this._stale.version
     this._stale = null
   }
 
@@ -372,7 +374,7 @@ Record.prototype._sendUpdate = function () {
 Record.prototype._handleConnectionStateChange = function () {
   if (this.connected) {
     if (this.version) {
-      this._stale = this.data
+      this._stale = { version: this.version, data: this.data }
       this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.READ, [ this.name, this.version ])
     } else {
       this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.READ, [ this.name ])
