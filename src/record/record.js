@@ -298,7 +298,6 @@ Record.prototype._onUpdate = function (data) {
       return
     }
 
-    const oldVersion = this.version
     const oldValue = this.data
 
     this.version = version
@@ -314,7 +313,7 @@ Record.prototype._onUpdate = function (data) {
       }
 
       this._onReady()
-    } else if (this.data !== oldValue || this.version !== oldVersion) {
+    } else if (this.data !== oldValue) {
       this.emit('update', this)
     }
   })
