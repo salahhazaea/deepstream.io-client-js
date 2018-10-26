@@ -49,6 +49,7 @@ Record.prototype._$construct = function (name) {
 
   this.name = name
 
+  this._ref()
   this._cache.get(this.name, (err, entry) => {
     if (err && !err.notFound) {
       this._client._$onError(C.TOPIC.RECORD, C.EVENT.CACHE_ERROR, err)
@@ -318,6 +319,8 @@ Record.prototype._onUpdate = function (data) {
 }
 
 Record.prototype._onReady = function () {
+  this._unref()
+
   this._patchQueue = null
   clearTimeout(this._readTimeout)
   this._readTimeout = null
