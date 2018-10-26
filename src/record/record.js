@@ -146,6 +146,9 @@ Record.prototype.set = function (pathOrData, dataOrNil) {
 
   if (!this._patchQueue) {
     this._sendUpdate()
+  } else {
+    let [ start ] = this.version ? this.version.split('-') : [ '0' ]
+    this.version = `${start}-${xuid()}`
   }
 
   this._handler.isAsync = false
