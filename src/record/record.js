@@ -304,8 +304,10 @@ Record.prototype._onUpdate = function (data) {
     this.data = data = jsonPath.patch(this.data, data)
 
     if (this._patchQueue) {
-      for (let i = 0; i < this._patchQueue.length; i += 2) {
-        this.data = jsonPath.set(this.data, this._patchQueue[i + 0], this._patchQueue[i + 1])
+      if (this.data !== oldValue) {
+        for (let i = 0; i < this._patchQueue.length; i += 2) {
+          this.data = jsonPath.set(this.data, this._patchQueue[i + 0], this._patchQueue[i + 1])
+        }
       }
 
       if (this.data !== data) {
