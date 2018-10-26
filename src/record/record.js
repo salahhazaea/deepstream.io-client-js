@@ -272,6 +272,11 @@ Record.prototype._updateHasProvider = function (provided) {
 Record.prototype._onUpdate = function (data) {
   let [ version, body ] = data.slice(1)
 
+  if (!body) {
+    this._onReady()
+    return
+  }
+
   if (!this._patchQueue && utils.isSameOrNewer(this.version, version)) {
     return
   }
@@ -300,21 +305,25 @@ Record.prototype._onUpdate = function (data) {
       for (let i = 0; i < this._patchQueue.length; i += 2) {
         this.data = jsonPath.set(this.data, this._patchQueue[i + 0], this._patchQueue[i + 1])
       }
-      this._patchQueue = null
 
       if (this.data !== data) {
         this._sendUpdate()
       }
 
-      clearTimeout(this._readTimeout)
-      this._readTimeout = null
-
-      this.emit('ready')
-      this.emit('update', this)
+      this._onReady()
     } else if (this.data !== oldValue || this.version !== oldVersion) {
       this.emit('update', this)
     }
   })
+}
+
+Record.prototype._onReady = function () {
+  this._patchQueue = null
+  clearTimeout(this._readTimeout)
+  this._readTimeout = null
+
+  this.emit('ready')
+  this.emit('update', this)
 }
 
 Record.prototype._sendUpdate = function () {
@@ -353,8 +362,11 @@ Record.prototype._sendUpdate = function () {
 
 Record.prototype._handleConnectionStateChange = function () {
   if (this.connected) {
-    // TODO (perf): short version
-    this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.READ, [ this.name ])
+    if (this.version) {
+      this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.READ, [ this.name, this.version ])
+    } else {
+      this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.READ, [ this.name ])
+    }
   } else {
     this._updateHasProvider(false)
   }
