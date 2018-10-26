@@ -320,9 +320,11 @@ Record.prototype._onUpdate = function (data) {
       clearTimeout(this._readTimeout)
       this._readTimeout = null
 
+      this.data = utils.deepFreeze(this.data)
       this.emit('ready')
       this.emit('update', this)
     } else if (this.data !== oldValue) {
+      this.data = utils.deepFreeze(this.data)
       this.emit('update', this)
     }
   })
