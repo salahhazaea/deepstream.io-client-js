@@ -294,7 +294,7 @@ Record.prototype._onUpdate = function (data) {
     const oldValue = this.data
 
     this.version = version
-    this.data = jsonPath.set(this.data, undefined, data)
+    this.data = data = jsonPath.patch(this.data, data)
 
     if (this._patchQueue) {
       for (let i = 0; i < this._patchQueue.length; i += 2) {
