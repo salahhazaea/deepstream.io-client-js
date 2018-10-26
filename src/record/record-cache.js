@@ -13,7 +13,7 @@ RecordCache.prototype.get = function (name, callback) {
   if (entry) {
     callback(null, entry)
   } else if (this._db) {
-    this._db.get(callback)
+    this._db.get(name, callback)
   } else {
     callback(null)
   }
