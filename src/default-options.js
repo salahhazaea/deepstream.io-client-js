@@ -7,6 +7,9 @@ module.exports = {
   sendDelay: 5,
   syncDelay: 5,
   maxIdleTime: 500,
+  cacheFilter: (name, version, data) => {
+    return /^[^{]/.test(name) && /^[^0]/.test(version)
+  },
   cacheDb: null,
   cacheSize: 1024,
   path: '/deepstream'
