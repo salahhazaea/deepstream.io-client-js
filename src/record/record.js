@@ -276,6 +276,11 @@ Record.prototype._updateHasProvider = function (provided) {
 Record.prototype._onUpdate = function (data) {
   let [ version, body ] = data.slice(1)
 
+  if (!body) {
+    body = this._stale
+    this._stale = null
+  }
+
   if (!this._patchQueue && utils.isSameOrNewer(this.version, version)) {
     return
   }
@@ -366,7 +371,12 @@ Record.prototype._sendUpdate = function () {
 
 Record.prototype._handleConnectionStateChange = function () {
   if (this.connected) {
-    this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.READ, [ this.name ])
+    if (this.version) {
+      this._stale = this.data
+      this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.READ, [ this.name, this.version ])
+    } else {
+      this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.READ, [ this.name ])
+    }
   } else {
     this._updateHasProvider(false)
   }
