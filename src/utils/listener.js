@@ -78,9 +78,9 @@ Listener.prototype._$onMessage = function (message) {
         } else if (this._topic === C.TOPIC.RECORD) {
           // TODO (perf): Check for equality before compression.
           // TODO (perf): Avoid closure allocation.
-          this._lz.compress(value, body => {
-            if (!body) {
-              this._client._$onError(this._topic, C.EVENT.LZ_ERROR, new Error(this._pattern))
+          this._lz.compress(value, (err, body) => {
+            if (err || !body) {
+              this._client._$onError(this._topic, C.EVENT.LZ_ERROR, err, [ this._pattern, name, value ])
               return
             }
 
@@ -92,11 +92,7 @@ Listener.prototype._$onMessage = function (message) {
               ? provider.version
               : `INF-${xuid()}`
 
-            this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.UPDATE, [
-              name,
-              version,
-              body
-            ])
+            this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.UPDATE, [ name, version, body ])
 
             this._handler._$handle({
               action: C.ACTIONS.UPDATE,
