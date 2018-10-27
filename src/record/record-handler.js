@@ -146,10 +146,10 @@ RecordHandler.prototype._syncFlush = function () {
   if (!this._syncTimeout && this._syncSend.size > 0 && this.connected) {
     const syncSend = this._syncSend
     this._syncSend = new Set()
+    this._syncCounter = (this._syncCounter + 1) & 2147483647
 
     this._syncTimeout = setTimeout(() => {
       this._syncTimeout = null
-      this._syncCounter = (this._syncCounter + 1) & 2147483647
       for (const token of syncSend) {
         this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.SYNC, [ token ])
       }
