@@ -165,8 +165,22 @@ RecordHandler.prototype.sync = function () {
   return new Promise(resolve => this._syncEmitter.once(token, resolve))
 }
 
-RecordHandler.prototype.get = function (name, pathOrNil) {
+RecordHandler.prototype.get = function (name, pathOrNil, optionsOrNil) {
+  if (arguments.length === 2 && typeof pathOrNil === 'object') {
+    optionsOrNil = pathOrNil
+    pathOrNil = undefined
+  }
+
   const record = this.getRecord(name)
+
+  if (optionsOrNil && optionsOrNil.stale && record.version) {
+    try {
+      return record.get(pathOrNil)
+    } finally {
+      record.unref()
+    }
+  }
+
   return record
     .whenReady()
     .then(() => {
