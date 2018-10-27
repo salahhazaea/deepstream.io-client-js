@@ -176,9 +176,7 @@ Listener.prototype._$onMessage = function (message) {
 }
 
 Listener.prototype._handleConnectionStateChange = function () {
-  const state = this._client.getConnectionState()
-
-  if (state === C.CONNECTION_STATE.OPEN) {
+  if (this.connected) {
     this._connection.sendMsg(this._topic, C.ACTIONS.LISTEN, [ this._pattern ])
   } else {
     this._reset()
