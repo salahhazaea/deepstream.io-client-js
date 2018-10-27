@@ -206,7 +206,7 @@ RecordHandler.prototype.invalidate = function (name) {
   this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.INVALIDATE, [ name ])
 }
 
-RecordHandler.prototype.observe = function (name) {
+RecordHandler.prototype.observe = function (name, ...path) {
   return Observable
     .create(o => {
       const onUpdate = record => o.next(record.data)
@@ -220,6 +220,7 @@ RecordHandler.prototype.observe = function (name) {
         record.unref()
       }
     })
+    .publish(x$ => path.length > 0 ? x$.pluck(...path) : x$)
     .distinctUntilChanged()
 }
 
