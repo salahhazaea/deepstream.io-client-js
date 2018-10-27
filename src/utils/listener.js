@@ -20,14 +20,14 @@ const Listener = function (topic, pattern, callback, options, client, connection
   this._handleConnectionStateChange()
 }
 
-Object.defineProperty(Listener.prototype, '_isConnected', {
-  get: function _isConnected () {
+Object.defineProperty(Listener.prototype, 'connected', {
+  get: function connected () {
     return this._client.getConnectionState() === C.CONNECTION_STATE.OPEN
   }
 })
 
 Listener.prototype._$destroy = function () {
-  if (this._isConnected) {
+  if (this.connected) {
     this._connection.sendMsg(this._topic, C.ACTIONS.UNLISTEN, [ this._pattern ])
   }
 
