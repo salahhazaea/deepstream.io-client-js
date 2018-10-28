@@ -149,7 +149,7 @@ Listener.prototype._$onMessage = function (message) {
           provider.value$ = value$
         },
         error: err => {
-          provider.value$ = null
+          provider.dispose()
           this._connection.sendMsg(this._topic, C.ACTIONS.LISTEN_REJECT, [ this._pattern, name ])
           this._client._$onError(this._topic, C.EVENT.LISTENER_ERROR, err)
         }
