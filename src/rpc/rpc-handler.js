@@ -16,8 +16,8 @@ const RpcHandler = function (options, connection, client) {
   this._client.on('connectionStateChanged', this._handleConnectionStateChange)
 }
 
-Object.defineProperty(RpcHandler.prototype, '_isConnected', {
-  get: function _isConnected () {
+Object.defineProperty(RpcHandler.prototype, 'connected', {
+  get: function connected () {
     return this._client.getConnectionState() === C.CONNECTION_STATE.OPEN
   }
 })
@@ -37,7 +37,7 @@ RpcHandler.prototype.provide = function (name, callback) {
 
   this._providers.set(name, callback)
 
-  if (this._isConnected) {
+  if (this.connected) {
     this._connection.sendMsg(C.TOPIC.RPC, C.ACTIONS.SUBSCRIBE, [ name ])
   }
 
@@ -56,7 +56,7 @@ RpcHandler.prototype.unprovide = function (name) {
 
   this._providers.delete(name)
 
-  if (this._isConnected) {
+  if (this.connected) {
     this._connection.sendMsg(C.TOPIC.RPC, C.ACTIONS.UNSUBSCRIBE, [ name ])
   }
 }
@@ -192,9 +192,7 @@ RpcHandler.prototype._$handle = function (message) {
 }
 
 RpcHandler.prototype._handleConnectionStateChange = function () {
-  const state = this._client.getConnectionState()
-
-  if (state === C.CONNECTION_STATE.OPEN) {
+  if (this.connected) {
     for (const name of this._providers.keys()) {
       this._connection.sendMsg(C.TOPIC.RPC, C.ACTIONS.SUBSCRIBE, [ name ])
     }
