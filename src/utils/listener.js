@@ -75,6 +75,12 @@ Listener.prototype._$onMessage = function (message) {
           return
         }
 
+        if (typeof value !== 'object') {
+          const err = new Error('invalid value')
+          this._client._$onError(this._topic, C.EVENT.USER_ERROR, err, [ this._pattern, name, value ])
+          return
+        }
+
         if (this._topic === C.TOPIC.EVENT) {
           this._handler.emit(name, value)
         } else if (this._topic === C.TOPIC.RECORD) {
