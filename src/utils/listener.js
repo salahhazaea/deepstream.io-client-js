@@ -92,24 +92,19 @@ Listener.prototype._$onMessage = function (message) {
               return
             }
 
-            if (provider.ready && provider.body === body) {
-              return
+            if (provider.body !== body) {
+              provider.version = `INF-${xuid()}`
+              provider.body = body
+              provider.ready = true
+              this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.UPDATE, [ name, provider.version, body ])
+              this._handler._$handle({
+                action: C.ACTIONS.UPDATE,
+                data: [ name, provider.version, value ]
+              })
+            } else if (!provider.ready) {
+              provider.ready = true
+              this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.UPDATE, [ name, provider.version, body ])
             }
-
-            const version = provider.version && provider.version.startsWith('INF') && provider.body === body
-              ? provider.version
-              : `INF-${xuid()}`
-
-            this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.UPDATE, [ name, version, body ])
-
-            this._handler._$handle({
-              action: C.ACTIONS.UPDATE,
-              data: [ name, version, value ]
-            })
-
-            provider.ready = true
-            provider.version = version
-            provider.body = body
           })
         }
       },
