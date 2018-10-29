@@ -96,7 +96,7 @@ Listener.prototype._$onMessage = function (message) {
               provider.version = `INF-${xuid()}`
               provider.body = body
               provider.ready = true
-              this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.UPDATE, [ name, provider.version, body ])
+              this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.UPDATE, [ name, provider.version, provider.body ])
               this._handler._$handle({
                 action: C.ACTIONS.UPDATE,
                 data: [ name, provider.version, value ]
@@ -104,7 +104,7 @@ Listener.prototype._$onMessage = function (message) {
             } else if (!provider.ready) {
               provider.ready = true
               // TODO (perf): Sending body here should be unnecessary.
-              this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.UPDATE, [ name, provider.version, body ])
+              this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.UPDATE, [ name, provider.version, provider.body ])
             }
           })
         }
