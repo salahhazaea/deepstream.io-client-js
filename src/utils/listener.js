@@ -64,6 +64,7 @@ Listener.prototype._$onMessage = function (message) {
         provider.valueSubscription.unsubscribe()
         provider.valueSubscription = null
       }
+      this._providers.delete(name)
     }
     provider.observer = {
       next: value => {
@@ -172,12 +173,9 @@ Listener.prototype._$onMessage = function (message) {
       provider.valueSubscription = provider.value$.subscribe(provider.observer)
     }
   } else if (message.action === C.ACTIONS.SUBSCRIPTION_FOR_PATTERN_REMOVED) {
-    if (!provider) {
-      return
+    if (provider) {
+      provider.dispose()
     }
-
-    provider.dispose()
-    this._providers.delete(name)
   }
 }
 
