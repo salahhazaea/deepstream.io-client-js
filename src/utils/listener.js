@@ -93,7 +93,7 @@ Listener.prototype._$onMessage = function (message) {
               return
             }
 
-            if (provider.body !== body) {
+            if (provider.body !== body || !/^INF-/.test(provider.version)) {
               provider.version = `INF-${xuid()}`
               provider.body = body
               provider.ready = true
