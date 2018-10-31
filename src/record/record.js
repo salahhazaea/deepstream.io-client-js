@@ -57,7 +57,7 @@ Record.prototype._$construct = function (name) {
     } else if (entry) {
       const [ version, data ] = entry
       this.version = version
-      this.data = data
+      this.data = utils.deepFreeze(data)
       this.emit('update', this)
     }
     this._client.on('connectionStateChanged', this._handleConnectionStateChange)
