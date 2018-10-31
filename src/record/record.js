@@ -277,8 +277,16 @@ Record.prototype._onUpdate = function (data) {
     this._stale = null
   }
 
-  if (!this._patchQueue && utils.isSameOrNewer(this.version, version)) {
-    return
+  if (utils.isSameOrNewer(this.version, version)) {
+    if (!this._patchQueue) {
+      return
+    } else if (this.version.startsWith('INF')) {
+      this._unref()
+      this._patchQueue = null
+      this.emit('ready')
+      this.emit('update', this)
+      return
+    }
   }
 
   if (version === this.version) {
@@ -315,10 +323,10 @@ Record.prototype._onUpdate = function (data) {
         this._sendUpdate()
       }
 
-      this._unref()
-
-      this._patchQueue = null
       this.data = utils.deepFreeze(this.data)
+
+      this._unref()
+      this._patchQueue = null
       this.emit('ready')
       this.emit('update', this)
     } else if (this.data !== oldValue) {
