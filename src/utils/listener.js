@@ -106,6 +106,10 @@ Listener.prototype._$onMessage = function (message) {
               provider.ready = true
               // TODO (perf): Sending body here should be unnecessary.
               this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.UPDATE, [ name, provider.version, provider.body ])
+              this._handler._$handle({
+                action: C.ACTIONS.UPDATE,
+                data: [ name, provider.version, value ]
+              })
             }
           })
         }
