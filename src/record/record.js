@@ -283,14 +283,17 @@ Record.prototype._onUpdate = function (data) {
     this._stale = null
   }
 
+  if (this._readTimeout) {
+    clearTimeout(this._readTimeout)
+    this._readTimeout = null
+  }
+
   if (utils.isSameOrNewer(this.version, version)) {
     if (!this._patchQueue) {
       return
     } else if (this.version.startsWith('INF')) {
       this._unref()
       this._patchQueue = null
-      clearTimeout(this._readTimeout)
-      this._readTimeout = null
       this.emit('ready')
       this.emit('update', this)
       return
@@ -335,8 +338,6 @@ Record.prototype._onUpdate = function (data) {
 
       this._unref()
       this._patchQueue = null
-      clearTimeout(this._readTimeout)
-      this._readTimeout = null
       this.emit('ready')
       this.emit('update', this)
     } else if (this.data !== oldValue) {
