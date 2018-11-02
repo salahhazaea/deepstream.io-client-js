@@ -292,7 +292,7 @@ Record.prototype._onUpdate = function (data) {
     this._readTimeout = null
   }
 
-  if (this.version && utils.isSameOrNewer(this.version, version)) {
+  if (utils.isSameOrNewer(this.version, version)) {
     if (!this._patchQueue) {
       return
     } else if (this.version.startsWith('INF')) {
