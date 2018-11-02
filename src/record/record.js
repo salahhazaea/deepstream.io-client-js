@@ -283,15 +283,19 @@ Record.prototype._onUpdate = function (data) {
     this._stale = null
   }
 
+  if (!version) {
+    return
+  }
+
   if (this._readTimeout) {
     clearTimeout(this._readTimeout)
     this._readTimeout = null
   }
 
-  if (utils.isSameOrNewer(this.version, version)) {
+  if (this.version && utils.isSameOrNewer(this.version, version)) {
     if (!this._patchQueue) {
       return
-    } else if (this.version && this.version.startsWith('INF')) {
+    } else if (this.version.startsWith('INF')) {
       this._unref()
       this._patchQueue = null
       this.emit('ready')
