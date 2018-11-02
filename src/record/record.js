@@ -38,7 +38,7 @@ Record.prototype._$construct = function (name) {
     throw new Error('invalid operation: cannot construct referenced record')
   }
 
-  if (typeof name !== 'string' || name.length === 0 || name.includes('[object Object]')) {
+  if (typeof name !== 'string' || name.length === 0) {
     throw new Error('invalid argument: name')
   }
 
