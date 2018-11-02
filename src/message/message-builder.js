@@ -2,16 +2,6 @@ const C = require('../constants/constants')
 
 const SEP = C.MESSAGE_PART_SEPERATOR
 
-/**
- * Creates a deepstream message string, based on the
- * provided parameters
- *
- * @param   {String} topic  One of CONSTANTS.TOPIC
- * @param   {String} action One of CONSTANTS.ACTIONS
- * @param   {Array} data An array of strings or JSON-serializable objects
- *
- * @returns {String} deepstream message string
- */
 module.exports.getMsg = function (topic, action, data) {
   if (data && !(data instanceof Array)) {
     throw new Error('data must be an array')
@@ -32,17 +22,14 @@ module.exports.getMsg = function (topic, action, data) {
   return sendData.join(SEP) + C.MESSAGE_SEPERATOR
 }
 
-/**
- * Converts a serializable value into its string-representation and adds
- * a flag that provides instructions on how to deserialize it.
- *
- * Please see messageParser.convertTyped for the counterpart of this method
- *
- * @param {Mixed} value
- *
- * @public
- * @returns {String} string representation of the value
- */
+module.exports.getMsg1 = function (topic, action, p0) {
+  return `${topic}${SEP}${action}${SEP}${p0}${C.MESSAGE_SEPERATOR}`
+}
+
+module.exports.getMsg2 = function (topic, action, p0, p1) {
+  return `${topic}${SEP}${action}${SEP}${p0}${SEP}${p1}${C.MESSAGE_SEPERATOR}`
+}
+
 module.exports.typed = function (value) {
   const type = typeof value
 

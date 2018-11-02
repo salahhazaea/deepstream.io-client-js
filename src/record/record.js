@@ -389,9 +389,9 @@ Record.prototype._handleConnectionStateChange = function () {
   if (this.connected) {
     if (this.version) {
       this._stale = { version: this.version, data: this.data }
-      this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.READ, [ this.name, this.version ])
+      this._connection.sendMsg2(C.TOPIC.RECORD, C.ACTIONS.READ, this.name, this.version)
     } else {
-      this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.READ, [ this.name ])
+      this._connection.sendMsg1(C.TOPIC.RECORD, C.ACTIONS.READ, this.name)
     }
   } else {
     this._updateHasProvider(false)

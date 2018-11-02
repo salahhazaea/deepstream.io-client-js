@@ -69,6 +69,14 @@ Connection.prototype.sendMsg = function (topic, action, data) {
   this.send(messageBuilder.getMsg(topic, action, data))
 }
 
+Connection.prototype.sendMsg1 = function (topic, action, p0) {
+  this.send(messageBuilder.getMsg1(topic, action, p0))
+}
+
+Connection.prototype.sendMsg2 = function (topic, action, p0, p1) {
+  this.send(messageBuilder.getMsg2(topic, action, p0, p1))
+}
+
 Connection.prototype.send = function (message) {
   this._queuedMessages.push(message)
   if (this._queuedMessages.length > this._options.maxMessagesPerPacket) {
