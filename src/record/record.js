@@ -28,7 +28,6 @@ Record.prototype._reset = function () {
   this.version = null
   this.data = null
 
-  this._readTimeout = null
   this._stale = null
   this._patchQueue = []
   this._updateQueue = []
@@ -42,11 +41,6 @@ Record.prototype._$construct = function (name) {
   if (typeof name !== 'string' || name.length === 0 || name.includes('[object Object]')) {
     throw new Error('invalid argument: name')
   }
-
-  this._readTimeout = setTimeout(() => {
-    const err = new Error('timeout')
-    this._client._$onError(C.TOPIC.RECORD, C.EVENT.TIMEOUT, err, [ name ])
-  }, this._options.readTimeout || 30000)
 
   this.name = name
 
@@ -285,11 +279,6 @@ Record.prototype._onUpdate = function (data) {
 
   if (!version || !body) {
     return
-  }
-
-  if (this._readTimeout) {
-    clearTimeout(this._readTimeout)
-    this._readTimeout = null
   }
 
   if (utils.isSameOrNewer(this.version, version)) {
