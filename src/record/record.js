@@ -283,7 +283,7 @@ Record.prototype._onUpdate = function (data) {
     this._stale = null
   }
 
-  if (!version) {
+  if (!version || !body) {
     return
   }
 
