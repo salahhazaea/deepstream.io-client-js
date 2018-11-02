@@ -147,7 +147,11 @@ RpcHandler.prototype._respond = function (message) {
       promise
         .then(val => {
           if (!response.completed) {
-            response.send(val)
+            if (val !== undefined) {
+              response.send(val)
+            } else {
+              response.reject()
+            }
           }
         })
         .catch(err => {

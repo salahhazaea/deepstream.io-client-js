@@ -29,8 +29,10 @@ RecordCache.prototype.set = function (name, version, data) {
   const entry = [ version, data ]
   this._lru.set(name, entry)
   if (this._db) {
-    this._batch = this._batch || this._db.batch()
-    this._batch = this._batch.put(name, entry)
+    if (this._batch) {
+      this._batch = this._db.batch()
+    }
+    this._batch.put(name, entry)
   }
 }
 
