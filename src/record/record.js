@@ -291,7 +291,7 @@ Record.prototype._onUpdate = function (data) {
   if (utils.isSameOrNewer(this.version, version)) {
     if (!this._patchQueue) {
       return
-    } else if (this.version.startsWith('INF')) {
+    } else if (this.version && this.version.startsWith('INF')) {
       this._unref()
       this._patchQueue = null
       this.emit('ready')
