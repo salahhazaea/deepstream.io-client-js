@@ -43,10 +43,10 @@ Record.prototype._$construct = function (name) {
     throw new Error('invalid argument: name')
   }
 
-  this._readTimeout = this._options.readTimeout ? setTimeout(() => {
+  this._readTimeout = this._options.recordReadTimeout ? setTimeout(() => {
     const err = new Error('timeout')
     this._client._$onError(C.TOPIC.RECORD, C.EVENT.TIMEOUT, err, [ name ])
-  }, this._options.readTimeout) : null
+  }, this._options.recordReadTimeout) : null
 
   this.name = name
 
