@@ -278,8 +278,10 @@ Record.prototype._onUpdate = function (data) {
   let [ version, body ] = data.slice(1)
 
   if (this._stale) {
-    body = body || this._stale.data
-    version = version || this._stale.version
+    if (!body || !version) {
+      body = this._stale.data
+      version = this._stale.version
+    }
     this._stale = null
   }
 
