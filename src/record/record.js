@@ -269,12 +269,10 @@ Record.prototype._$onMessage = function (message) {
 }
 
 Record.prototype._updateHasProvider = function (provided) {
-  if (this.provided === provided) {
-    return
+  if (this.provided !== provided) {
+    this.provided = provided
+    this.emit('update', this)
   }
-
-  this.provided = provided
-  this.emit('update', this)
 }
 
 Record.prototype._onUpdate = function (data) {
