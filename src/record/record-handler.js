@@ -71,7 +71,7 @@ const RecordHandler = function (options, connection, client) {
       })
     })
 
-    setTimeout(() => utils.schedule(prune, { timeout: 1000 }), 1000)
+    setTimeout(() => utils.schedule(prune), 1000)
   }
 
   prune()
