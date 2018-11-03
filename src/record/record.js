@@ -73,7 +73,7 @@ Record.prototype._$destroy = function () {
   }
 
   if (this.connected) {
-    this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.UNSUBSCRIBE, [ this.name ])
+    this._connection.sendMsg1(C.TOPIC.RECORD, C.ACTIONS.UNSUBSCRIBE, this.name)
   }
 
   this._reset()
