@@ -31,10 +31,14 @@ const RecordHandler = function (options, connection, client) {
   this._client.on('connectionStateChanged', this._handleConnectionStateChange)
   this._handleConnectionStateChange()
 
-  const prune = () => {
+  const prune = (deadline) => {
     const now = Date.now()
 
     for (const [ rec, timestamp ] of this._prune) {
+      if (deadline && deadline.timeRemaining() > 0) {
+        break
+      }
+
       if (rec.usages !== 0) {
         this._prune.delete(rec)
         continue
