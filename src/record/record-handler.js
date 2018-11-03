@@ -292,6 +292,14 @@ RecordHandler.prototype._handleConnectionStateChange = function () {
     clearTimeout(this._syncTimeout)
     this._syncTimeout = null
   }
+
+  for (const record of this._records.values()) {
+    record._$handleConnectionStateChange()
+  }
+
+  for (const listener of this._listeners.values()) {
+    listener._$handleConnectionStateChange()
+  }
 }
 
 module.exports = RecordHandler

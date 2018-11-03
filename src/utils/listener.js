@@ -14,10 +14,7 @@ const Listener = function (topic, pattern, callback, options, client, connection
   this._providers = new Map()
   this.recursive = recursive
 
-  this._handleConnectionStateChange = this._handleConnectionStateChange.bind(this)
-
-  this._client.on('connectionStateChanged', this._handleConnectionStateChange)
-  this._handleConnectionStateChange()
+  this._$handleConnectionStateChange()
 }
 
 Object.defineProperty(Listener.prototype, 'connected', {
@@ -32,8 +29,6 @@ Listener.prototype._$destroy = function () {
   }
 
   this._reset()
-
-  this._client.off('connectionStateChanged', this._handleConnectionStateChange)
 }
 
 Listener.prototype._$onMessage = function (message) {
@@ -183,7 +178,7 @@ Listener.prototype._$onMessage = function (message) {
   }
 }
 
-Listener.prototype._handleConnectionStateChange = function () {
+Listener.prototype._$handleConnectionStateChange = function () {
   if (this.connected) {
     this._connection.sendMsg(this._topic, C.ACTIONS.LISTEN, [ this._pattern ])
   } else {

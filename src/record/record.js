@@ -14,7 +14,6 @@ const Record = function (handler) {
   this._connection = handler._connection
   this._client = handler._client
   this._dispatchUpdates = this._dispatchUpdates.bind(this)
-  this._handleConnectionStateChange = this._handleConnectionStateChange.bind(this)
 
   this._reset()
 }
@@ -60,8 +59,7 @@ Record.prototype._$construct = function (name) {
       this.data = utils.deepFreeze(data)
       this.emit('update', this)
     }
-    this._client.on('connectionStateChanged', this._handleConnectionStateChange)
-    this._handleConnectionStateChange()
+    this._$handleConnectionStateChange()
   })
 
   return this
@@ -77,7 +75,6 @@ Record.prototype._$destroy = function () {
   }
 
   this._reset()
-  this._client.off('connectionStateChanged', this._handleConnectionStateChange)
   this.off()
 
   return this
@@ -393,7 +390,7 @@ Record.prototype._sendUpdate = function () {
   this.version = nextVersion
 }
 
-Record.prototype._handleConnectionStateChange = function () {
+Record.prototype._$handleConnectionStateChange = function () {
   if (this.connected) {
     if (this.version) {
       this._stale = { version: this.version, data: this.data }
