@@ -101,6 +101,12 @@ Object.defineProperty(Record.prototype, 'ready', {
   }
 })
 
+Object.defineProperty(Record.prototype, 'stale', {
+  get: function ready () {
+    return this.data == null
+  }
+})
+
 Object.defineProperty(Record.prototype, 'isReady', {
   get: function isReady () {
     return !this._patchQueue
