@@ -34,6 +34,12 @@ const RecordHandler = function (options, connection, client) {
   const prune = (deadline) => {
     const now = Date.now()
 
+    this._cache.flush(err => {
+      if (err) {
+        this._client._$onError(C.TOPIC.RECORD, C.EVENT.CACHE_ERROR, err)
+      }
+    })
+
     for (const [ rec, timestamp ] of this._prune) {
       if (deadline && deadline.timeRemaining() > 0) {
         break
@@ -62,14 +68,6 @@ const RecordHandler = function (options, connection, client) {
       this._pool.push(rec._$destroy())
       this._prune.delete(rec)
     }
-
-    utils.schedule(() => {
-      this._cache.flush(err => {
-        if (err) {
-          this._client._$onError(C.TOPIC.RECORD, C.EVENT.CACHE_ERROR, err)
-        }
-      })
-    })
 
     setTimeout(() => utils.schedule(prune), 1000)
   }
