@@ -27,9 +27,7 @@ const RecordHandler = function (options, connection, client) {
   this._lz = options.lz || new LZ()
 
   this._handleConnectionStateChange = this._handleConnectionStateChange.bind(this)
-
   this._client.on('connectionStateChanged', this._handleConnectionStateChange)
-  this._handleConnectionStateChange()
 
   const prune = (deadline) => {
     const now = Date.now()

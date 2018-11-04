@@ -27,6 +27,7 @@ Record.prototype._reset = function () {
   this.version = null
   this.data = null
 
+  this._loading = true
   this._readTimeout = null
   this._stale = null
   this._patchQueue = []
@@ -60,6 +61,7 @@ Record.prototype._$construct = function (name) {
       this.emit('update', this)
     }
 
+    this._loading = false
     if (this.connected) {
       this._$handleConnectionStateChange()
     }
@@ -392,6 +394,10 @@ Record.prototype._sendUpdate = function () {
 }
 
 Record.prototype._$handleConnectionStateChange = function () {
+  if (this._loading) {
+    return
+  }
+
   if (this.connected) {
     if (this.version) {
       this._stale = { version: this.version, data: this.data }
