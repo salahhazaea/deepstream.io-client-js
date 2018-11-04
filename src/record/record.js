@@ -59,7 +59,10 @@ Record.prototype._$construct = function (name) {
       this.data = utils.deepFreeze(data)
       this.emit('update', this)
     }
-    this._$handleConnectionStateChange()
+
+    if (this.connected) {
+      this._$handleConnectionStateChange()
+    }
   })
 
   return this
