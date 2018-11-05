@@ -47,11 +47,6 @@ Record.prototype._$construct = function (name) {
     throw new Error('invalid argument: name')
   }
 
-  this._readTimeout = this._options.recordReadTimeout ? setTimeout(() => {
-    const err = new Error('timeout')
-    this._client._$onError(C.TOPIC.RECORD, C.EVENT.TIMEOUT, err, [ name ])
-  }, this._options.recordReadTimeout) : null
-
   this.name = name
 
   this._ref()
@@ -420,6 +415,11 @@ Record.prototype._sendUpdate = function () {
 }
 
 Record.prototype._read = function () {
+  this._readTimeout = this._options.recordReadTimeout ? setTimeout(() => {
+    const err = new Error('timeout')
+    this._client._$onError(C.TOPIC.RECORD, C.EVENT.TIMEOUT, err, [ this.name ])
+  }, this._options.recordReadTimeout) : null
+
   if (this.version) {
     this._stale = { version: this.version, data: this.data }
     this._connection.sendMsg2(C.TOPIC.RECORD, C.ACTIONS.READ, this.name, this.version)
