@@ -413,12 +413,12 @@ Record.prototype._read = function () {
   }
 }
 
-Record.prototype._$handleConnectionStateChange = function (connected) {
+Record.prototype._$handleConnectionStateChange = function () {
   if (this._loading) {
     return
   }
 
-  if (connected) {
+  if (this.connected) {
     this._read()
   } else {
     this.provided = false
