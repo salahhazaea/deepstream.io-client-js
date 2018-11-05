@@ -9,6 +9,7 @@ module.exports.CONNECTION_STATE.OPEN = 'OPEN'
 module.exports.CONNECTION_STATE.ERROR = 'ERROR'
 module.exports.CONNECTION_STATE.RECONNECTING = 'RECONNECTING'
 
+module.exports.RECORD_STATE = {}
 module.exports.RECORD_STATE.VOID = 0
 module.exports.RECORD_STATE.CLIENT = 1
 module.exports.RECORD_STATE.SERVER = 2
