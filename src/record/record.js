@@ -32,7 +32,6 @@ Record.prototype._reset = function () {
   this.provided = false
 
   this._loading = true
-  this._readTimeout = null
   this._stale = null
   this._patchQueue = []
   this._updateQueue = []
@@ -316,11 +315,6 @@ Record.prototype._onUpdate = function (data) {
     return
   }
 
-  if (this._readTimeout) {
-    clearTimeout(this._readTimeout)
-    this._readTimeout = null
-  }
-
   if (utils.isSameOrNewer(this.version, version)) {
     if (!this._patchQueue) {
       return
@@ -415,11 +409,6 @@ Record.prototype._sendUpdate = function () {
 }
 
 Record.prototype._read = function () {
-  this._readTimeout = this._options.recordReadTimeout ? setTimeout(() => {
-    const err = new Error('timeout')
-    this._client._$onError(C.TOPIC.RECORD, C.EVENT.TIMEOUT, err, [ this.name ])
-  }, this._options.recordReadTimeout) : null
-
   if (this.version) {
     this._stale = { version: this.version, data: this.data }
     this._connection.sendMsg2(C.TOPIC.RECORD, C.ACTIONS.READ, this.name, this.version)
