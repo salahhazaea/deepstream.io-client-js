@@ -26,8 +26,11 @@ const RecordHandler = function (options, connection, client) {
   this._syncCounter = 0
   this._lz = options.lz || new LZ()
 
-  this._handleConnectionStateChange = this._handleConnectionStateChange.bind(this)
-  this._client.on('connectionStateChanged', this._handleConnectionStateChange)
+  Observable
+    .fromEvent(this._client, 'connectionStateChanged')
+    .map(state => state === C.CONNECTION_STATE.OPEN)
+    .distinctUntilChanged()
+    .subscribe(connected => this._handleConnectionStateChange(connected))
 
   const prune = (deadline) => {
     const now = Date.now()
@@ -277,7 +280,7 @@ RecordHandler.prototype._$handle = function (message) {
   }
 }
 
-RecordHandler.prototype._handleConnectionStateChange = function () {
+RecordHandler.prototype._handleConnectionStateChange = function (connected) {
   if (this.connected) {
     for (const token of this._syncEmitter.eventNames()) {
       this._syncSend.add(token)
@@ -290,11 +293,11 @@ RecordHandler.prototype._handleConnectionStateChange = function () {
   }
 
   for (const record of this._records.values()) {
-    record._$handleConnectionStateChange()
+    record._$handleConnectionStateChange(connected)
   }
 
   for (const listener of this._listeners.values()) {
-    listener._$handleConnectionStateChange()
+    listener._$handleConnectionStateChange(connected)
   }
 }
 

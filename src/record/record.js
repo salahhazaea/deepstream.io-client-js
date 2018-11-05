@@ -18,14 +18,18 @@ const Record = function (handler) {
   this._reset()
 }
 
+Record.STATE = module.exports.RECORD_STATE
+
 EventEmitter(Record.prototype)
 
 Record.prototype._reset = function () {
   this.name = null
   this.usages = 0
-  this.provided = false
   this.version = null
   this.data = null
+
+  // TODO (fix): Make private
+  this.provided = false
 
   this._loading = true
   this._readTimeout = null
@@ -63,7 +67,7 @@ Record.prototype._$construct = function (name) {
 
     this._loading = false
     if (this.connected) {
-      this._$handleConnectionStateChange()
+      this._read()
     }
   })
 
@@ -85,36 +89,64 @@ Record.prototype._$destroy = function () {
   return this
 }
 
+Object.defineProperty(Record.prototype, 'state', {
+  get: function state () {
+    if (!this.data) {
+      return Record.STATE.VOID
+    }
+
+    if (!this.connected) {
+      return Record.STATE.CLIENT
+    }
+
+    if (this.provided) {
+      return Record.STATE.PROVIDER
+    }
+
+    if (this.ready) {
+      return Record.STATE.SERVER
+    }
+
+    return Record.STATE.CLIENT
+  }
+})
+
+// TODO (fix): Remove
 Object.defineProperty(Record.prototype, 'connected', {
   get: function connected () {
     return this._client.getConnectionState() === C.CONNECTION_STATE.OPEN
   }
 })
 
+// TODO (fix): Remove
 Object.defineProperty(Record.prototype, 'empty', {
   get: function empty () {
     return !this.data || Object.keys(this.data).length === 0
   }
 })
 
+// TODO (fix): Remove
 Object.defineProperty(Record.prototype, 'ready', {
   get: function ready () {
     return !this._patchQueue
   }
 })
 
+// TODO (fix): Remove
 Object.defineProperty(Record.prototype, 'stale', {
   get: function ready () {
     return this.data == null
   }
 })
 
+// TODO (fix): Remove
 Object.defineProperty(Record.prototype, 'isReady', {
   get: function isReady () {
     return !this._patchQueue
   }
 })
 
+// TODO (fix): Remove
 Object.defineProperty(Record.prototype, 'hasProvider', {
   get: function hasProvider () {
     return this.provided
@@ -269,13 +301,7 @@ Record.prototype._$onMessage = function (message) {
   if (message.action === C.ACTIONS.UPDATE) {
     this._onUpdate(message.data)
   } else if (message.action === C.ACTIONS.SUBSCRIPTION_HAS_PROVIDER) {
-    this._updateHasProvider(messageParser.convertTyped(message.data[1], this._client))
-  }
-}
-
-Record.prototype._updateHasProvider = function (provided) {
-  if (this.provided !== provided) {
-    this.provided = provided
+    this.provided = messageParser.convertTyped(message.data[1], this._client)
     this.emit('update', this)
   }
 }
@@ -393,21 +419,27 @@ Record.prototype._sendUpdate = function () {
   this.version = nextVersion
 }
 
-Record.prototype._$handleConnectionStateChange = function () {
+Record.prototype._read = function () {
+  if (this.version) {
+    this._stale = { version: this.version, data: this.data }
+    this._connection.sendMsg2(C.TOPIC.RECORD, C.ACTIONS.READ, this.name, this.version)
+  } else {
+    this._connection.sendMsg1(C.TOPIC.RECORD, C.ACTIONS.READ, this.name)
+  }
+}
+
+Record.prototype._$handleConnectionStateChange = function (connected) {
   if (this._loading) {
     return
   }
 
-  if (this.connected) {
-    if (this.version) {
-      this._stale = { version: this.version, data: this.data }
-      this._connection.sendMsg2(C.TOPIC.RECORD, C.ACTIONS.READ, this.name, this.version)
-    } else {
-      this._connection.sendMsg1(C.TOPIC.RECORD, C.ACTIONS.READ, this.name)
-    }
+  if (connected) {
+    this._read()
   } else {
-    this._updateHasProvider(false)
+    this.provided = false
   }
+
+  this.emit('update', this)
 }
 
 module.exports = Record
