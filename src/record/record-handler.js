@@ -222,7 +222,7 @@ RecordHandler.prototype.update = function (name, pathOrUpdater, updaterOrNil) {
 RecordHandler.prototype.observe = function (name) {
   return Observable
     .create(o => {
-      const onUpdate = record => o.next(record.data)
+      const onUpdate = record => o.next(record.get())
       const record = this.getRecord(name)
       if (record.version) {
         onUpdate(record)
