@@ -42,7 +42,7 @@ const RecordHandler = function (options, connection, client) {
     })
 
     for (const [ rec, timestamp ] of this._prune) {
-      if (deadline && deadline.timeRemaining() > 0) {
+      if (deadline && deadline.timeRemaining() <= 0) {
         break
       }
 
