@@ -18,7 +18,7 @@ const Record = function (handler) {
   this._reset()
 }
 
-Record.STATE = module.exports.RECORD_STATE
+Record.STATE = C.RECORD_STATE
 
 EventEmitter(Record.prototype)
 
