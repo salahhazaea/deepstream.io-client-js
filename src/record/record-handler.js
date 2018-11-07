@@ -17,7 +17,11 @@ const RecordHandler = function (options, connection, client) {
   this._listeners = new Map()
   this._pool = []
   this._prune = new Map()
-  this._cache = new RecordCache(options, this)
+  this._cache = new RecordCache(options, this, err => {
+    if (err) {
+      this._client._$onError(C.TOPIC.RECORD, C.EVENT.CACHE_ERROR, err)
+    }
+  })
   this._syncRef = 0
   this._syncSend = new Set()
   this._syncEmit = new Set()

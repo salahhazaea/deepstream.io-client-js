@@ -2,10 +2,11 @@ const LRU = require('lru-cache')
 const levelup = require('levelup')
 const encodingdown = require('encoding-down')
 
-const RecordCache = function (options, handler) {
+const RecordCache = function (options, handler, callback) {
   this._handler = handler
+  this._client = handler._client
   this._lru = new LRU({ max: options.cacheSize || 1024 })
-  this._db = options.cacheDb ? levelup(encodingdown(options.cacheDb, { valueEncoding: 'json' })) : null
+  this._db = options.cacheDb ? levelup(encodingdown(options.cacheDb, { valueEncoding: 'json' }), callback) : null
   this._filter = options.cacheFilter
   this._batch = null
 }
