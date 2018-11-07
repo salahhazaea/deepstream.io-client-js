@@ -17,7 +17,7 @@ const RecordHandler = function (options, connection, client) {
   this._listeners = new Map()
   this._pool = []
   this._prune = new Map()
-  this._cache = new RecordCache(options, this, err => {
+  this._cache = new RecordCache(options, err => {
     if (err) {
       this._client._$onError(C.TOPIC.RECORD, C.EVENT.CACHE_ERROR, err)
     }
