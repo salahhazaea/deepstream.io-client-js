@@ -12,5 +12,6 @@ module.exports = {
   },
   cacheDb: null,
   cacheSize: 1024,
+  lz: null,
   path: '/deepstream'
 }
