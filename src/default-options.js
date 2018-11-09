@@ -11,8 +11,8 @@ module.exports = {
     return /^[^{]/.test(name) && /^[^0]/.test(version)
   },
   cacheDb: null,
-  cacheSize: 1024,
   lz: null,
+  schedule: null,
+  cacheSize: 1024,
   path: '/deepstream',
-  compat: false
 }

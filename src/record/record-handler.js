@@ -4,7 +4,6 @@ const C = require('../constants/constants')
 const { Observable } = require('rxjs')
 const invariant = require('invariant')
 const LZ = require('./lz')
-const utils = require('../utils/utils')
 const EventEmitter = require('component-emitter2')
 const RecordCache = require('./record-cache')
 
@@ -24,19 +23,13 @@ const RecordHandler = function (options, connection, client) {
   this._syncTimeout = null
   this._syncCounter = 0
 
-  if (options.compat) {
-    this._schedule = null
-    this._lz = new LZ()
-    this._cache = new RecordCache({ cacheSize: 1024 })
-  } else {
-    this._schedule = utils.schedule
-    this._lz = options.lz || new LZ()
-    this._cache = new RecordCache(options, err => {
-      if (err) {
-        this._client._$onError(C.TOPIC.RECORD, C.EVENT.CACHE_ERROR, err)
-      }
-    })
-  }
+  this._schedule = options.schedule
+  this._lz = options.lz || new LZ()
+  this._cache = new RecordCache(options, err => {
+    if (err) {
+      this._client._$onError(C.TOPIC.RECORD, C.EVENT.CACHE_ERROR, err)
+    }
+  })
 
   Observable
     .fromEvent(this._client, 'connectionStateChanged')
@@ -82,7 +75,7 @@ const RecordHandler = function (options, connection, client) {
       }
     }
 
-    setTimeout(() => this._schedule(prune), 1000)
+    setTimeout(() => this._schedule ? this._schedule(prune) : prune(), 1000)
   }
 
   prune()

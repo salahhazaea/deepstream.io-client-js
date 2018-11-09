@@ -8,14 +8,6 @@ const isNode = typeof process !== 'undefined' && process.toString() === '[object
 
 module.exports.isNode = isNode
 
-module.exports.schedule = isNode || !window || !window.requestIdleCallback ? cb => cb() : (cb, options) => {
-  if (window && window.requestIdleCallback) {
-    window.requestIdleCallback(cb, options)
-  } else {
-    setTimeout(cb, 1)
-  }
-}
-
 module.exports.deepFreeze = function (o) {
   if (NODE_ENV === 'production') {
     return o
