@@ -8,7 +8,7 @@ const isNode = typeof process !== 'undefined' && process.toString() === '[object
 
 module.exports.isNode = isNode
 
-module.exports.schedule = isNode ? cb => cb() : (cb, options) => window.requestIdleCallback(cb, options)
+module.exports.schedule = isNode || !window || !window.requestIdleCallback ? cb => cb() : (cb, options) => window.requestIdleCallback(cb, options)
 
 module.exports.deepFreeze = function (o) {
   if (NODE_ENV === 'production') {
