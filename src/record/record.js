@@ -33,6 +33,7 @@ Record.prototype._reset = function () {
 
   this._loading = true
   this._stale = null
+  this._dirty = true
   this._patchQueue = []
   this._updateQueue = []
 }
@@ -56,6 +57,7 @@ Record.prototype._$construct = function (name) {
       const [ version, data ] = entry
       this.version = version
       this.data = utils.deepFreeze(data)
+      this._dirty = false
       this.emit('update', this)
     }
 
@@ -69,6 +71,10 @@ Record.prototype._$construct = function (name) {
 }
 
 Record.prototype._$destroy = function () {
+  if (this._dirty) {
+    this._cache.set(this.name, this.version, this.data)
+  }
+
   if (this.connected) {
     this._connection.sendMsg1(C.TOPIC.RECORD, C.ACTIONS.UNSUBSCRIBE, this.name)
   }
@@ -183,6 +189,7 @@ Record.prototype.set = function (pathOrData, dataOrNil) {
   }
 
   this._handler.isAsync = false
+  this._dirty = true
   this.emit('update', this)
   this._handler.isAsync = true
 }
@@ -318,6 +325,7 @@ Record.prototype._onUpdate = function (data) {
       this._unref()
       this._patchQueue = null
       this.emit('ready')
+      this._dirty = true
       this.emit('update', this)
       return
     }
@@ -362,9 +370,11 @@ Record.prototype._onUpdate = function (data) {
       this._unref()
       this._patchQueue = null
       this.emit('ready')
+      this._dirty = true
       this.emit('update', this)
     } else if (this.data !== oldValue) {
       this.data = utils.deepFreeze(this.data)
+      this._dirty = true
       this.emit('update', this)
     }
   })

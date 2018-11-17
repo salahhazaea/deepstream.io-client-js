@@ -66,7 +66,6 @@ const RecordHandler = function (options, connection, client) {
       }
 
       this._records.delete(rec.name)
-      this._cache.set(rec.name, rec.version, rec.data)
       this._pool.push(rec._$destroy())
       this._prune.delete(rec)
 
