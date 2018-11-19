@@ -13,7 +13,7 @@ RecordCache.prototype.get = function (name, callback) {
   const entry = this._lru.get(name)
   if (entry) {
     callback(null, entry)
-  } else if (this._db) {
+  } else if (this._db && this._db.isOpen()) {
     this._db.get(name, callback)
   } else {
     callback(null)
@@ -27,7 +27,7 @@ RecordCache.prototype.set = function (name, version, data) {
 
   const entry = [ version, data ]
   this._lru.set(name, entry)
-  if (this._db) {
+  if (this._db && this._db.isOpen()) {
     if (!this._batch) {
       this._batch = this._db.batch()
     }
