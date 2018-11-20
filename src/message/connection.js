@@ -108,6 +108,12 @@ Connection.prototype._sendQueuedMessages = function (deadline) {
     return
   }
 
+  if (this._options.logger) {
+    for (const msg of this._queuedMessages) {
+      this._options.logger.trace(msg)
+    }
+  }
+
   while (this._queuedMessages.length > 0) {
     this._submit(this._queuedMessages.splice(0, this._options.maxMessagesPerPacket).join(''))
   }
@@ -225,6 +231,10 @@ Connection.prototype._onMessage = function (message) {
       } else if (this._message.topic === C.TOPIC.AUTH) {
         this._handleAuthResponse(this._message)
       } else {
+        if (this._options.logger) {
+          // TODO (fix): Where/How to log?
+          this._options.logger.trace(this._message.raw)
+        }
         this._client._$onMessage(this._message)
       }
     }

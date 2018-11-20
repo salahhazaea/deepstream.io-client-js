@@ -14,5 +14,6 @@ module.exports = {
   lz: null,
   schedule: null,
   cacheSize: 1024,
+  logger: null,
   path: '/deepstream',
 }
