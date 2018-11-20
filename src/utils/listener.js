@@ -14,9 +14,7 @@ const Listener = function (topic, pattern, callback, options, client, connection
   this._providers = new Map()
   this.recursive = recursive
 
-  if (this.connected) {
-    this._$handleConnectionStateChange()
-  }
+  this._$handleConnectionStateChange()
 }
 
 Object.defineProperty(Listener.prototype, 'connected', {
