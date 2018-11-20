@@ -111,7 +111,7 @@ Connection.prototype._sendQueuedMessages = function (deadline) {
 
   if (this._logger) {
     for (const msg of this._queuedMessages) {
-      this._logger.trace(msg)
+      this._logger.trace({ msg }, 'send')
     }
   }
 
@@ -233,7 +233,7 @@ Connection.prototype._onMessage = function (message) {
         this._handleAuthResponse(this._message)
       } else {
         if (this._logger) {
-          this._logger.trace(this._message.raw)
+          this._logger.trace(this._message.raw, 'receive')
         }
         this._client._$onMessage(this._message)
       }
