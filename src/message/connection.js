@@ -8,6 +8,7 @@ const C = require('../constants/constants')
 const Connection = function (client, url, options) {
   this._client = client
   this._options = options
+  this._logger = options.logger
   this._authParams = null
   this._authCallback = null
   this._deliberateClose = false
@@ -108,9 +109,9 @@ Connection.prototype._sendQueuedMessages = function (deadline) {
     return
   }
 
-  if (this._options.logger) {
+  if (this._logger) {
     for (const msg of this._queuedMessages) {
-      this._options.logger.trace(msg)
+      this._logger.trace(msg)
     }
   }
 
@@ -231,9 +232,8 @@ Connection.prototype._onMessage = function (message) {
       } else if (this._message.topic === C.TOPIC.AUTH) {
         this._handleAuthResponse(this._message)
       } else {
-        if (this._options.logger) {
-          // TODO (fix): Where/How to log?
-          this._options.logger.trace(this._message.raw)
+        if (this._logger) {
+          this._logger.trace(this._message.raw)
         }
         this._client._$onMessage(this._message)
       }
