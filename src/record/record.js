@@ -227,7 +227,7 @@ Record.prototype._dispatchUpdates = function () {
 
   if (!this.ready) {
     return this
-      .whenReady()
+      ._whenReady()
       .then(this._dispatchUpdates)
   }
 
@@ -256,7 +256,7 @@ Record.prototype._dispatchUpdates = function () {
   }
 }
 
-Record.prototype.whenReady = function () {
+Record.prototype._whenReady = function () {
   if (this.usages === 0) {
     return Promise.reject(new Error('discarded'))
   }

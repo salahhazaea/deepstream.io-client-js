@@ -181,27 +181,12 @@ RecordHandler.prototype.get = function (name, pathOrNil, optionsOrNil) {
     pathOrNil = undefined
   }
 
-  const record = this.getRecord(name)
-
-  if (optionsOrNil && optionsOrNil.stale && record.version) {
-    try {
-      return record.get(pathOrNil)
-    } finally {
-      record.unref()
-    }
-  }
-
-  return record
-    .whenReady()
-    .then(() => {
-      const val = record.get(pathOrNil)
-      record.unref()
-      return val
-    })
-    .catch(err => {
-      record.unref()
-      throw err
-    })
+  const state = (optionsOrNil && optionsOrNil.state) || Record.STATE.SERVER
+  return this
+    .observe2(name)
+    .first(x => x.state >= state)
+    .map(({ data }) => jsonPath.get(data, pathOrNil))
+    .toPromise()
 }
 
 RecordHandler.prototype.set = function (name, pathOrData, dataOrNil) {
