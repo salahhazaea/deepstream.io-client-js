@@ -6,6 +6,7 @@ const invariant = require('invariant')
 const LZ = require('./lz')
 const EventEmitter = require('component-emitter2')
 const RecordCache = require('./record-cache')
+const jsonPath = require('./json-path')
 
 const RecordHandler = function (options, connection, client) {
   this.isAsync = true
