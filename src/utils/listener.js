@@ -64,9 +64,13 @@ Listener.prototype._$onMessage = function (message) {
     provider.observer = {
       next: value => {
         if (value == null) {
-          provider.valueSubscription.unsubscribe()
-          provider.valueSubscription = null
+          if (provider.valueSubscription) {
+            provider.valueSubscription.unsubscribe()
+            provider.valueSubscription = null
+          }
+
           provider.value$ = null
+
           this._connection.sendMsg(this._topic, C.ACTIONS.LISTEN_REJECT, [ this._pattern, name ])
           return
         }
