@@ -48,6 +48,11 @@ const RecordHandler = function (options, connection, client) {
     })
 
     for (const [ rec, timestamp ] of this._prune) {
+      if (deadline && deadline.timeRemaining() <= 0) {
+        this._schedule(prune)
+        return
+      }
+
       if (rec.usages !== 0) {
         this._prune.delete(rec)
         continue
@@ -69,10 +74,6 @@ const RecordHandler = function (options, connection, client) {
       this._records.delete(rec.name)
       this._pool.push(rec._$destroy())
       this._prune.delete(rec)
-
-      if (deadline && deadline.timeRemaining() <= 0) {
-        break
-      }
     }
 
     setTimeout(() => this._schedule ? this._schedule(prune) : prune(), 1000)
