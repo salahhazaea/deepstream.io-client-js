@@ -85,9 +85,8 @@ module.exports.patch = function (oldValue, newValue) {
 
       numKeys += 1
 
-      const value = module.exports.patch(oldValue[props[i]], newValue[props[i]])
-
       if (!obj) {
+        const value = module.exports.patch(oldValue[props[i]], newValue[props[i]])
         if (value === oldValue[props[i]]) {
           continue
         }
