@@ -88,7 +88,9 @@ module.exports.patch = function (oldValue, newValue) {
           obj[props[j]] = oldValue[props[j]]
         }
       }
-      obj[props[i]] = newValue[props[i]]
+      if (newValue[props[i]] !== undefined) {
+        obj[props[i]] = newValue[props[i]]
+      }
     }
 
     return obj || oldValue
