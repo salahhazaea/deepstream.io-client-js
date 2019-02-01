@@ -7,6 +7,9 @@
     "type": "git",
     "url": "https://github.com/deepstreamIO/deepstream.io-client-js.git"
   },
+  "scripts": {
+    "test": "jest --bail --watchAll"
+  },
   "dependencies": {
     "@nxtedition/lz-string": "^2.0.0",
     "bufferutil": "^4.0.0",
