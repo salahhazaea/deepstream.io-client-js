@@ -55,6 +55,19 @@ module.exports.set = function (data, path, value) {
   return result
 }
 
+function omitEmpty (src) {
+  let dst
+  for (const [ key, val ] of src) {
+    if (val !== undefined) {
+      continue
+    }
+    if (!dst) {
+      dst = {}
+    }
+  }
+  return dst || src
+}
+
 module.exports.patch = function (oldValue, newValue) {
   if (oldValue === null || newValue === null) {
     return newValue
@@ -75,33 +88,30 @@ module.exports.patch = function (oldValue, newValue) {
     }
     return arr || (oldValue.length === newValue.length ? oldValue : newValue)
   } else if (!Array.isArray(newValue) && typeof oldValue === 'object' && typeof newValue === 'object') {
-    let obj
-    const props = Object.keys(newValue)
-    let numKeys = 0
-    for (let i = 0; i < props.length; i++) {
+    const newKeys = Object.keys(newValue).filter(key => newValue[key] !== undefined)
+    const oldKeys = Object.keys(oldValue)
 
-      if (newValue[props[i]] !== undefined) {
-        numKeys += 1
-      }
+    let obj = newKeys.length === oldKeys.length ? null : {}
 
-      const value = module.exports.patch(oldValue[props[i]], newValue[props[i]])
+    for (let i = 0; i < newKeys.length; ++i) {
+      const key = newKeys[i]
+      const val = module.exports.patch(oldValue[key], newValue[key])
 
       if (!obj) {
-        if (value === oldValue[props[i]]) {
+        if (val === oldValue[key] && key === oldKeys[i]) {
           continue
         }
+
         obj = {}
         for (let j = 0; j < i; ++j) {
-          obj[props[j]] = oldValue[props[j]]
+          obj[newKeys[j]] = oldValue[newKeys[j]]
         }
       }
 
-      if (value !== undefined) {
-        obj[props[i]] = value
-      }
+      obj[key] = val
     }
 
-    return obj || (Object.keys(oldValue).length === numKeys ? oldValue : newValue)
+    return obj || oldValue
   } else {
     return newValue === oldValue ? oldValue : newValue
   }

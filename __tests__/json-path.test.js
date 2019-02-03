@@ -1,7 +1,6 @@
 
 const jsonPath = require('../src/record/json-path')
 
-
 describe('undefined props', () => {
   it ('ignore undefined updates', () => {
     const val1 = {
@@ -37,5 +36,54 @@ describe('undefined props', () => {
     expect(res).not.toBe(val1)
     expect(Object.keys(res)).toEqual([])
   })
+})
 
+describe('equality', () => {
+  it('return old value', () => {
+    function test(val1, val2) {
+      return jsonPath.set(val1, undefined, val2) == val1
+    }
+
+    expect(test({
+      asd: true
+    }, {
+      asd: true
+    })).toBe(true)
+
+    expect(test({
+      asd: true
+    }, {
+      asd: true,
+      foo: undefined
+    })).toBe(true)
+
+    expect(test({}, {})).toBe(true)
+    expect(test({}, { foo: undefined })).toBe(true)
+  })
+})
+
+describe('order', () => {
+  it('updates order', () => {
+    const val1 = {
+      foo: 1,
+      bar: 1
+    }
+    const res = jsonPath.set(val1, undefined, {
+      bar: 1,
+      foo: 1
+    })
+    expect(res).not.toBe(val1)
+  })
+
+  it('keeps order', () => {
+    const val1 = {
+      foo: 1,
+      bar: 1
+    }
+    const res = jsonPath.set(val1, undefined, {
+      foo: 1,
+      bar: 1
+    })
+    expect(res).toBe(val1)
+  })
 })
