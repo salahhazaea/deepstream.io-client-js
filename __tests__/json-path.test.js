@@ -36,6 +36,18 @@ describe('undefined props', () => {
     expect(res).not.toBe(val1)
     expect(Object.keys(res)).toEqual([])
   })
+
+  it ('deep equal', () => {
+    const obj = { asd: 123 }
+    const res = jsonPath.set({
+      obj,
+      foo: 'true'
+    }, null, {
+      obj
+    })
+    expect(res.obj).toBe(obj)
+    expect(res).toEqual({ obj })
+  })
 })
 
 describe('equality', () => {
