@@ -88,6 +88,7 @@ module.exports.patch = function (oldValue, newValue) {
 
       arr[i] = value
     }
+
     return arr || oldValue
   } else if (!Array.isArray(newValue) && typeof oldValue === 'object' && typeof newValue === 'object') {
     const newKeys = Object.keys(newValue).filter(key => newValue[key] !== undefined)
