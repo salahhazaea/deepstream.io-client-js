@@ -72,7 +72,7 @@ module.exports.patch = function (oldValue, newValue) {
   if (oldValue === null || newValue === null) {
     return newValue
   } else if (Array.isArray(oldValue) && Array.isArray(newValue)) {
-    let arr
+    let arr = newValue.length === oldValue.length ? null : []
     for (let i = 0; i < newValue.length; i++) {
       const value = module.exports.patch(oldValue[i], newValue[i])
       if (!arr) {
@@ -86,7 +86,7 @@ module.exports.patch = function (oldValue, newValue) {
       }
       arr[i] = value
     }
-    return arr || (oldValue.length === newValue.length ? oldValue : newValue)
+    return arr || oldValue
   } else if (!Array.isArray(newValue) && typeof oldValue === 'object' && typeof newValue === 'object') {
     const newKeys = Object.keys(newValue).filter(key => newValue[key] !== undefined)
     const oldKeys = Object.keys(oldValue)
