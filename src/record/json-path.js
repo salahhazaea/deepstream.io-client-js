@@ -78,7 +78,6 @@ function patch (oldValue, newValue) {
     return arr || oldValue
   } else if (!Array.isArray(newValue) && typeof oldValue === 'object' && typeof newValue === 'object') {
     // TODO (perf): Return newValue when possible...
-
     const newKeys = Object.keys(newValue)
     const oldKeys = Object.keys(oldValue)
 
@@ -92,7 +91,6 @@ function patch (oldValue, newValue) {
         if (val === oldValue[key] && key === oldKeys[i]) {
           continue
         }
-
         obj = {}
         for (let j = 0; j < i; ++j) {
           obj[newKeys[j]] = oldValue[newKeys[j]]
