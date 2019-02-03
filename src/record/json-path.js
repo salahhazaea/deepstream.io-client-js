@@ -86,7 +86,7 @@ module.exports.patch = function (oldValue, newValue) {
         }
       }
 
-      arr[i] = value
+      arr[i] = value === undefined ? null : value
     }
 
     return arr || oldValue
