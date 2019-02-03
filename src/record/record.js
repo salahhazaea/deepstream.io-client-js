@@ -168,6 +168,13 @@ Record.prototype.set = function (pathOrData, dataOrNil) {
     throw new Error('invalid argument: path')
   }
 
+  // TODO (perf): Avoid deep clone?
+  // NOTE: Protects against users modifying the value after calling set.
+  // NOTE: This ensure that data is JSON.stringify/parse compatible.
+  data = data != null && typeof data === 'object'
+    ? JSON.parse(JSON.stringify(data))
+    : data
+
   const newData = jsonPath.set(this.data, path, data)
 
   if (this._patchQueue) {

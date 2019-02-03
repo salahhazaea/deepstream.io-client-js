@@ -25,11 +25,6 @@ function get (data, path) {
 function set (data, path, value) {
   const tokens = tokenize(path)
 
-  // TODO (perf): Avoid deep clone?
-  value = value != null && typeof value === 'object'
-    ? JSON.parse(JSON.stringify(value))
-    : value
-
   if (tokens.length === 0) {
     return patch(data, value)
   }
