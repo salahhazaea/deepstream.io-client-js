@@ -75,6 +75,7 @@ module.exports.patch = function (oldValue, newValue) {
     let arr = newValue.length === oldValue.length ? null : []
     for (let i = 0; i < newValue.length; i++) {
       const value = module.exports.patch(oldValue[i], newValue[i])
+
       if (!arr) {
         if (value === oldValue[i]) {
           continue
@@ -84,6 +85,7 @@ module.exports.patch = function (oldValue, newValue) {
           arr[j] = oldValue[j]
         }
       }
+
       arr[i] = value
     }
     return arr || oldValue
