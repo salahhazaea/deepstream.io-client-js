@@ -4,9 +4,7 @@ const PARTS_REG_EXP = /([^.[\]\s]+)/g
 const cache = new Map()
 const EMPTY = utils.deepFreeze({})
 
-module.exports.EMPTY = EMPTY
-
-module.exports.get = function (data, path) {
+function get (data, path) {
   const tokens = tokenize(path)
 
   data = data || EMPTY
@@ -24,7 +22,7 @@ module.exports.get = function (data, path) {
   return data
 }
 
-module.exports.set = function (data, path, value) {
+function set (data, path, value) {
   const tokens = tokenize(path)
 
   // TODO (perf): Avoid deep clone?
@@ -36,7 +34,7 @@ module.exports.set = function (data, path, value) {
     return patch(data, value)
   }
 
-  const oldValue = module.exports.get(data, path)
+  const oldValue = get(data, path)
   const newValue = patch(oldValue, value)
 
   if (newValue === oldValue) {
@@ -135,4 +133,11 @@ function tokenize (path) {
   cache.set(path, parts)
 
   return parts
+}
+
+module.exports = {
+  EMPTY,
+  get,
+  set,
+  patch
 }
