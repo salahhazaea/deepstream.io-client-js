@@ -90,7 +90,7 @@ function patch (oldValue, newValue) {
           continue
         }
         obj = {}
-        for (let j = 0; j < i; ++j) {
+        for (let j = 0; j < i; j++) {
           obj[newKeys[j]] = oldValue[newKeys[j]]
         }
       }
