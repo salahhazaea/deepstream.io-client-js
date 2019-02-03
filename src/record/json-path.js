@@ -69,7 +69,6 @@ function patch (oldValue, newValue) {
           arr[j] = oldValue[j]
         }
       }
-
       arr[i] = value
     }
 
@@ -80,7 +79,6 @@ function patch (oldValue, newValue) {
     const oldKeys = Object.keys(oldValue)
 
     let obj = newKeys.length === oldKeys.length ? null : {}
-
     for (let i = 0; i < newKeys.length; ++i) {
       const key = newKeys[i]
       const val = patch(oldValue[key], newValue[key])
@@ -94,7 +92,6 @@ function patch (oldValue, newValue) {
           obj[newKeys[j]] = oldValue[newKeys[j]]
         }
       }
-
       obj[key] = val
     }
 
