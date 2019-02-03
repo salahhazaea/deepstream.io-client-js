@@ -10,11 +10,8 @@ function get (data, path) {
   data = data || EMPTY
 
   for (let i = 0; i < tokens.length; i++) {
-    if (data === undefined) {
+    if (data == null || typeof data !== 'object') {
       return undefined
-    }
-    if (typeof data !== 'object' || data === null) {
-      throw new Error('invalid data or path')
     }
     data = data[tokens[i]]
   }
