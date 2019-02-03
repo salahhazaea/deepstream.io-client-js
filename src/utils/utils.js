@@ -56,16 +56,12 @@ module.exports.shallowCopy = function (obj) {
     return obj.slice(0)
   }
 
-  if (typeof obj === 'object') {
-    const copy = {}
-    const props = Object.keys(obj)
-    for (let i = 0; i < props.length; i++) {
-      copy[props[i]] = obj[props[i]]
-    }
-    return copy
+  const copy = {}
+  const props = Object.keys(obj)
+  for (let i = 0; i < props.length; i++) {
+    copy[props[i]] = obj[props[i]]
   }
-
-  return obj
+  return copy
 }
 
 module.exports.setTimeout = function (callback, timeoutDuration) {

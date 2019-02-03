@@ -27,6 +27,20 @@ describe('equality', () => {
   })
 })
 
+describe('set', () => {
+  it('set througn null', () => {
+    const obj = {
+      asd: null
+    }
+    const res = jsonPath.set({
+      asd: null
+    }, 'asd.foo.bar', true)
+    expect(res).toEqual({
+      asd: { foo: { bar: true } }
+    })
+  })
+})
+
 describe('order', () => {
   it('updates order', () => {
     const obj = {

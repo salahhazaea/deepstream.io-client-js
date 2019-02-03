@@ -37,14 +37,15 @@ function set (data, path, value) {
 
   let node = result
   for (let i = 0; i < tokens.length; i++) {
+    const token = tokens[i]
     if (i === tokens.length - 1) {
-      node[tokens[i]] = newValue
-    } else if (node[tokens[i]] !== undefined) {
-      node = node[tokens[i]] = utils.shallowCopy(node[tokens[i]])
+      node[token] = newValue
+    } else if (node[token] != null && typeof node[token] === 'object') {
+      node = node[token] = utils.shallowCopy(node[token])
     } else if (tokens[i + 1] && !isNaN(tokens[i + 1])) {
-      node = node[tokens[i]] = []
+      node = node[token] = []
     } else {
-      node = node[tokens[i]] = {}
+      node = node[token] = {}
     }
   }
   return result
