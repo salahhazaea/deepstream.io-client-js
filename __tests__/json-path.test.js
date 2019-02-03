@@ -2,7 +2,7 @@
 const jsonPath = require('../src/record/json-path')
 
 describe('equality', () => {
-  it ('deep equal', () => {
+  it('deep equal', () => {
     const obj = { asd: 123 }
     const res = jsonPath.set({
       obj,
