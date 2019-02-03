@@ -7,7 +7,7 @@ const EMPTY = utils.deepFreeze({})
 module.exports.EMPTY = EMPTY
 
 module.exports.get = function (data, path) {
-  const tokens = module.exports.tokenize(path)
+  const tokens = tokenize(path)
 
   data = data || EMPTY
 
@@ -25,14 +25,19 @@ module.exports.get = function (data, path) {
 }
 
 module.exports.set = function (data, path, value) {
-  const tokens = module.exports.tokenize(path)
+  const tokens = tokenize(path)
+
+  // TODO (perf): Avoid deep clone?
+  value = value != null && typeof value === 'object'
+    ? JSON.parse(JSON.stringify(value))
+    : value
 
   if (tokens.length === 0) {
-    return module.exports.patch(data, value)
+    return patch(data, value)
   }
 
   const oldValue = module.exports.get(data, path)
-  const newValue = module.exports.patch(oldValue, value)
+  const newValue = patch(oldValue, value)
 
   if (newValue === oldValue) {
     return data
@@ -55,27 +60,14 @@ module.exports.set = function (data, path, value) {
   return result
 }
 
-function omitEmpty (src) {
-  let dst
-  for (const [ key, val ] of src) {
-    if (val !== undefined) {
-      continue
-    }
-    if (!dst) {
-      dst = {}
-    }
-  }
-  return dst || src
-}
-
-module.exports.patch = function (oldValue, newValue) {
+function patch (oldValue, newValue) {
   if (oldValue === null || newValue === null) {
     return newValue
   } else if (Array.isArray(oldValue) && Array.isArray(newValue)) {
     // TODO (perf): Return newValue when possible...
     let arr = newValue.length === oldValue.length ? null : []
     for (let i = 0; i < newValue.length; i++) {
-      const value = module.exports.patch(oldValue[i], newValue[i])
+      const value = patch(oldValue[i], newValue[i])
 
       if (!arr) {
         if (value === oldValue[i]) {
@@ -88,24 +80,21 @@ module.exports.patch = function (oldValue, newValue) {
       }
 
       // NOTE: Convert undefined into null to make it JSON.stringify compatible.
-      arr[i] = value === undefined ? null : value
+      arr[i] = value
     }
 
     return arr || oldValue
   } else if (!Array.isArray(newValue) && typeof oldValue === 'object' && typeof newValue === 'object') {
     // TODO (perf): Return newValue when possible...
 
-    const newKeys = Object
-      .keys(newValue)
-      // NOTE: Remove undefined to make it JSON.stringify compatible.
-      .filter(key => newValue[key] !== undefined)
+    const newKeys = Object.keys(newValue)
     const oldKeys = Object.keys(oldValue)
 
     let obj = newKeys.length === oldKeys.length ? null : {}
 
     for (let i = 0; i < newKeys.length; ++i) {
       const key = newKeys[i]
-      const val = module.exports.patch(oldValue[key], newValue[key])
+      const val = patch(oldValue[key], newValue[key])
 
       if (!obj) {
         if (val === oldValue[key] && key === oldKeys[i]) {
@@ -127,7 +116,7 @@ module.exports.patch = function (oldValue, newValue) {
   }
 }
 
-module.exports.tokenize = function (path) {
+function tokenize (path) {
   if (!path) {
     return []
   }
