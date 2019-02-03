@@ -79,7 +79,6 @@ function patch (oldValue, newValue) {
         }
       }
 
-      // NOTE: Convert undefined into null to make it JSON.stringify compatible.
       arr[i] = value
     }
 
