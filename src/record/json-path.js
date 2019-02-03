@@ -131,6 +131,5 @@ function tokenize (path) {
 module.exports = {
   EMPTY,
   get,
-  set,
-  patch
+  set
 }

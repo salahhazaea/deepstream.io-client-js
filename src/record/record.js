@@ -359,7 +359,7 @@ Record.prototype._onUpdate = function (data) {
     const oldValue = this.data
 
     this.version = version
-    this.data = data = jsonPath.patch(this.data, data)
+    this.data = data = jsonPath.set(this.data, null, data)
 
     if (this._patchQueue) {
       if (this.data !== oldValue && !this.version.startsWith('INF')) {
