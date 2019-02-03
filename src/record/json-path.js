@@ -86,12 +86,16 @@ module.exports.patch = function (oldValue, newValue) {
         }
       }
 
+      // NOTE: Convert undefined into null to make it JSON.stringify compatible.
       arr[i] = value === undefined ? null : value
     }
 
     return arr || oldValue
   } else if (!Array.isArray(newValue) && typeof oldValue === 'object' && typeof newValue === 'object') {
-    const newKeys = Object.keys(newValue).filter(key => newValue[key] !== undefined)
+    const newKeys = Object
+      .keys(newValue)
+      // NOTE: Remove undefined to make it JSON.stringify compatible.
+      .filter(key => newValue[key] !== undefined)
     const oldKeys = Object.keys(oldValue)
 
     let obj = newKeys.length === oldKeys.length ? null : {}
