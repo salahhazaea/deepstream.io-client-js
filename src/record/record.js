@@ -158,8 +158,8 @@ Record.prototype.set = function (pathOrData, dataOrNil) {
     return
   }
 
-  const path = arguments.length === 1 ? undefined : pathOrData
-  const data = arguments.length === 1 ? pathOrData : dataOrNil
+  let path = arguments.length === 1 ? undefined : pathOrData
+  let data = arguments.length === 1 ? pathOrData : dataOrNil
 
   if (path === undefined && (typeof data !== 'object' || data === null)) {
     throw new Error('invalid argument: data')
