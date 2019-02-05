@@ -52,7 +52,9 @@ function set (data, path, value) {
 }
 
 function patch (oldValue, newValue) {
-  if (oldValue === null || newValue === null) {
+  if (oldValue === newValue) {
+    return oldValue
+  } else if (oldValue === null || newValue === null) {
     return newValue
   } else if (Array.isArray(oldValue) && Array.isArray(newValue)) {
     // TODO (perf): Return newValue when possible...
@@ -97,7 +99,7 @@ function patch (oldValue, newValue) {
 
     return obj || oldValue
   } else {
-    return newValue === oldValue ? oldValue : newValue
+    return newValue
   }
 }
 
