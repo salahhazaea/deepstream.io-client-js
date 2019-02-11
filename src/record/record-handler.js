@@ -82,6 +82,8 @@ const RecordHandler = function (options, connection, client) {
   prune()
 }
 
+RecordHandler.STATE = C.RECORD_STATE
+
 Object.defineProperty(RecordHandler.prototype, 'connected', {
   get: function connected () {
     return this._client.getConnectionState() === C.CONNECTION_STATE.OPEN
