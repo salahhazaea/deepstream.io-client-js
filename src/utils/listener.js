@@ -94,7 +94,7 @@ Listener.prototype._$onMessage = function (message) {
             }
 
             if (provider.body !== body || !/^INF-/.test(provider.version)) {
-              provider.version = `INF-${xuid()}-${this._client.username || ''}`
+              provider.version = `INF-${xuid()}_${this._client.username || ''}`
               provider.body = body
               provider.ready = true
               this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.UPDATE, [ name, provider.version, provider.body ])
