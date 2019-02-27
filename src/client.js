@@ -30,12 +30,18 @@ const Client = function (url, options) {
 Emitter(Client.prototype)
 
 Client.prototype.login = function (authParamsOrCallback, callback) {
+  // TODO (fix): This is not correct if login is called multiple times.
+  this.username = null
   if (typeof authParamsOrCallback === 'function') {
-    this._connection.authenticate({}, authParamsOrCallback)
-    this.username = null
+    this._connection.authenticate({}, (success, authData) => {
+      this.username = authData && authData.username
+      authParamsOrCallback(success, authData)
+    })
   } else {
-    this._connection.authenticate(authParamsOrCallback || {}, callback)
-    this.username = authParamsOrCallback.username
+    this._connection.authenticate(authParamsOrCallback || {}, (success, authData) => {
+      this.username = authData && authData.username
+      callback(success, authData)
+    })
   }
   return this
 }
