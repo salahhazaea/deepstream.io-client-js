@@ -2,16 +2,17 @@ const C = require('../constants/constants')
 const xuid = require('xuid')
 const { Observable } = require('rxjs')
 
-const Listener = function (topic, pattern, callback, options, client, connection, handler, recursive) {
+const Listener = function (topic, pattern, callback, handler, recursive) {
   this._topic = topic
-  this._callback = callback
   this._pattern = pattern
-  this._options = options
-  this._client = client
-  this._connection = connection
+  this._callback = callback
   this._handler = handler
-  this._lz = handler._lz
+  this._options = this._handler._options
+  this._client = this._handler._client
+  this._connection = this._handler._connection
+  this._lz = this._handler._lz
   this._providers = new Map()
+
   this.recursive = recursive
 
   this._$handleConnectionStateChange()
@@ -93,7 +94,7 @@ Listener.prototype._$onMessage = function (message) {
             }
 
             if (provider.body !== body || !/^INF-/.test(provider.version)) {
-              provider.version = `INF-${xuid()}`
+              provider.version = `INF-${xuid()}-${this._client.username || ''}`
               provider.body = body
               provider.ready = true
               this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.UPDATE, [ name, provider.version, provider.body ])

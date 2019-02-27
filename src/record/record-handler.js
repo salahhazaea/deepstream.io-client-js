@@ -122,9 +122,6 @@ RecordHandler.prototype.provide = function (pattern, callback, recursive = false
     C.TOPIC.RECORD,
     pattern,
     callback,
-    this._options,
-    this._client,
-    this._connection,
     this,
     recursive
   )

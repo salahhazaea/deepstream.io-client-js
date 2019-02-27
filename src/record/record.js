@@ -10,6 +10,7 @@ const Record = function (handler) {
   this._options = handler._options
   this._prune = handler._prune
   this._cache = handler._cache
+  this._client = handler._client
   this._lz = handler._lz
   this._connection = handler._connection
   this._client = handler._client
@@ -190,7 +191,7 @@ Record.prototype.set = function (pathOrData, dataOrNil) {
     this._sendUpdate()
   } else {
     let [ start ] = this.version ? this.version.split('-') : [ '0' ]
-    this.version = `${start}-${xuid()}`
+    this.version = `${start}-${xuid()}-${this._client.username || ''}`
   }
 
   this._handler.isAsync = false
@@ -395,7 +396,7 @@ Record.prototype._sendUpdate = function () {
   start = parseInt(start, 10)
   start = start >= 0 ? start : 0
 
-  const nextVersion = `${start + 1}-${xuid()}`
+  const nextVersion = `${start + 1}-${xuid()}-${this._client.username || ''}`
   const prevVersion = this.version || ''
 
   // TODO (perf): Avoid closure allocation.

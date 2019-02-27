@@ -18,6 +18,7 @@ const Client = function (url, options) {
   this.event = new EventHandler(this._options, this._connection, this)
   this.rpc = new RpcHandler(this._options, this._connection, this)
   this.record = new RecordHandler(this._options, this._connection, this)
+  this.username = null
 
   this._messageCallbacks = {}
   this._messageCallbacks[C.TOPIC.EVENT] = this.event._$handle.bind(this.event)
@@ -31,8 +32,10 @@ Emitter(Client.prototype)
 Client.prototype.login = function (authParamsOrCallback, callback) {
   if (typeof authParamsOrCallback === 'function') {
     this._connection.authenticate({}, authParamsOrCallback)
+    this.username = null
   } else {
     this._connection.authenticate(authParamsOrCallback || {}, callback)
+    this.username = authParamsOrCallback.username
   }
   return this
 }
