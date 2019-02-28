@@ -52,13 +52,6 @@ Client.prototype.getConnectionState = function () {
   return this._connection.getState()
 }
 
-Client.prototype.getUid = function () {
-  const timestamp = (new Date()).getTime().toString(36)
-  const randomString = (Math.random() * 10000000000000000).toString(36).replace('.', '')
-
-  return `${timestamp}-${randomString}`
-}
-
 Client.prototype._$onMessage = function (message) {
   if (this._messageCallbacks[message.topic]) {
     this._messageCallbacks[message.topic](message)

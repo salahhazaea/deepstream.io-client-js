@@ -3,6 +3,7 @@ const RpcResponse = require('./rpc-response')
 const messageParser = require('../message/message-parser')
 const messageBuilder = require('../message/message-builder')
 const utils = require('../utils/utils')
+const xuid = require('xuid')
 
 const RpcHandler = function (options, connection, client) {
   this._options = options
@@ -78,7 +79,7 @@ RpcHandler.prototype.make = function (name, data, callback) {
   }
 
   const send = () => {
-    const id = this._client.getUid()
+    const id = xuid()
     this._rpcs.set(id, {
       id,
       name,
