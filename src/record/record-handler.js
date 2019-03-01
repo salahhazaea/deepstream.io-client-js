@@ -196,17 +196,13 @@ RecordHandler.prototype.get = function (name, pathOrNil, optionsOrNil) {
 }
 
 RecordHandler.prototype.set = function (name, pathOrData, dataOrNil) {
+  const record = this.getRecord(name)
   try {
-    const record = this.getRecord(name)
-    try {
-      return arguments.length === 2
-        ? record.set(pathOrData)
-        : record.set(pathOrData, dataOrNil)
-    } finally {
-      record.unref()
-    }
-  } catch (err) {
-    return Promise.reject(err)
+    return arguments.length === 2
+      ? record.set(pathOrData)
+      : record.set(pathOrData, dataOrNil)
+  } finally {
+    record.unref()
   }
 }
 
