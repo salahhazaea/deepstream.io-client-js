@@ -226,7 +226,7 @@ RecordHandler.prototype.update = function (name, pathOrUpdater, updaterOrNil) {
 
 RecordHandler.prototype.observe = function (name) {
   if (!name) {
-    return Observable.of({})
+    return Observable.of(jsonPath.EMPTY)
   }
 
   return Observable
@@ -245,21 +245,22 @@ RecordHandler.prototype.observe = function (name) {
     .distinctUntilChanged()
 }
 
+const OBSERVE2_EMPTY_RECORD = utils.deepFreeze({
+  name,
+  version: '0-00000000000000',
+  data: {},
+  state: C.RECORD_STATE.SERVER,
+  // TODO (fix): Remove
+  connected: true, // This is not true...
+  empty: true,
+  ready: true,
+  stale: false,
+  isReady: true,
+  hasProvider: false
+})
 RecordHandler.prototype.observe2 = function (name) {
   if (!name) {
-    return Observable.of({
-      name,
-      version: '0-00000000000000',
-      data: {},
-      state: C.RECORD_STATE.SERVER,
-      // TODO (fix): Remove
-      connected: true, // This is not true...
-      empty: true,
-      ready: true,
-      stale: false,
-      isReady: true,
-      hasProvider: false
-    })
+    return Observable.of(OBSERVE2_EMPTY_RECORD)
   }
 
   return Observable
