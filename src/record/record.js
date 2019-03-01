@@ -1,5 +1,5 @@
 const jsonPath = require('./json-path')
-const utils = require('../utils/utils')
+const utils = require('../utils/util')
 const EventEmitter = require('component-emitter2')
 const C = require('../constants/constants')
 const messageParser = require('../message/message-parser')
