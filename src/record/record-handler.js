@@ -184,7 +184,7 @@ RecordHandler.prototype.get = function (name, pathOrNil, optionsOrNil) {
   }
 
   if (!name) {
-    return Promise.resolve(jsonPath.get({}, pathOrNil))
+    return Promise.resolve(jsonPath.get(undefined, pathOrNil))
   }
 
   const state = (optionsOrNil && optionsOrNil.state) || Record.STATE.SERVER
