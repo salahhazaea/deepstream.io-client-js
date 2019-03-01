@@ -251,7 +251,14 @@ RecordHandler.prototype.observe2 = function (name) {
       name,
       version: '0-00000000000000',
       data: {},
-      state: C.RECORD_STATE.SERVER
+      state: C.RECORD_STATE.SERVER,
+      // TODO (fix): Remove
+      connected: true, // This is not true...
+      empty: true,
+      ready: true,
+      stale: false,
+      isReady: true,
+      hasProvider: false
     })
   }
 
