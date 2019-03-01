@@ -182,6 +182,10 @@ RecordHandler.prototype.get = function (name, pathOrNil, optionsOrNil) {
     pathOrNil = undefined
   }
 
+  if (!name) {
+    return Promise.resolve(jsonPath.get({}, pathOrNil))
+  }
+
   const state = (optionsOrNil && optionsOrNil.state) || Record.STATE.SERVER
   return this
     .observe2(name)
@@ -191,28 +195,40 @@ RecordHandler.prototype.get = function (name, pathOrNil, optionsOrNil) {
 }
 
 RecordHandler.prototype.set = function (name, pathOrData, dataOrNil) {
-  const record = this.getRecord(name)
   try {
-    return arguments.length === 2
-      ? record.set(pathOrData)
-      : record.set(pathOrData, dataOrNil)
-  } finally {
-    record.unref()
+    const record = this.getRecord(name)
+    try {
+      return arguments.length === 2
+        ? record.set(pathOrData)
+        : record.set(pathOrData, dataOrNil)
+    } finally {
+      record.unref()
+    }
+  } catch (err) {
+    return Promise.reject(err)
   }
 }
 
 RecordHandler.prototype.update = function (name, pathOrUpdater, updaterOrNil) {
-  const record = this.getRecord(name)
   try {
-    return arguments.length === 2
-      ? record.update(pathOrUpdater)
-      : record.update(pathOrUpdater, updaterOrNil)
-  } finally {
-    record.unref()
+    const record = this.getRecord(name)
+    try {
+      return arguments.length === 2
+        ? record.update(pathOrUpdater)
+        : record.update(pathOrUpdater, updaterOrNil)
+    } finally {
+      record.unref()
+    }
+  } catch (err) {
+    return Promise.reject(err)
   }
 }
 
 RecordHandler.prototype.observe = function (name) {
+  if (!name) {
+    return Observable.of({})
+  }
+
   return Observable
     .create(o => {
       const onUpdate = record => o.next(record.get())
@@ -230,6 +246,15 @@ RecordHandler.prototype.observe = function (name) {
 }
 
 RecordHandler.prototype.observe2 = function (name) {
+  if (!name) {
+    return Observable.of({
+      name,
+      version: '0-00000000000000',
+      data: {},
+      state: C.RECORD_STATE.SERVER
+    })
+  }
+
   return Observable
     .create(o => {
       const onUpdate = record => o.next(record)

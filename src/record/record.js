@@ -25,11 +25,11 @@ EventEmitter(Record.prototype)
 
 Record.prototype._reset = function () {
   this.name = null
-  this.usages = 0
   this.version = null
   this.data = null
 
   // TODO (fix): Make private
+  this.usages = 0
   this.provided = false
 
   this._loading = true
