@@ -7,6 +7,7 @@ const LZ = require('./lz')
 const EventEmitter = require('component-emitter2')
 const RecordCache = require('./record-cache')
 const jsonPath = require('./json-path')
+const utils = require('../utils/util')
 
 const RecordHandler = function (options, connection, client) {
   this.isAsync = true
