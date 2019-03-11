@@ -68,7 +68,9 @@ const RecordHandler = function (options, connection, client) {
       }
 
       this._records.delete(rec.name)
-      this._pool.push(rec._$destroy())
+      if (this._pool.length < 16384) {
+        this._pool.push(rec._$destroy())
+      }
       this._prune.delete(rec)
     }
 
