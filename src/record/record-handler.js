@@ -39,7 +39,7 @@ const RecordHandler = function (options, connection, client) {
     .distinctUntilChanged()
     .subscribe(connected => this._handleConnectionStateChange(connected))
 
-  const prune = (deadline) => {
+  const prune = () => {
     const now = Date.now()
 
     this._cache.flush(err => {
@@ -49,11 +49,6 @@ const RecordHandler = function (options, connection, client) {
     })
 
     for (const [ rec, timestamp ] of this._prune) {
-      if (deadline && deadline.timeRemaining() <= 0) {
-        this._schedule(prune)
-        return
-      }
-
       if (rec.usages !== 0) {
         this._prune.delete(rec)
         continue
