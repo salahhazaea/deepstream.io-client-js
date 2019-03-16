@@ -10,6 +10,8 @@ const jsonPath = require('./json-path')
 const utils = require('../utils/utils')
 
 const RecordHandler = function (options, connection, client) {
+  this.STATE = C.RECORD_STATE
+
   this.isAsync = true
   this._options = options
   this._connection = connection
@@ -79,8 +81,6 @@ const RecordHandler = function (options, connection, client) {
 
   prune()
 }
-
-RecordHandler.STATE = C.RECORD_STATE
 
 Object.defineProperty(RecordHandler.prototype, 'connected', {
   get: function connected () {
