@@ -218,14 +218,26 @@ RecordHandler.prototype.update = function (name, pathOrUpdater, updaterOrNil) {
   }
 }
 
-RecordHandler.prototype.observe = function (name) {
+RecordHandler.prototype.observe = function (name, state) {
   if (!name) {
     return Observable.of(jsonPath.EMPTY)
   }
 
+  if (typeof state === 'string') {
+    state = state.toLowerCase()
+    state = C.RECORD_STATE[state()]
+    if (state == null) {
+      throw new Error('invalid argument state')
+    }
+  }
+
   return Observable
     .create(o => {
-      const onUpdate = record => o.next(record.get())
+      const onUpdate = record => {
+        if (!state || record.state >= state) {
+          o.next(record.get())
+        }
+      }
       const record = this.getRecord(name)
       if (record.version) {
         onUpdate(record)
