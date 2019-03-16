@@ -225,7 +225,7 @@ RecordHandler.prototype.observe = function (name, state) {
 
   if (typeof state === 'string') {
     state = state.toLowerCase()
-    state = C.RECORD_STATE[state()]
+    state = C.RECORD_STATE[state]
     if (state == null) {
       throw new Error('invalid argument state')
     }
