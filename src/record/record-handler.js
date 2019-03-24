@@ -181,9 +181,11 @@ RecordHandler.prototype.get = function (name, pathOrNil, optionsOrNil) {
   }
 
   const state = (optionsOrNil && optionsOrNil.state) || Record.STATE.SERVER
+  const timeout = (optionsOrNil && optionsOrNil.timeout) || 30e3
   return this
     .observe(name, state)
     .first()
+    .timeout(timeout)
     .map(data => jsonPath.get(data, pathOrNil))
     .toPromise()
 }
