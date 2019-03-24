@@ -180,8 +180,16 @@ RecordHandler.prototype.get = function (name, pathOrNil, optionsOrNil) {
     pathOrNil = undefined
   }
 
-  const state = (optionsOrNil && optionsOrNil.state) || Record.STATE.SERVER
-  const timeout = (optionsOrNil && optionsOrNil.timeout) || 30e3
+  let state
+  let timeout = 30e3
+
+  if (options != null && typeof options === 'object') {
+    state = (optionsOrNil && optionsOrNil.state) || Record.STATE.SERVER
+    timeout = (optionsOrNil && optionsOrNil.timeout) || 30e3
+  } else if (optionsOrNil != null) {
+    state = optionsOrNil
+  }
+
   return this
     .observe(name, state)
     .first()
