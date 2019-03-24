@@ -180,15 +180,11 @@ RecordHandler.prototype.get = function (name, pathOrNil, optionsOrNil) {
     pathOrNil = undefined
   }
 
-  if (!name) {
-    return Promise.resolve(jsonPath.get(undefined, pathOrNil))
-  }
-
   const state = (optionsOrNil && optionsOrNil.state) || Record.STATE.SERVER
   return this
-    .observe2(name)
-    .first(x => x.state >= state)
-    .map(({ data }) => jsonPath.get(data, pathOrNil))
+    .observe(name, state)
+    .first()
+    .map(data => jsonPath.get(data, pathOrNil))
     .toPromise()
 }
 
