@@ -180,21 +180,24 @@ RecordHandler.prototype.get = function (name, pathOrNil, optionsOrNil) {
     pathOrNil = undefined
   }
 
-  let state
+  const path = pathOrNil
+  const options = optionsOrNil
+
+  let state = Record.STATE.SERVER
   let timeout = 30e3
 
   if (options != null && typeof options === 'object') {
-    state = (optionsOrNil && optionsOrNil.state) || Record.STATE.SERVER
-    timeout = (optionsOrNil && optionsOrNil.timeout) || 30e3
-  } else if (optionsOrNil != null) {
-    state = optionsOrNil
+    state = options.state != null ? options.state : state
+    timeout = options.timeout != null ? options.timeout : timeout
+  } else if (options != null) {
+    state = options
   }
 
   return this
     .observe(name, state)
     .first()
     .timeout(timeout)
-    .map(data => jsonPath.get(data, pathOrNil))
+    .map(data => jsonPath.get(data, path))
     .toPromise()
 }
 
