@@ -12,6 +12,8 @@ const utils = require('../utils/utils')
 const RecordHandler = function (options, connection, client) {
   this.STATE = C.RECORD_STATE
 
+  Object.assign(this, C.RECORD_STATE)
+
   this.isAsync = true
   this._options = options
   this._connection = connection
