@@ -41,6 +41,12 @@ Client.prototype.login = function (authParamsOrCallback, callback) {
       callback(success, authData)
     })
   }
+
+  if (this.user) {
+    // TODO (fix): Further validate...
+    this.user = this.user.replace('-', '_')
+  }
+
   return this
 }
 
