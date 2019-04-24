@@ -155,12 +155,12 @@ Record.prototype.get = function (path) {
 }
 
 Record.prototype._makeVersion = function (start) {
-  let version = `${start}-${xuid()}-${this._client.user || ''}`
-  if (version.length === 32) {
+  let revid = `${xuid()}-${this._client.user || ''}`
+  if (revid.length === 32) {
     // HACK: https://github.com/apache/couchdb/issues/2015
-    version += '-'
+    revid += '-'
   }
-  return version
+  return `${start}-${revid}`
 }
 
 Record.prototype.set = function (pathOrData, dataOrNil) {
