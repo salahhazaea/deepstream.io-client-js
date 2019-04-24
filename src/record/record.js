@@ -154,6 +154,15 @@ Record.prototype.get = function (path) {
   return jsonPath.get(this.data, path)
 }
 
+Record.prototype._makeVersion = function (start) {
+  let version = `${start}-${xuid()}-${this._client.user || ''}`
+  if (version.length === 32) {
+    // HACK: https://github.com/apache/couchdb/issues/2015
+    version += '-'
+  }
+  return version
+}
+
 Record.prototype.set = function (pathOrData, dataOrNil) {
   if (this.usages === 0 || this.provided) {
     return
@@ -190,8 +199,8 @@ Record.prototype.set = function (pathOrData, dataOrNil) {
   if (!this._patchQueue) {
     this._sendUpdate()
   } else {
-    let [ start ] = this.version ? this.version.split('-') : [ '0' ]
-    this.version = `${start}-${xuid()}-${this._client.user || ''}`
+    const [ start ] = this.version ? this.version.split('-') : [ '0' ]
+    this.version = this._makeVersion(start)
   }
 
   this._handler.isAsync = false
@@ -396,7 +405,7 @@ Record.prototype._sendUpdate = function () {
   start = parseInt(start, 10)
   start = start >= 0 ? start : 0
 
-  const nextVersion = `${start + 1}-${xuid()}-${this._client.user || ''}`
+  const nextVersion = this._makeVersion(start + 1)
   const prevVersion = this.version || ''
 
   // TODO (perf): Avoid closure allocation.

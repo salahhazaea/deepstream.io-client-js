@@ -32,12 +32,12 @@ Emitter(Client.prototype)
 Client.prototype.login = function (authParamsOrCallback, callback) {
   if (typeof authParamsOrCallback === 'function') {
     this._connection.authenticate({}, (success, authData) => {
-      this.user = authData ? authData.id.replace('-', '_') : null
+      this.user = authData ? authData.id : null
       authParamsOrCallback(success, authData)
     })
   } else {
     this._connection.authenticate(authParamsOrCallback || {}, (success, authData) => {
-      this.user = authData ? authData.id.replace('-', '_') : null
+      this.user = authData ? authData.id : null
       callback(success, authData)
     })
   }
