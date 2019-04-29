@@ -156,7 +156,7 @@ Record.prototype.get = function (path) {
 
 Record.prototype._makeVersion = function (start) {
   let revid = `${xuid()}-${this._client.user || ''}`
-  if (revid.length === 32) {
+  if (revid.length === 32 || revid.length === 16) {
     // HACK: https://github.com/apache/couchdb/issues/2015
     revid += '-'
   }
