@@ -186,7 +186,7 @@ RecordHandler.prototype.get = function (name, pathOrNil, optionsOrNil) {
   const options = optionsOrNil
 
   let state = Record.STATE.SERVER
-  let timeout = 30e3
+  let timeout
 
   if (options != null && typeof options === 'object') {
     state = options.state != null ? options.state : state
@@ -196,10 +196,9 @@ RecordHandler.prototype.get = function (name, pathOrNil, optionsOrNil) {
   }
 
   return this
-    .observe(name, state)
+    .observe(name, state, path)
     .first()
-    .timeout(timeout)
-    .map(data => jsonPath.get(data, path))
+    .publish(x$ => timeout ? x$.timeout(timeout) : x$)
     .toPromise()
 }
 
@@ -229,7 +228,7 @@ RecordHandler.prototype.update = function (name, pathOrUpdater, updaterOrNil) {
   }
 }
 
-RecordHandler.prototype.observe = function (name, state) {
+RecordHandler.prototype.observe = function (name, state, path) {
   if (!name) {
     return Observable.of(jsonPath.EMPTY)
   }
@@ -246,7 +245,7 @@ RecordHandler.prototype.observe = function (name, state) {
     .create(o => {
       const onUpdate = record => {
         if (!state || record.state >= state) {
-          o.next(record.get())
+          o.next(record.get(path))
         }
       }
       const record = this.getRecord(name)
@@ -262,21 +261,23 @@ RecordHandler.prototype.observe = function (name, state) {
     .distinctUntilChanged()
 }
 
+const EMPTY2 = utils.deepFreeze({
+  version: '0-00000000000000',
+  data: jsonPath.EMPTY,
+  state: C.RECORD_STATE.SERVER,
+  // TODO (fix): Remove
+  name,
+  connected: true, // This is not true...
+  empty: true,
+  ready: true,
+  stale: false,
+  isReady: true,
+  hasProvider: false
+})
+
 RecordHandler.prototype.observe2 = function (name) {
   if (!name) {
-    return Observable.of(utils.deepFreeze({
-      version: '0-00000000000000',
-      data: {},
-      state: C.RECORD_STATE.SERVER,
-      // TODO (fix): Remove
-      name,
-      connected: true, // This is not true...
-      empty: true,
-      ready: true,
-      stale: false,
-      isReady: true,
-      hasProvider: false
-    }))
+    return Observable.of(EMPTY2)
   }
 
   return Observable
