@@ -78,54 +78,13 @@ RpcHandler.prototype.make = function (name, data, callback) {
     throw new Error('invalid argument callback')
   }
 
-  const send = () => {
-    const id = xuid()
-    this._rpcs.set(id, {
-      id,
-      name,
-      callback
-    })
-    this._connection.sendMsg(C.TOPIC.RPC, C.ACTIONS.REQUEST, [ name, id, messageBuilder.typed(data) ])
-  }
-
-  const provider = this._providers.get(name)
-  if (provider) {
-    class Response {
-      constructor (callback, reject) {
-        this._callback = callback
-        this._reject = reject
-        this.completed = false
-      }
-      reject () {
-        if (this.completed) {
-          throw new Error(`Rpc ${this._name} already completed`)
-        }
-        this.completed = true
-
-        this._reject()
-      }
-      error (err) {
-        if (this.completed) {
-          throw new Error(`Rpc ${this._name} already completed`)
-        }
-        this.completed = true
-
-        this._callback(err)
-      }
-      send (val) {
-        if (this.completed) {
-          throw new Error(`Rpc ${this._name} already completed`)
-        }
-        this.completed = true
-
-        this._callback(null, val)
-      }
-    }
-
-    utils.nextTick(() => provider(data, new Response(callback, send)))
-  } else {
-    send()
-  }
+  const id = xuid()
+  this._rpcs.set(id, {
+    id,
+    name,
+    callback
+  })
+  this._connection.sendMsg(C.TOPIC.RPC, C.ACTIONS.REQUEST, [ name, id, messageBuilder.typed(data) ])
 
   return promise
 }
