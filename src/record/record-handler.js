@@ -177,7 +177,7 @@ RecordHandler.prototype.sync = function () {
 }
 
 RecordHandler.prototype.get = function (name, pathOrNil, optionsOrNil) {
-  if (arguments.length === 2 && typeof pathOrNil === 'object') {
+  if (arguments.length === 2 && (typeof pathOrNil === 'object' || typeof pathOrNil === 'number')) {
     optionsOrNil = pathOrNil
     pathOrNil = undefined
   }
