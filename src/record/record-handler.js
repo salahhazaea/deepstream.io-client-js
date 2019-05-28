@@ -176,12 +176,12 @@ RecordHandler.prototype.sync = function () {
   return new Promise(resolve => this._syncEmitter.once(token, resolve))
 }
 
-RecordHandler.prototype.get = function (name, pathOrNil, optionsOrNil) {
-  if (arguments.length === 2 && (typeof pathOrNil === 'object' || typeof pathOrNil === 'number')) {
-    optionsOrNil = pathOrNil
-    pathOrNil = undefined
+RecordHandler.prototype.get = function (name, pathOrOptions, optionsOrNil) {
+  if (arguments.length === 2 && (typeof pathOrOptions === 'object' || typeof pathOrOptions === 'number')) {
+    optionsOrNil = pathOrOptions
+    pathOrOptions = undefined
   }
-  const path = pathOrNil
+  const path = pathOrOptions
   const options = optionsOrNil
 
   let state = Record.STATE.SERVER
