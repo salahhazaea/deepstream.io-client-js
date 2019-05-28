@@ -181,7 +181,6 @@ RecordHandler.prototype.get = function (name, pathOrNil, optionsOrNil) {
     optionsOrNil = pathOrNil
     pathOrNil = undefined
   }
-
   const path = pathOrNil
   const options = optionsOrNil
 
@@ -196,7 +195,7 @@ RecordHandler.prototype.get = function (name, pathOrNil, optionsOrNil) {
   }
 
   return this
-    .observe(name, state, path)
+    .observe(name, path, state)
     .first()
     .publish(x$ => timeout ? x$.timeout(timeout) : x$)
     .toPromise()
@@ -228,17 +227,16 @@ RecordHandler.prototype.update = function (name, pathOrUpdater, updaterOrNil) {
   }
 }
 
-RecordHandler.prototype.observe = function (name, state, path) {
+RecordHandler.prototype.observe = function (name, pathOrState, stateOrNil) {
+  if (arguments.length === 2 && typeof pathOrState === 'number') {
+    stateOrNil = pathOrState
+    pathOrState = undefined
+  }
+  const path = pathOrState
+  const state = stateOrNil
+
   if (!name) {
     return Observable.of(jsonPath.EMPTY)
-  }
-
-  if (typeof state === 'string') {
-    state = state.toUpperCase()
-    state = C.RECORD_STATE[state]
-    if (state == null) {
-      throw new Error('invalid argument state')
-    }
   }
 
   return Observable
