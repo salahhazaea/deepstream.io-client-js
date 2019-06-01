@@ -171,7 +171,7 @@ Record.prototype.set = function (pathOrData, dataOrNil) {
   let path = arguments.length === 1 ? undefined : pathOrData
   let data = arguments.length === 1 ? pathOrData : dataOrNil
 
-  if (path === undefined && (typeof data !== 'object' || data === null)) {
+  if (path === undefined && (typeof data !== 'object' || Array.isArray(data) || data === null)) {
     throw new Error('invalid argument: data')
   }
   if (path !== undefined && (typeof path !== 'string' || path.length === 0)) {
