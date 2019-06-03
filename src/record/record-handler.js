@@ -187,7 +187,6 @@ RecordHandler.prototype.get = function (name, pathOrState, stateOrNil) {
   return this
     .observe(name, path, state)
     .first()
-    .publish(x$ => timeout ? x$.timeout(timeout) : x$)
     .toPromise()
 }
 
