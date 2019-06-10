@@ -182,7 +182,7 @@ RecordHandler.prototype.get = function (name, pathOrState, stateOrNil) {
     pathOrState = undefined
   }
   const path = pathOrState
-  const state = stateOrNil == null ? 1 : stateOrNul
+  const state = stateOrNil == null ? 2 : stateOrNul
 
   return this
     .observe(name, path, state)
