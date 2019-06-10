@@ -222,7 +222,7 @@ RecordHandler.prototype.observe = function (name, pathOrState, stateOrNil) {
     pathOrState = undefined
   }
   const path = pathOrState
-  const state = stateOrNil
+  const state = stateOrNil == null ? 2 : stateOrNil
 
   if (!name) {
     return Observable.of(jsonPath.EMPTY)
