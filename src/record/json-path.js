@@ -52,6 +52,16 @@ function set (data, path, value) {
 }
 
 function patch (oldValue, newValue) {
+  if (
+    newValue != null &&
+    typeof newValue !== 'string' &&
+    typeof newValue !== 'number' &&
+    typeof newValue !== 'boolean' &&
+    !utils.isPlainObject(newValue)
+  ) {
+    throw new Error('invalid operation: can\'t patch with non-plain object')
+  }
+
   if (oldValue === newValue) {
     return oldValue
   } else if (oldValue === null || newValue === null) {

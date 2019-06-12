@@ -28,7 +28,7 @@ describe('equality', () => {
 })
 
 describe('set', () => {
-  it('set througn null', () => {
+  it('set through null', () => {
     const obj = {
       asd: null
     }
@@ -38,6 +38,12 @@ describe('set', () => {
     expect(res).toEqual({
       asd: { foo: { bar: true } }
     })
+  })
+
+  it('disallows setting non-plain objects', () => {
+    const record = { _$data: {} }
+    expect(() => jsonPath.set(record._$data, null, { date: new Date('2019-06-13') })).toThrow()
+    expect(() => jsonPath.set(record._$data, 'date', new Date('2019-06-13'))).toThrow()
   })
 })
 
@@ -177,7 +183,7 @@ describe('objects are created from paths and their value is set correctly', () =
   it('sets values for null values', () => {
     const record = { _$data:{
       job: null,
-  			joinedAt: 1480020987915
+      joinedAt: 1480020987915
     } }
     const jobId = { id: 88 }
     record._$data = jsonPath.set(record._$data, 'job', jobId, true)

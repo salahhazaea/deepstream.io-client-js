@@ -37,6 +37,24 @@ module.exports.splitRev = function (s) {
   return [ ver === 'INF' ? Infinity : parseInt(ver, 10), s.slice(i + 1) ]
 }
 
+module.exports.isPlainObject = function (value) {
+  if (
+    typeof value != 'object' ||
+    value == null ||
+    Object.prototype.toString(value) != '[object Object]'
+  ) {
+    return false
+  }
+  if (Object.getPrototypeOf(value) === null) {
+    return true
+  }
+  let proto = value
+  while (Object.getPrototypeOf(proto) !== null) {
+    proto = Object.getPrototypeOf(proto)
+  }
+  return Object.getPrototypeOf(value) === proto
+}
+
 module.exports.isSameOrNewer = function (a, b) {
   const [ av, ar ] = module.exports.splitRev(a)
   const [ bv, br ] = module.exports.splitRev(b)
