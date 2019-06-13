@@ -57,6 +57,7 @@ function patch (oldValue, newValue) {
     typeof newValue !== 'string' &&
     typeof newValue !== 'number' &&
     typeof newValue !== 'boolean' &&
+    !Array.isArray(newValue) &&
     !utils.isPlainObject(newValue)
   ) {
     throw new Error('invalid operation: can\'t patch with non-plain object')
