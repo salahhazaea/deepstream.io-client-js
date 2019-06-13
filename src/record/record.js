@@ -346,7 +346,7 @@ Record.prototype._onUpdate = function (data) {
     }
   }
 
-  if (version === this.version) {
+  if (this.data && version === this.version) {
     body = this.data
   }
 
