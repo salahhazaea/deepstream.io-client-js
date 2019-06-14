@@ -54,7 +54,7 @@ Record.prototype._$construct = function (name) {
   this._cache.get(this.name, (err, entry) => {
     if (err && !err.notFound) {
       this._client._$onError(C.TOPIC.RECORD, C.EVENT.CACHE_ERROR, err)
-    } else if (entry) {
+    } else if (entry && !this.version) {
       const [ version, data ] = entry
       this.version = version
       this.data = utils.deepFreeze(data)
