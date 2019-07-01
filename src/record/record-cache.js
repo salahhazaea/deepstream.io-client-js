@@ -21,7 +21,7 @@ RecordCache.prototype.get = function (name, callback) {
 }
 
 RecordCache.prototype.set = function (name, version, data) {
-  if (!this._filter || !this._filter(name, version, data)) {
+  if (this._filter && !this._filter(name, version, data)) {
     return
   }
 
