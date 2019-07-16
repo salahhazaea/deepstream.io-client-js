@@ -29,6 +29,16 @@ const Client = function (url, options) {
 
 Emitter(Client.prototype)
 
+Object.defineProperty(Client.prototype, 'stats', {
+  get: function stats () {
+    return {
+      record: this.record.stats,
+      rpc: this.rpc.stats,
+      event: this.event.stats
+    }
+  }
+})
+
 Client.prototype.login = function (authParamsOrCallback, callback) {
   if (typeof authParamsOrCallback === 'function') {
     this._connection.authenticate({}, (success, authData) => {

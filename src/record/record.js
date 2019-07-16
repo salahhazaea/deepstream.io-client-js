@@ -7,6 +7,7 @@ const xuid = require('xuid')
 
 const Record = function (handler) {
   this._handler = handler
+  this._stats = handler.stats
   this._options = handler._options
   this._prune = handler._prune
   this._cache = handler._cache
@@ -53,8 +54,10 @@ Record.prototype._$construct = function (name) {
   this._ref()
   this._cache.get(this.name, (err, entry) => {
     if (err && !err.notFound) {
+      this._stats.misses += 1
       this._client._$onError(C.TOPIC.RECORD, C.EVENT.CACHE_ERROR, err)
     } else if (entry && !this.version) {
+      this._stats.hits += 1
       const [ version, data ] = entry
       this.version = version
       this.data = utils.deepFreeze(data)
@@ -67,6 +70,7 @@ Record.prototype._$construct = function (name) {
       this._read()
     }
   })
+  this._stats.reads += 1
 
   return this
 }

@@ -11,6 +11,7 @@ const RpcHandler = function (options, connection, client) {
   this._client = client
   this._rpcs = new Map()
   this._providers = new Map()
+  this._stats = {}
 
   this._handleConnectionStateChange = this._handleConnectionStateChange.bind(this)
 
@@ -20,6 +21,16 @@ const RpcHandler = function (options, connection, client) {
 Object.defineProperty(RpcHandler.prototype, 'connected', {
   get: function connected () {
     return this._client.getConnectionState() === C.CONNECTION_STATE.OPEN
+  }
+})
+
+Object.defineProperty(RpcHandler.prototype, 'stats', {
+  get: function stats () {
+    return {
+      ...this._stats,
+      listeners: this._provider.size(),
+      rpcs: this._rpcs.size()
+    }
   }
 })
 

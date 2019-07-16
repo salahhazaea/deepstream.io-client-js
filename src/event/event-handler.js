@@ -11,6 +11,9 @@ const EventHandler = function (options, connection, client) {
   this._client = client
   this._emitter = new EventEmitter()
   this._listeners = new Map()
+  this._stats = {
+    emitted: 0
+  }
 
   this._handleConnectionStateChange = this._handleConnectionStateChange.bind(this)
 
@@ -20,6 +23,16 @@ const EventHandler = function (options, connection, client) {
 Object.defineProperty(EventHandler.prototype, 'connected', {
   get: function connected () {
     return this._client.getConnectionState() === C.CONNECTION_STATE.OPEN
+  }
+})
+
+Object.defineProperty(EventHandler.prototype, 'stats', {
+  get: function stats () {
+    return {
+      ...this._stats,
+      listeners: this._listeners.size(),
+      events: this._emitter.eventNames()
+    }
   }
 })
 
@@ -71,6 +84,7 @@ EventHandler.prototype.emit = function (name, data) {
 
   this._connection.sendMsg(C.TOPIC.EVENT, C.ACTIONS.EVENT, [ name, messageBuilder.typed(data) ])
   this._emitter.emit(name, data)
+  this._stats.emitted += 1
 }
 
 EventHandler.prototype.provide = function (pattern, callback) {

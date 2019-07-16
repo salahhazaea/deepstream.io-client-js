@@ -29,6 +29,12 @@ const RecordHandler = function (options, connection, client) {
   this._syncTimeout = null
   this._syncCounter = 0
 
+  this._stats = {
+    reads: 0,
+    hits: 0,
+    misses: 0
+  }
+
   this._schedule = options.schedule
   this._lz = options.lz || new LZ()
   this._cache = new RecordCache(options, err => {
@@ -87,6 +93,16 @@ const RecordHandler = function (options, connection, client) {
 Object.defineProperty(RecordHandler.prototype, 'connected', {
   get: function connected () {
     return this._client.getConnectionState() === C.CONNECTION_STATE.OPEN
+  }
+})
+
+Object.defineProperty(RecordHandler.prototype, 'stats', {
+  get: function stats () {
+    return {
+      ...this._stats,
+      listeners: this._listeners.size(),
+      records: this._records.size()
+    }
   }
 })
 
