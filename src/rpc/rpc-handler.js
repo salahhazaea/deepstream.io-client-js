@@ -82,6 +82,7 @@ RpcHandler.prototype.make = function (name, data, callback) {
   this._rpcs.set(id, {
     id,
     name,
+    data,
     callback
   })
   this._connection.sendMsg(C.TOPIC.RPC, C.ACTIONS.REQUEST, [ name, id, messageBuilder.typed(data) ])
@@ -141,8 +142,12 @@ RpcHandler.prototype._$handle = function (message) {
 
   if (message.action === C.ACTIONS.RESPONSE) {
     if (error) {
+      const err = new Error(data)
+      err.rpcId = rpc.id
+      err.rpcName = rpc.name
+      err.rpcData = rpc.data
       // TODO (fix): more error data?
-      rpc.callback(new Error(data))
+      rpc.callback(err)
     } else {
       rpc.callback(null, messageParser.convertTyped(data, this._client))
     }
@@ -150,6 +155,9 @@ RpcHandler.prototype._$handle = function (message) {
     message.processedError = true
     // TODO (fix): more error data?
     const err = new Error(data)
+    err.rpcId = rpc.id
+    err.rpcName = rpc.name
+    err.rpcData = rpc.data
     err.data = error
     rpc.callback(err)
   }
