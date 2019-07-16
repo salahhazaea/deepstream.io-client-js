@@ -139,28 +139,15 @@ RpcHandler.prototype._$handle = function (message) {
 
   this._rpcs.delete(id)
 
-  function parseError (str) {
-    try {
-      let data = JSON.parse(str)
-      if (data && typeof data === 'object') {
-        const { message, ...errData } = data
-        return Object.assign(new Error(message), errData)
-      }
-    } catch (err) {
-      // Do nothing
-    }
-    return new Error(data || 'RPC_DATA')
-  }
-
   if (message.action === C.ACTIONS.RESPONSE) {
     if (error) {
-      rpc.callback(parseError(data))
+      rpc.callback(new Error(data))
     } else {
       rpc.callback(null, messageParser.convertTyped(data, this._client))
     }
   } else if (message.action === C.ACTIONS.ERROR) {
     message.processedError = true
-    rpc.callback(parseError(data))
+    rpc.callback(new Error(data))
   }
 }
 
