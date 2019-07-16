@@ -141,13 +141,17 @@ RpcHandler.prototype._$handle = function (message) {
 
   if (message.action === C.ACTIONS.RESPONSE) {
     if (error) {
+      // TODO (fix): more error data?
       rpc.callback(new Error(data))
     } else {
       rpc.callback(null, messageParser.convertTyped(data, this._client))
     }
   } else if (message.action === C.ACTIONS.ERROR) {
     message.processedError = true
-    rpc.callback(new Error(data))
+    // TODO (fix): more error data?
+    const err = new Error(data)
+    err.data = error
+    rpc.callback(err)
   }
 }
 
