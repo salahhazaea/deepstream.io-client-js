@@ -147,12 +147,12 @@ RpcHandler.prototype._$handle = function (message) {
   }
 }
 
-RpcHandler.prototype._handleConnectionStateChange = function () {
-  if (this.connected) {
+RpcHandler.prototype._handleConnectionStateChange = function (state) {
+  if (state === C.CONNECTION_STATE.OPEN) {
     for (const name of this._providers.keys()) {
       this._connection.sendMsg(C.TOPIC.RPC, C.ACTIONS.SUBSCRIBE, [ name ])
     }
-  } else {
+  } else if (state === C.CONNECTION_STATE.RECONNECTING || state === C.CONNECTION_STATE.CLOSED) {
     const err = new Error('socket hang up')
     err.code = 'ECONNRESET'
     for (const [ , rpc ] of this._rpcs) {
