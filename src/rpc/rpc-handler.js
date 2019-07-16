@@ -125,41 +125,25 @@ RpcHandler.prototype._respond = function (message) {
 RpcHandler.prototype._$handle = function (message) {
   if (message.action === C.ACTIONS.REQUEST) {
     this._respond(message)
-    return
-  }
+  } else if (message.action === C.ACTIONS.RESPONSE) {
+    const [ , id, data, error ] = message.data
 
-  const [ , id, data, error ] = message.action !== C.ACTIONS.ERROR
-    ? message.data
-    : message.data.slice(1).concat(message.data.slice(0, 1))
+    const rpc = this._rpcs.get(id)
+    if (!rpc) {
+      return
+    }
 
-  const rpc = this._rpcs.get(id)
+    this._rpcs.delete(id)
 
-  if (!rpc) {
-    return
-  }
-
-  this._rpcs.delete(id)
-
-  if (message.action === C.ACTIONS.RESPONSE) {
     if (error) {
       const err = new Error(data)
       err.rpcId = rpc.id
       err.rpcName = rpc.name
       err.rpcData = rpc.data
-      // TODO (fix): more error data?
       rpc.callback(err)
     } else {
       rpc.callback(null, messageParser.convertTyped(data, this._client))
     }
-  } else if (message.action === C.ACTIONS.ERROR) {
-    message.processedError = true
-    // TODO (fix): more error data?
-    const err = new Error(data)
-    err.rpcId = rpc.id
-    err.rpcName = rpc.name
-    err.rpcData = rpc.data
-    err.data = error
-    rpc.callback(err)
   }
 }
 
