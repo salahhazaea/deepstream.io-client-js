@@ -351,7 +351,6 @@ Record.prototype._onUpdate = function (data) {
       this._unref()
       this._patchQueue = null
       this.emit('ready')
-      this._dirty = true
       this.emit('update', this)
       return
     }
