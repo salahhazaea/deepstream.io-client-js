@@ -31,7 +31,7 @@ Object.defineProperty(EventHandler.prototype, 'stats', {
     return {
       ...this._stats,
       listeners: this._listeners.size,
-      events: this._emitter.eventNames()
+      events: this._emitter.eventNames().length
     }
   }
 })

@@ -7,7 +7,7 @@ const xuid = require('xuid')
 
 const Record = function (handler) {
   this._handler = handler
-  this._stats = handler.stats
+  this._stats = handler._stats
   this._options = handler._options
   this._prune = handler._prune
   this._cache = handler._cache
