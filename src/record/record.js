@@ -383,7 +383,7 @@ Record.prototype._onUpdate = function (data) {
     this.data = data = jsonPath.set(this.data, null, data)
 
     if (this._patchQueue) {
-      if (this.data !== oldValue && !this.version.startsWith('INF')) {
+      if (!this.version.startsWith('INF')) {
         for (let i = 0; i < this._patchQueue.length; i += 2) {
           this.data = jsonPath.set(this.data, this._patchQueue[i + 0], this._patchQueue[i + 1])
         }
