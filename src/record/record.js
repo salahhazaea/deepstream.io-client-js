@@ -306,6 +306,8 @@ Record.prototype.unref = function () {
   if (this.usages === 0) {
     this._prune.set(this, Date.now())
   }
+
+  this.cache()
 }
 
 Record.prototype._ref = function () {
