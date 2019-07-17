@@ -396,6 +396,7 @@ Record.prototype._onUpdate = function (data) {
       if (this.data !== oldValue){
         this.data = utils.deepFreeze(this.data)
         this._dirty = true
+        this.cache()
       }
 
       this._unref()
