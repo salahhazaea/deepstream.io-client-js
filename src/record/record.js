@@ -352,7 +352,6 @@ Record.prototype._onUpdate = function (data) {
     } else if (this.version.startsWith('INF')) {
       this._unref()
       this._patchQueue = null
-
       this.emit('ready')
       this.emit('update', this)
       return
@@ -399,7 +398,6 @@ Record.prototype._onUpdate = function (data) {
 
       this._unref()
       this._patchQueue = null
-
       this.emit('ready')
       this.emit('update', this)
     } else if (this.data !== oldValue) {
