@@ -28,7 +28,7 @@ Object.defineProperty(RpcHandler.prototype, 'stats', {
   get: function stats () {
     return {
       ...this._stats,
-      listeners: this._provider.size,
+      listeners: this._providers.size,
       rpcs: this._rpcs.size
     }
   }
