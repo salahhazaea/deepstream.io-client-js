@@ -75,17 +75,19 @@ Record.prototype._$construct = function (name) {
   return this
 }
 
-Record.prototype._$flush = function () {
+Record.prototype.cache = function () {
   if (this.loading || !this.version || !this._dirty) {
-    return
+    return false
   }
 
   this._dirty = false
   this._cache.set(this.name, this.version, this.data)
+
+  return true
 }
 
 Record.prototype._$destroy = function () {
-  this._$flush()
+  this.cache()
 
   if (this.connected) {
     this._connection.sendMsg1(C.TOPIC.RECORD, C.ACTIONS.UNSUBSCRIBE, this.name)
@@ -396,7 +398,6 @@ Record.prototype._onUpdate = function (data) {
 
       this._unref()
       this._patchQueue = null
-      this._$flush()
 
       this.emit('ready')
       this.emit('update', this)
