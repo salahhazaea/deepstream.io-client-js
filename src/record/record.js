@@ -75,10 +75,17 @@ Record.prototype._$construct = function (name) {
   return this
 }
 
-Record.prototype._$destroy = function () {
-  if (this._dirty) {
-    this._cache.set(this.name, this.version, this.data)
+Record.prototype._$flush = function () {
+  if (this.loading || !this.version || !this._dirty) {
+    return
   }
+
+  this._dirty = false
+  this._cache.set(this.name, this.version, this.data)
+}
+
+Record.prototype._$destroy = function () {
+  this._$flush()
 
   if (this.connected) {
     this._connection.sendMsg1(C.TOPIC.RECORD, C.ACTIONS.UNSUBSCRIBE, this.name)
