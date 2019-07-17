@@ -392,8 +392,10 @@ Record.prototype._onUpdate = function (data) {
         }
       }
 
-      this.data = utils.deepFreeze(this.data)
-      this._dirty = true
+      if (this.data !== oldValue){
+        this.data = utils.deepFreeze(this.data)
+        this._dirty = true
+      }
 
       this._unref()
       this._patchQueue = null
