@@ -30,7 +30,7 @@ Object.defineProperty(EventHandler.prototype, 'stats', {
   get: function stats () {
     return {
       ...this._stats,
-      listeners: this._listeners.size(),
+      listeners: this._listeners.size,
       events: this._emitter.eventNames()
     }
   }

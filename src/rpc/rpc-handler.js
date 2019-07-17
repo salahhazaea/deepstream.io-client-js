@@ -28,8 +28,8 @@ Object.defineProperty(RpcHandler.prototype, 'stats', {
   get: function stats () {
     return {
       ...this._stats,
-      listeners: this._provider.size(),
-      rpcs: this._rpcs.size()
+      listeners: this._provider.size,
+      rpcs: this._rpcs.size
     }
   }
 })

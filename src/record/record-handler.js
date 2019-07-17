@@ -100,8 +100,8 @@ Object.defineProperty(RecordHandler.prototype, 'stats', {
   get: function stats () {
     return {
       ...this._stats,
-      listeners: this._listeners.size(),
-      records: this._records.size()
+      listeners: this._listeners.size,
+      records: this._records.size
     }
   }
 })
