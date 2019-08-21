@@ -23,7 +23,7 @@
     "xuid": "^3.0.0"
   },
   "peerDependencies": {
-    "rxjs": "5.x"
+    "rxjs": ">=5.x"
   },
   "browser": {
     "net": false,
