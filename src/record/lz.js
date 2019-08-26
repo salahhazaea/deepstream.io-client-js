@@ -1,6 +1,7 @@
 function LZ () {
 }
 
+// Node 12+
 if (process && process.version && /v(\d[2-9]|[2-9]\d)/.test(process.version)) {
   const {
     Worker, isMainThread, parentPort, workerData
