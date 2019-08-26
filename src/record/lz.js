@@ -58,7 +58,6 @@ if (process && process.version && /v(\d[2-9]|[2-9]\d)/.test(process.version)) {
     })
   }
 } else {
-  // TODO: inline webworker here
   const lz = require('@nxtedition/lz-string')
 
   LZ.prototype.compress = function (obj, cb) {
