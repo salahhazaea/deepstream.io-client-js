@@ -51,22 +51,18 @@ function set (data, path, value) {
   return result
 }
 
-function patch (oldValue, newValue) {
-  if (
-    newValue != null &&
-    typeof newValue !== 'string' &&
-    typeof newValue !== 'number' &&
-    typeof newValue !== 'boolean' &&
-    !Array.isArray(newValue) &&
-    !utils.isPlainObject(newValue)
-  ) {
-    throw new Error('invalid operation: can\'t patch with non-plain object')
+function validate (o) {
+  if (utils.isProduction || utils.isPlainDeep(newValue)) {
+    return o
   }
+  throw new Error('invalid operation: can\'t patch with non-plain object')
+}
 
+function patch (oldValue, newValue) {
   if (oldValue === newValue) {
     return oldValue
   } else if (oldValue === null || newValue === null) {
-    return newValue
+    return validate(newValue)
   } else if (Array.isArray(oldValue) && Array.isArray(newValue)) {
     // TODO (perf): Return newValue when possible...
     let arr = newValue.length === oldValue.length ? null : []
@@ -110,7 +106,7 @@ function patch (oldValue, newValue) {
 
     return obj || oldValue
   } else {
-    return newValue
+    return validate(newValue)
   }
 }
 
