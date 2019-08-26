@@ -52,7 +52,7 @@ function set (data, path, value) {
 }
 
 function validate (o) {
-  if (utils.isProduction || utils.isPlainDeep(newValue)) {
+  if (utils.isProduction || utils.isPlainDeep(o)) {
     return o
   }
   throw new Error('invalid operation: can\'t patch with non-plain object')
