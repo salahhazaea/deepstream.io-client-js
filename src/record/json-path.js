@@ -51,20 +51,16 @@ function set (data, path, value) {
   return result
 }
 
-function validate (o) {
-  if (utils.isProduction || utils.isPlainDeep(o)) {
-    return o
-  }
-  throw new Error('invalid operation: can\'t patch with non-plain object')
+function jsonClone (o) {
+  return o == null ? o : JSON.parse(JSON.stringify(o))
 }
 
 function patch (oldValue, newValue) {
   if (oldValue === newValue) {
     return oldValue
   } else if (oldValue === null || newValue === null) {
-    return validate(newValue)
+    return jsonClone(newValue)
   } else if (Array.isArray(oldValue) && Array.isArray(newValue)) {
-    // TODO (perf): Return newValue when possible...
     let arr = newValue.length === oldValue.length ? null : []
     for (let i = 0; i < newValue.length; i++) {
       const value = patch(oldValue[i], newValue[i])
@@ -82,8 +78,7 @@ function patch (oldValue, newValue) {
     }
 
     return arr || oldValue
-  } else if (!Array.isArray(newValue) && typeof oldValue === 'object' && typeof newValue === 'object') {
-    // TODO (perf): Return newValue when possible...
+  } else if (utils.isPlainObject(oldValue) && utils.isPlainObject(newValue)) {
     const newKeys = Object.keys(newValue)
     const oldKeys = Object.keys(oldValue)
 
@@ -106,7 +101,7 @@ function patch (oldValue, newValue) {
 
     return obj || oldValue
   } else {
-    return validate(newValue)
+    return jsonClone(newValue)
   }
 }
 

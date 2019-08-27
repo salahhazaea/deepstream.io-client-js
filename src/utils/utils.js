@@ -10,23 +10,6 @@ const isProduction = NODE_ENV === 'production'
 module.exports.isNode = isNode
 module.exports.isProduction = isProduction
 
-module.exports.isPlainDeep = function (o) {
-  if (Array.isArray(o)) {
-    return o.every(module.exports.isPlainDeep)
-  }
-
-  if (module.exports.isPlainObject(o)) {
-    return Object.values(o).every(module.exports.isPlainDeep)
-  }
-
-  return (
-    o == null ||
-    typeof o === 'string' ||
-    typeof o === 'number' ||
-    typeof o === 'boolean'
-  )
-}
-
 module.exports.deepFreeze = function (o) {
   if (isProduction) {
     return o
