@@ -52,6 +52,7 @@ function set (data, path, value) {
 }
 
 function jsonClone (o) {
+  // undefined cannot be jsonified
   return o == null ? o : JSON.parse(JSON.stringify(o))
 }
 
