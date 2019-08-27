@@ -74,7 +74,8 @@ function patch (oldValue, newValue) {
           arr[j] = oldValue[j]
         }
       }
-      arr[i] = value
+      // JSON: compat, undefined in array is null
+      arr[i] = value === undefined ? null : value
     }
 
     return arr || oldValue
@@ -96,7 +97,10 @@ function patch (oldValue, newValue) {
           obj[newKeys[j]] = oldValue[newKeys[j]]
         }
       }
-      obj[key] = val
+      // JSON: compat, undefined values don't have keys.
+      if (val !== undefined) {
+        obj[key] = val
+      }
     }
 
     return obj || oldValue
