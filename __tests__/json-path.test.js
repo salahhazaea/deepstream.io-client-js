@@ -39,12 +39,6 @@ describe('set', () => {
       asd: { foo: { bar: true } }
     })
   })
-
-  it('disallows setting non-plain objects', () => {
-    const record = { _$data: {} }
-    expect(() => jsonPath.set(record._$data, null, { date: new Date('2019-06-13') })).toThrow()
-    expect(() => jsonPath.set(record._$data, 'date', new Date('2019-06-13'))).toThrow()
-  })
 })
 
 describe('order', () => {
@@ -225,5 +219,32 @@ describe('objects are created from paths and their value is set correctly', () =
       firstname: 'Wolfram',
       animals: ['Bear', 'Emu', 'Ostrich']
     })
+  })
+})
+
+describe('plain JSON', () => {
+  it('converts into plain JSON', () => {
+    const time = new Date()
+    const x = {
+      a: time,
+      b: undefined,
+      c: [ undefined ],
+      d: NaN,
+      e: Infinity,
+      g: {
+        a: time
+      }
+    }
+    const res = jsonPath.set({ a: 1 }, null, x)
+    expect(res).toEqual({
+      a: time.toISOString(),
+      c: [ null ],
+      d: null,
+      e: null,
+      g: {
+        a: time.toISOString()
+      }
+    })
+    expect(res.hasOwnProperty('b')).toEqual(false)
   })
 })

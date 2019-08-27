@@ -191,11 +191,6 @@ Record.prototype.set = function (pathOrData, dataOrNil) {
     throw new Error('invalid argument: path')
   }
 
-  // NOTE: This ensure that data is JSON.stringify/parse compatible.
-  data = data != null && typeof data === 'object'
-    ? JSON.parse(JSON.stringify(data))
-    : data
-
   const newData = jsonPath.set(this.data, path, data)
 
   if (this._patchQueue) {
@@ -381,7 +376,7 @@ Record.prototype._onUpdate = function (data) {
     const oldValue = this.data
 
     this.version = version
-    this.data = data = jsonPath.set(this.data, null, data)
+    this.data = data = jsonPath.set(this.data, null, data, true)
 
     if (this._patchQueue) {
       if (!this.version.startsWith('INF')) {

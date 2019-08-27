@@ -19,7 +19,7 @@ function get (data, path) {
   return data
 }
 
-function set (data, path, value) {
+function set (data, path, value, isPlainJSON) {
   const tokens = tokenize(path)
 
   if (tokens.length === 0) {
@@ -27,7 +27,7 @@ function set (data, path, value) {
   }
 
   const oldValue = get(data, path)
-  const newValue = patch(oldValue, value)
+  const newValue = patch(oldValue, value, isPlainJSON)
 
   if (newValue === oldValue) {
     return data
@@ -56,15 +56,15 @@ function jsonClone (o) {
   return o == null ? o : JSON.parse(JSON.stringify(o))
 }
 
-function patch (oldValue, newValue) {
+function patch (oldValue, newValue, isPlainJSON) {
   if (oldValue === newValue) {
     return oldValue
   } else if (oldValue === null || newValue === null) {
-    return jsonClone(newValue)
+    return isPlainJSON ? newValue : jsonClone(newValue)
   } else if (Array.isArray(oldValue) && Array.isArray(newValue)) {
     let arr = newValue.length === oldValue.length ? null : []
     for (let i = 0; i < newValue.length; i++) {
-      const value = patch(oldValue[i], newValue[i])
+      const value = patch(oldValue[i], newValue[i], isPlainJSON)
 
       if (!arr) {
         if (value === oldValue[i]) {
@@ -87,7 +87,7 @@ function patch (oldValue, newValue) {
     let obj = newKeys.length === oldKeys.length ? null : {}
     for (let i = 0; i < newKeys.length; ++i) {
       const key = newKeys[i]
-      const val = patch(oldValue[key], newValue[key])
+      const val = patch(oldValue[key], newValue[key], isPlainJSON)
 
       if (!obj) {
         if (val === oldValue[key] && key === oldKeys[i]) {
@@ -106,7 +106,7 @@ function patch (oldValue, newValue) {
 
     return obj || oldValue
   } else {
-    return jsonClone(newValue)
+    return isPlainJSON ? newValue : jsonClone(newValue)
   }
 }
 
