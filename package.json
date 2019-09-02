@@ -27,7 +27,8 @@
   },
   "browser": {
     "net": false,
-    "ws": false
+    "ws": false,
+    "worker_threads": false
   },
   "author": "deepstreamHub GmbH",
   "license": "Apache-2.0",
