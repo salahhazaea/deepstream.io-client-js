@@ -198,7 +198,11 @@ Record.prototype.set = function (pathOrData, dataOrNil) {
     this._patchQueue.push(path, data)
   }
 
-  if (newData === this.data) {
+  // TODO (fix): { foo: undefined } !== {}
+  // if (newData === this.data) {
+  //   return
+  // }
+  if (JSON.stringify(newData) === JSON.stringify(this.data)) {
     return
   }
 
