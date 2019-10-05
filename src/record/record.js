@@ -14,7 +14,6 @@ const Record = function (handler) {
   this._client = handler._client
   this._lz = handler._lz
   this._connection = handler._connection
-  this._client = handler._client
 
   this._reset()
 }
