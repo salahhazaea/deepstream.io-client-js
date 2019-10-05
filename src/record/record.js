@@ -188,6 +188,12 @@ Record.prototype.set = function (pathOrData, dataOrNil) {
     throw new Error('invalid argument: path')
   }
 
+  // JSONify
+  // jsonPath.set is not and will never be fully JSON compatible.
+  data = data && typeof data === 'object'
+    ? JSON.parse(JSON.stringify(data))
+    : data
+
   const newData = jsonPath.set(this.data, path, data)
 
   if (this._patchQueue) {
@@ -196,11 +202,6 @@ Record.prototype.set = function (pathOrData, dataOrNil) {
   }
 
   if (newData === this.data) {
-    return
-  }
-
-  // TODO (fix): Workaround for non JSON data { foo: undefined } !== {}.
-  if (JSON.stringify(newData) === JSON.stringify(this.data)) {
     return
   }
 
