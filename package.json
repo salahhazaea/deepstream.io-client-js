@@ -14,9 +14,9 @@
     "@nxtedition/lz-string": "^2.0.0",
     "bufferutil": "^4.0.0",
     "component-emitter2": "^1.3.5",
-    "encoding-down": "^6.1.0",
+    "encoding-down": "^6.2.0",
     "invariant": "^2.2.4",
-    "levelup": "^4.1.0",
+    "levelup": "^4.3.2",
     "lru-cache": "^5.1.1",
     "utf-8-validate": "^5.0.1",
     "ws": "^7.1.2",
@@ -38,6 +38,6 @@
   "homepage": "http://deepstream.io",
   "devDependencies": {
     "jest": "^24.9.0",
-    "standard": "^14.0.0"
+    "standard": "^14.3.1"
   }
 }
