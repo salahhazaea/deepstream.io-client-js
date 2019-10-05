@@ -15,7 +15,6 @@ const Record = function (handler) {
   this._lz = handler._lz
   this._connection = handler._connection
   this._client = handler._client
-  this._dispatchUpdates = this._dispatchUpdates.bind(this)
 
   this._reset()
 }
@@ -256,7 +255,7 @@ Record.prototype._dispatchUpdates = function () {
   if (!this.ready) {
     return this
       ._whenReady()
-      .then(this._dispatchUpdates)
+      .then(() => this._dispatchUpdates())
   }
 
   const [ path, updater, resolve, reject ] = this._updateQueue.shift()
@@ -277,7 +276,7 @@ Record.prototype._dispatchUpdates = function () {
       })
       .then(resolve)
       .catch(reject)
-      .then(this._dispatchUpdates)
+      .then(() => this._dispatchUpdates())
   } catch (err) {
     reject(err)
     this._dispatchUpdates()
