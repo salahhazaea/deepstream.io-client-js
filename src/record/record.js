@@ -176,7 +176,7 @@ Record.prototype._makeVersion = function (start) {
 Record.prototype.set = function (pathOrData, dataOrNil) {
   if (this.usages === 0 || this.provided) {
     this._client._$onError(C.TOPIC.RECORD, C.EVENT.UPDATE_ERROR, new Error('cannot set record'))
-    return false
+    return
   }
 
   let path = arguments.length === 1 ? undefined : pathOrData
@@ -197,7 +197,7 @@ Record.prototype.set = function (pathOrData, dataOrNil) {
   }
 
   if (newData === this.data) {
-    return false
+    return
   }
 
   // TODO (fix): Workaround for non JSON data { foo: undefined } !== {}.
@@ -218,8 +218,6 @@ Record.prototype.set = function (pathOrData, dataOrNil) {
   this._dirty = true
   this.emit('update', this)
   this._handler.isAsync = true
-
-  return true
 }
 
 Record.prototype.update = function (pathOrUpdater, updaterOrNil) {
