@@ -103,6 +103,9 @@ Listener.prototype._$onMessage = function (message) {
                 action: C.ACTIONS.UPDATE,
                 data: [ name, provider.version, body ]
               })
+
+              // TODO (perf): Let client handle its own has provider state instead of having the server
+              // send on/off messages.
             } else if (!provider.ready) {
               provider.ready = true
               // TODO (perf): Sending body here should be unnecessary.
