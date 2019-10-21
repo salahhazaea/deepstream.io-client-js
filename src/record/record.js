@@ -328,7 +328,9 @@ Record.prototype._$onMessage = function (message) {
   } else if (message.action === C.ACTIONS.SUBSCRIPTION_HAS_PROVIDER) {
     const provided = messageParser.convertTyped(message.data[1], this._client)
     // Fake decompress to maintain ordering.
+    this._ref()
     this._lz.decompress("", (data, err) => {
+      this._unref()
       if (this.provided !== provided) {
         this.provided = provided
         this.emit('update', this)
