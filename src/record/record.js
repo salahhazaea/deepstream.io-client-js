@@ -331,7 +331,7 @@ Record.prototype._$onMessage = function (message) {
     this._ref()
     this._lz.decompress("", (data, err) => {
       this._unref()
-      if (this.provided !== provided) {
+      if (this.connected && this.provided !== provided) {
         this.provided = provided
         this.emit('update', this)
       }
