@@ -13,6 +13,7 @@ const Record = function (handler) {
   this._client = handler._client
   this._lz = handler._lz
   this._connection = handler._connection
+  this._dispatch = this._dispatch.bind(this)
 
   this._reset()
 }
@@ -35,6 +36,7 @@ Record.prototype._reset = function () {
   this._dirty = true
   this._patchQueue = []
   this._updateQueue = []
+  this._queue = null
 }
 
 Record.prototype._$construct = function (name) {
@@ -322,28 +324,48 @@ Record.prototype.acquire = Record.prototype.ref
 Record.prototype.discard = Record.prototype.unref
 Record.prototype.destroy = Record.prototype.unref
 
-Record.prototype._$onMessage = function (message) {
-  if (message.action === C.ACTIONS.UPDATE) {
-    this._onUpdate(message.data)
-  } else if (message.action === C.ACTIONS.SUBSCRIPTION_HAS_PROVIDER) {
-    this._onSubscriptionHasProvider(message.data)
+Record.prototype._run = function (fn) {
+  if (!this._queue) {
+    this._ref()
+    this._queue = []
+    fn(this._dispatch)
+  } else {
+    this._queue.push(fn)
   }
 }
 
-Record.prototype._onSubscriptionHasProvider = function (data) {
-  const provided = messageParser.convertTyped(data[1], this._client)
-  // Fake decompress to maintain ordering.
-  this._ref()
-  this._lz.decompress("", (data, err) => {
+Record.prototype._dispatch = function () {
+  if (this._queue.length === 0) {
+    this._queue = null
     this._unref()
-    if (this.connected && this.provided !== provided) {
-      this.provided = provided
-      this.emit('update', this)
+  } else {
+    const fn = this._queue.shift()
+    fn(this._dispatch)
+  }
+}
+
+Record.prototype._$onMessage = function (message) {
+  this._run(cb => {
+    if (message.action === C.ACTIONS.UPDATE) {
+      this._onUpdate(message.data, cb)
+    } else if (message.action === C.ACTIONS.SUBSCRIPTION_HAS_PROVIDER) {
+      this._onSubscriptionHasProvider(message.data, cb)
     }
   })
 }
 
-Record.prototype._onUpdate = function (data) {
+Record.prototype._onSubscriptionHasProvider = function (data, cb) {
+  const provided = messageParser.convertTyped(data[1], this._client)
+
+  if (this.connected && this.provided !== provided) {
+    this.provided = provided
+    this.emit('update', this)
+  }
+
+  cb()
+}
+
+Record.prototype._onUpdate = function (data, cb) {
   let [ version, body ] = data.slice(1)
 
   if (this._stale) {
@@ -355,18 +377,18 @@ Record.prototype._onUpdate = function (data) {
   }
 
   if (!version || !body) {
-    return
+    return cb()
   }
 
   if (utils.isSameOrNewer(this.version, version)) {
     if (!this._patchQueue) {
-      return
+      return cb()
     } else if (this.version.startsWith('INF')) {
       this._unref()
       this._patchQueue = null
       this.emit('ready')
       this.emit('update', this)
-      return
+      return cb()
     }
   }
 
@@ -375,17 +397,14 @@ Record.prototype._onUpdate = function (data) {
   }
 
   // TODO (perf): Avoid closure allocation.
-  this._ref()
   this._lz.decompress(body, (data, err) => {
-    this._unref()
-
     if (!data || err) {
       this._client._$onError(C.TOPIC.RECORD, C.EVENT.LZ_ERROR, err, data)
-      return
+      return cb()
     }
 
     if (!this._patchQueue && utils.isSameOrNewer(this.version, version)) {
-      return
+      return cb()
     }
 
     const oldValue = this.data
@@ -418,6 +437,8 @@ Record.prototype._onUpdate = function (data) {
 
       this.emit('update', this)
     }
+
+    cb()
   })
 }
 
@@ -469,13 +490,16 @@ Record.prototype._$handleConnectionStateChange = function () {
     return
   }
 
-  if (this.connected) {
-    this._read()
-  } else {
-    this.provided = false
-  }
+  this._run(cb => {
+    if (this.connected) {
+      this._read()
+    } else {
+      this.provided = false
+    }
 
-  this.emit('update', this)
+    this.emit('update', this)
+    cb()
+  })
 }
 
 module.exports = Record
