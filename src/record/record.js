@@ -326,17 +326,21 @@ Record.prototype._$onMessage = function (message) {
   if (message.action === C.ACTIONS.UPDATE) {
     this._onUpdate(message.data)
   } else if (message.action === C.ACTIONS.SUBSCRIPTION_HAS_PROVIDER) {
-    const provided = messageParser.convertTyped(message.data[1], this._client)
-    // Fake decompress to maintain ordering.
-    this._ref()
-    this._lz.decompress("", (data, err) => {
-      this._unref()
-      if (this.connected && this.provided !== provided) {
-        this.provided = provided
-        this.emit('update', this)
-      }
-    })
+    this._onSubscriptionHasProvider(message.data)
   }
+}
+
+Record.prototype._onSubscriptionHasProvider = function (data) {
+  const provided = messageParser.convertTyped(data[1], this._client)
+  // Fake decompress to maintain ordering.
+  this._ref()
+  this._lz.decompress("", (data, err) => {
+    this._unref()
+    if (this.connected && this.provided !== provided) {
+      this.provided = provided
+      this.emit('update', this)
+    }
+  })
 }
 
 Record.prototype._onUpdate = function (data) {
