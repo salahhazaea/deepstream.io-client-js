@@ -369,6 +369,7 @@ Record.prototype._onUpdate = function ([name, version, data]) {
   } else {
     try {
       data = typeof data === 'string' ? JSON.parse(lz.decompressFromUTF16(data)) : data
+      data = jsonPath.set(this.data, null, data, true)
     } catch (err) {
       this._client._$onError(C.TOPIC.RECORD, C.EVENT.LZ_ERROR, err, data)
       return
@@ -378,7 +379,7 @@ Record.prototype._onUpdate = function ([name, version, data]) {
   const oldValue = this.data
 
   this.version = version
-  this.data = data = jsonPath.set(this.data, null, data, true)
+  this.data = data
 
   if (this._patchQueue) {
     if (!this.version.startsWith('INF')) {
