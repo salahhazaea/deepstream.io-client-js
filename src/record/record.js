@@ -391,7 +391,7 @@ Record.prototype._onUpdate = function ([name, version, data]) {
       }
     }
 
-    if (this.data !== oldValue){
+    if (this.data !== oldValue) {
       this.data = utils.deepFreeze(this.data)
       this._dirty = true
     }
