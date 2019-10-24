@@ -73,7 +73,7 @@ Record.prototype._$construct = function (name) {
 }
 
 Record.prototype.cache = function () {
-  if (this.loading || !this.version || !this._dirty) {
+  if (!this.version || !this._dirty) {
     return false
   }
 
