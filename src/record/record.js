@@ -4,6 +4,7 @@ const EventEmitter = require('component-emitter2')
 const C = require('../constants/constants')
 const messageParser = require('../message/message-parser')
 const xuid = require('xuid')
+const lz = require('@nxtedition/lz-string')
 
 const Record = function (handler) {
   this._handler = handler
