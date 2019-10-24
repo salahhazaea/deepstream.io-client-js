@@ -11,9 +11,7 @@ const Record = function (handler) {
   this._prune = handler._prune
   this._cache = handler._cache
   this._client = handler._client
-  this._lz = handler._lz
   this._connection = handler._connection
-  this._dispatch = this._dispatch.bind(this)
 
   this._reset()
 }
@@ -36,7 +34,6 @@ Record.prototype._reset = function () {
   this._dirty = true
   this._patchQueue = []
   this._updateQueue = []
-  this._queue = null
 }
 
 Record.prototype._$construct = function (name) {
@@ -324,122 +321,90 @@ Record.prototype.acquire = Record.prototype.ref
 Record.prototype.discard = Record.prototype.unref
 Record.prototype.destroy = Record.prototype.unref
 
-Record.prototype._run = function (fn) {
-  if (!this._queue) {
-    this._ref()
-    this._queue = []
-    fn(this._dispatch)
-  } else {
-    this._queue.push(fn)
-  }
-}
-
-Record.prototype._dispatch = function () {
-  if (this._queue.length === 0) {
-    this._queue = null
-    this._unref()
-  } else {
-    const fn = this._queue.shift()
-    fn(this._dispatch)
-  }
-}
-
 Record.prototype._$onMessage = function (message) {
-  this._run(cb => {
-    if (message.action === C.ACTIONS.UPDATE) {
-      this._onUpdate(message.data, cb)
-    } else if (message.action === C.ACTIONS.SUBSCRIPTION_HAS_PROVIDER) {
-      this._onSubscriptionHasProvider(message.data, cb)
-    }
-  })
+  if (message.action === C.ACTIONS.UPDATE) {
+    this._onUpdate(message.data)
+  } else if (message.action === C.ACTIONS.SUBSCRIPTION_HAS_PROVIDER) {
+    this._onSubscriptionHasProvider(message.data)
+  }
 }
 
-Record.prototype._onSubscriptionHasProvider = function (data, cb) {
+Record.prototype._onSubscriptionHasProvider = function (data) {
   const provided = messageParser.convertTyped(data[1], this._client)
 
   if (this.connected && this.provided !== provided) {
     this.provided = provided
     this.emit('update', this)
   }
-
-  cb()
 }
 
-Record.prototype._onUpdate = function (data, cb) {
-  let [ version, body ] = data.slice(1)
+Record.prototype._onUpdate = function ([name, version, data]) {
+  // TODO (perf): Don't decompress if not used
+  try {
+    data = data && typeof data === 'string' ? JSON.parse(lz.decompressFromUTF16(data)) : data
+  } catch (err) {
+    this._client._$onError(C.TOPIC.RECORD, C.EVENT.LZ_ERROR, err, body)
+    return
+  }
 
   if (this._stale) {
-    if (!body || !version) {
-      body = this._stale.data
+    if (!data || !version) {
+      data = this._stale.data
       version = this._stale.version
     }
     this._stale = null
   }
 
-  if (!version || !body) {
-    return cb()
+  if (!version || !data) {
+    return
   }
 
   if (utils.isSameOrNewer(this.version, version)) {
     if (!this._patchQueue) {
-      return cb()
+      return
     } else if (this.version.startsWith('INF')) {
       this._unref()
       this._patchQueue = null
       this.emit('ready')
       this.emit('update', this)
-      return cb()
+      return
     }
   }
 
   if (this.data && version === this.version) {
-    body = this.data
+    data = this.data
   }
 
-  // TODO (perf): Avoid closure allocation.
-  this._lz.decompress(body, (data, err) => {
-    if (!data || err) {
-      this._client._$onError(C.TOPIC.RECORD, C.EVENT.LZ_ERROR, err, data)
-      return cb()
+  const oldValue = this.data
+
+  this.version = version
+  this.data = data = jsonPath.set(this.data, null, data, true)
+
+  if (this._patchQueue) {
+    if (!this.version.startsWith('INF')) {
+      for (let i = 0; i < this._patchQueue.length; i += 2) {
+        this.data = jsonPath.set(this.data, this._patchQueue[i + 0], this._patchQueue[i + 1])
+      }
+      if (this.data !== data) {
+        this._sendUpdate()
+      }
     }
 
-    if (!this._patchQueue && utils.isSameOrNewer(this.version, version)) {
-      return cb()
-    }
-
-    const oldValue = this.data
-
-    this.version = version
-    this.data = data = jsonPath.set(this.data, null, data, true)
-
-    if (this._patchQueue) {
-      if (!this.version.startsWith('INF')) {
-        for (let i = 0; i < this._patchQueue.length; i += 2) {
-          this.data = jsonPath.set(this.data, this._patchQueue[i + 0], this._patchQueue[i + 1])
-        }
-        if (this.data !== data) {
-          this._sendUpdate()
-        }
-      }
-
-      if (this.data !== oldValue){
-        this.data = utils.deepFreeze(this.data)
-        this._dirty = true
-      }
-
-      this._unref()
-      this._patchQueue = null
-      this.emit('ready')
-      this.emit('update', this)
-    } else if (this.data !== oldValue) {
+    if (this.data !== oldValue){
       this.data = utils.deepFreeze(this.data)
       this._dirty = true
-
-      this.emit('update', this)
     }
 
-    cb()
-  })
+    this._unref()
+    this._patchQueue = null
+    this.emit('ready')
+    this.emit('update', this)
+  } else if (this.data !== oldValue) {
+    this.data = utils.deepFreeze(this.data)
+    this._dirty = true
+
+    this.emit('update', this)
+  }
 }
 
 Record.prototype._sendUpdate = function () {
@@ -455,23 +420,20 @@ Record.prototype._sendUpdate = function () {
   const nextVersion = this._makeVersion(start + 1)
   const prevVersion = this.version || ''
 
-  // TODO (perf): Avoid closure allocation.
-  this._ref()
-  this._lz.compress(this.data, (body, err) => {
-    this._unref()
+  let body
+  try {
+    body = lz.compressToUTF16(JSON.stringify(this.data))
+  } catch (err) {
+    this._client._$onError(C.TOPIC.RECORD, C.EVENT.LZ_ERROR, err)
+    return
+  }
 
-    if (!body || err) {
-      this._client._$onError(C.TOPIC.RECORD, C.EVENT.LZ_ERROR, err)
-      return
-    }
-
-    this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.UPDATE, [
-      this.name,
-      nextVersion,
-      body,
-      prevVersion
-    ])
-  })
+  this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.UPDATE, [
+    this.name,
+    nextVersion,
+    body,
+    prevVersion
+  ])
 
   this.version = nextVersion
 }
@@ -490,16 +452,13 @@ Record.prototype._$handleConnectionStateChange = function () {
     return
   }
 
-  this._run(cb => {
-    if (this.connected) {
-      this._read()
-    } else {
-      this.provided = false
-    }
+  if (this.connected) {
+    this._read()
+  } else {
+    this.provided = false
+  }
 
-    this.emit('update', this)
-    cb()
-  })
+  this.emit('update', this)
 }
 
 module.exports = Record

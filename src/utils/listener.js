@@ -1,6 +1,7 @@
 const C = require('../constants/constants')
 const xuid = require('xuid')
 const { Observable } = require('rxjs')
+const lz = require('@nxtedition/lz-string')
 
 const Listener = function (topic, pattern, callback, handler, recursive) {
   this._topic = topic
@@ -86,37 +87,37 @@ Listener.prototype._$onMessage = function (message) {
           this._handler.emit(name, value)
         } else if (this._topic === C.TOPIC.RECORD) {
           // TODO (perf): Check for equality before compression.
-          // TODO (perf): Avoid closure allocation.
-          this._lz.compress(value, (body, err) => {
-            if (err || !body) {
-              this._client._$onError(this._topic, C.EVENT.LZ_ERROR, err, [ this._pattern, name, value ])
-              return
-            }
+          let body
+          try {
+            body = lz.compressToUTF16(JSON.stringify(value))
+          } catch (err) {
+            this._client._$onError(this._topic, C.EVENT.LZ_ERROR, err, [ this._pattern, name, value ])
+            return
+          }
 
-            if (provider.body !== body || !/^INF-/.test(provider.version)) {
-              provider.version = `INF-${xuid()}-${this._client.user || ''}`
-              provider.body = body
-              provider.ready = true
-              this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.UPDATE, [ name, provider.version, provider.body ])
+          if (provider.body !== body || !/^INF-/.test(provider.version)) {
+            provider.version = `INF-${xuid()}-${this._client.user || ''}`
+            provider.body = body
+            provider.ready = true
+            this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.UPDATE, [ name, provider.version, provider.body ])
 
-              this._handler._$handle({
-                action: C.ACTIONS.UPDATE,
-                data: [ name, provider.version, body ]
-              })
+            this._handler._$handle({
+              action: C.ACTIONS.UPDATE,
+              data: [ name, provider.version, value ]
+            })
 
-              // TODO (perf): Let client handle its own has provider state instead of having the server
-              // send on/off messages.
-            } else if (!provider.ready) {
-              provider.ready = true
-              // TODO (perf): Sending body here should be unnecessary.
-              this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.UPDATE, [ name, provider.version, provider.body ])
+            // TODO (perf): Let client handle its own has provider state instead of having the server
+            // send on/off messages.
+          } else if (!provider.ready) {
+            provider.ready = true
+            // TODO (perf): Sending body here should be unnecessary.
+            this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.UPDATE, [ name, provider.version, provider.body ])
 
-              this._handler._$handle({
-                action: C.ACTIONS.UPDATE,
-                data: [ name, provider.version, body ]
-              })
-            }
-          })
+            this._handler._$handle({
+              action: C.ACTIONS.UPDATE,
+              data: [ name, provider.version, value ]
+            })
+          }
         }
       },
       error: err => {

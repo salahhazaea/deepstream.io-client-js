@@ -3,7 +3,6 @@ const Listener = require('../utils/listener')
 const C = require('../constants/constants')
 const { Observable } = require('rxjs')
 const invariant = require('invariant')
-const LZ = require('./lz')
 const EventEmitter = require('component-emitter2')
 const RecordCache = require('./record-cache')
 const jsonPath = require('./json-path')
@@ -36,7 +35,6 @@ const RecordHandler = function (options, connection, client) {
   }
 
   this._schedule = options.schedule
-  this._lz = options.lz || new LZ()
   this._cache = new RecordCache(options, err => {
     if (err) {
       this._client._$onError(C.TOPIC.RECORD, C.EVENT.CACHE_ERROR, err)
