@@ -369,11 +369,11 @@ Record.prototype._onUpdate = function ([name, version, data]) {
   } else {
     try {
       data = typeof data === 'string' ? JSON.parse(lz.decompressFromUTF16(data)) : data
-      data = jsonPath.set(this.data, null, data, true)
     } catch (err) {
       this._client._$onError(C.TOPIC.RECORD, C.EVENT.LZ_ERROR, err, data)
       return
     }
+    data = jsonPath.set(this.data, null, data, true)
   }
 
   const oldValue = this.data
