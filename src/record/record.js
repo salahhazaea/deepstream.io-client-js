@@ -340,14 +340,6 @@ Record.prototype._onSubscriptionHasProvider = function (data) {
 }
 
 Record.prototype._onUpdate = function ([name, version, data]) {
-  // TODO (perf): Don't decompress if not used
-  try {
-    data = data && typeof data === 'string' ? JSON.parse(lz.decompressFromUTF16(data)) : data
-  } catch (err) {
-    this._client._$onError(C.TOPIC.RECORD, C.EVENT.LZ_ERROR, err, data)
-    return
-  }
-
   if (this._stale) {
     if (!data || !version) {
       data = this._stale.data
@@ -374,6 +366,13 @@ Record.prototype._onUpdate = function ([name, version, data]) {
 
   if (this.data && version === this.version) {
     data = this.data
+  } else {
+    try {
+      data = typeof data === 'string' ? JSON.parse(lz.decompressFromUTF16(data)) : data
+    } catch (err) {
+      this._client._$onError(C.TOPIC.RECORD, C.EVENT.LZ_ERROR, err, data)
+      return
+    }
   }
 
   const oldValue = this.data
