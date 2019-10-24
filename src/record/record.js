@@ -72,19 +72,11 @@ Record.prototype._$construct = function (name) {
   return this
 }
 
-Record.prototype.cache = function () {
-  if (!this.version || !this._dirty) {
-    return false
-  }
-
-  this._dirty = false
-  this._cache.set(this.name, this.version, this.data)
-
-  return true
-}
-
 Record.prototype._$destroy = function () {
-  this.cache()
+  if (this.version && this._dirty) {
+    this._dirty = false
+    this._cache.set(this.name, this.version, this.data)
+  }
 
   if (this.connected) {
     this._connection.sendMsg1(C.TOPIC.RECORD, C.ACTIONS.UNSUBSCRIBE, this.name)
@@ -304,8 +296,6 @@ Record.prototype.unref = function () {
   if (this.usages === 0) {
     this._prune.set(this, Date.now())
   }
-
-  this.cache()
 }
 
 Record.prototype._ref = function () {
