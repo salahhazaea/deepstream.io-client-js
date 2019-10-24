@@ -103,7 +103,7 @@ Listener.prototype._$onMessage = function (message) {
 
             this._handler._$handle({
               action: C.ACTIONS.UPDATE,
-              data: [ name, provider.version, value ]
+              data: [ name, provider.version, body ]
             })
 
             // TODO (perf): Let client handle its own has provider state instead of having the server
@@ -115,7 +115,7 @@ Listener.prototype._$onMessage = function (message) {
 
             this._handler._$handle({
               action: C.ACTIONS.UPDATE,
-              data: [ name, provider.version, value ]
+              data: [ name, provider.version, body ]
             })
           }
         }
