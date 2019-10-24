@@ -343,7 +343,7 @@ Record.prototype._onUpdate = function ([name, version, data]) {
   try {
     data = data && typeof data === 'string' ? JSON.parse(lz.decompressFromUTF16(data)) : data
   } catch (err) {
-    this._client._$onError(C.TOPIC.RECORD, C.EVENT.LZ_ERROR, err, body)
+    this._client._$onError(C.TOPIC.RECORD, C.EVENT.LZ_ERROR, err, data)
     return
   }
 
