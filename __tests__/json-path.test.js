@@ -47,6 +47,11 @@ describe('set', () => {
     const res = jsonPath.set(obj, null, {})
     expect(res).toEqual({})
   })
+
+  it('set on null', () => {
+    const res = jsonPath.set(null, null, { sad: true })
+    expect(res).toEqual({ sad: true })
+  })
 })
 
 describe('order', () => {

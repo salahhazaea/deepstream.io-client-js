@@ -22,6 +22,8 @@ function get (data, path) {
 function set (data, path, value, isPlainJSON) {
   const tokens = tokenize(path)
 
+  data = data || EMPTY
+
   if (tokens.length === 0) {
     return patch(data, value)
   }
