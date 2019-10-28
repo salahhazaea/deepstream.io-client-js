@@ -81,8 +81,14 @@ function patch (oldValue, newValue, isPlainJSON) {
 
     return arr || oldValue
   } else if (utils.isPlainObject(oldValue) && utils.isPlainObject(newValue)) {
-    const newKeys = Object.keys(newValue)
+    const newKeys = Object
+      .keys(newValue)
+      .filter(key => newValue[key] !== undefined)
     const oldKeys = Object.keys(oldValue)
+
+    if (newKeys.length === 0) {
+      return oldKeys.length === 0 ? oldValue : EMPTY
+    }
 
     let obj = newKeys.length === oldKeys.length ? null : {}
     for (let i = 0; i < newKeys.length; ++i) {
@@ -98,10 +104,7 @@ function patch (oldValue, newValue, isPlainJSON) {
           obj[newKeys[j]] = oldValue[newKeys[j]]
         }
       }
-      // JSON: compat, undefined values don't have keys.
-      if (val !== undefined) {
-        obj[key] = val
-      }
+      obj[key] = val
     }
 
     return obj || oldValue

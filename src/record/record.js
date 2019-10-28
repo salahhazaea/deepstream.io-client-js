@@ -57,7 +57,8 @@ Record.prototype._$construct = function (name) {
       this._stats.hits += 1
       const [ version, data ] = entry
       this.version = version
-      this.data = utils.deepFreeze(data)
+      this.data = jsonPath.set(jsonPath.EMPTY, null, data)
+      this.data = utils.deepFreeze(this.data)
       this._dirty = false
       this.emit('update', this)
     }
@@ -189,11 +190,6 @@ Record.prototype.set = function (pathOrData, dataOrNil) {
   }
 
   if (newData === this.data) {
-    return
-  }
-
-  // TODO (fix): Workaround for non JSON data { foo: undefined } !== {}.
-  if (JSON.stringify(newData) === JSON.stringify(this.data)) {
     return
   }
 

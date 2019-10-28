@@ -39,6 +39,14 @@ describe('set', () => {
       asd: { foo: { bar: true } }
     })
   })
+
+  it('set empty', () => {
+    const obj = {
+      asd: null
+    }
+    const res = jsonPath.set(obj, null, {})
+    expect(res).toEqual({})
+  })
 })
 
 describe('order', () => {
@@ -246,5 +254,26 @@ describe('plain JSON', () => {
       }
     })
     expect(res.hasOwnProperty('b')).toEqual(false)
+  })
+
+  it('undefined is removed from src', () => {
+    const y = jsonPath.EMPTY
+    const res = jsonPath.set(y, null, {
+      b: undefined
+    })
+    expect(Object.keys(res).length).toEqual(0)
+    expect(res).toBe(y)
+  })
+
+  it('empty is EMPTY', () => {
+    const y = {
+      b: 1
+    }
+    const res = jsonPath.set(y, null, {
+      b: undefined
+    })
+    expect(Object.keys(res).length).toEqual(0)
+    expect(res).toBe(jsonPath.EMPTY)
+    expect(res).toEqual({})
   })
 })
