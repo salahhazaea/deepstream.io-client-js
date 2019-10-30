@@ -54,8 +54,10 @@ function set (data, path, value, isPlainJSON) {
 }
 
 function jsonClone (o) {
-  // undefined cannot be jsonified
-  return o == null ? o : JSON.parse(JSON.stringify(o))
+  if (o == null || typeof o === 'string') {
+    return o
+  }
+  return JSON.parse(JSON.stringify(o))
 }
 
 function patch (oldValue, newValue, isPlainJSON) {
@@ -140,5 +142,6 @@ function tokenize (path) {
 module.exports = {
   EMPTY,
   get,
-  set
+  set,
+  jsonClone
 }

@@ -57,7 +57,7 @@ Record.prototype._$construct = function (name) {
       this._stats.hits += 1
       const [ version, data ] = entry
       this.version = version
-      this.data = jsonPath.set(jsonPath.EMPTY, null, data)
+      this.data = Object.keys(data).length === 0 ? jsonPath.EMPTY : data
       this.data = utils.deepFreeze(this.data)
       this._dirty = false
       this.emit('update', this)
@@ -182,11 +182,12 @@ Record.prototype.set = function (pathOrData, dataOrNil) {
     throw new Error('invalid argument: path')
   }
 
-  const newData = jsonPath.set(this.data, path, data)
+  const jsonData = jsonPath.jsonClone(data)
+  const newData = jsonPath.set(this.data, path, jsonData, true)
 
   if (this._patchQueue) {
     this._patchQueue = path ? this._patchQueue : []
-    this._patchQueue.push(path, data)
+    this._patchQueue.push(path, jsonData)
   }
 
   if (newData === this.data) {
@@ -365,7 +366,7 @@ Record.prototype._onUpdate = function ([name, version, data]) {
   if (this._patchQueue) {
     if (!this.version.startsWith('INF')) {
       for (let i = 0; i < this._patchQueue.length; i += 2) {
-        this.data = jsonPath.set(this.data, this._patchQueue[i + 0], this._patchQueue[i + 1])
+        this.data = jsonPath.set(this.data, this._patchQueue[i + 0], this._patchQueue[i + 1], true)
       }
       if (this.data !== data) {
         this._sendUpdate()

@@ -27,11 +27,22 @@ describe('equality', () => {
   })
 })
 
+describe('json clone', () => {
+  it('types', () => {
+    expect(jsonPath.jsonClone('ASD')).toEqual('ASD')
+    expect(jsonPath.jsonClone(null)).toEqual(null)
+    expect(jsonPath.jsonClone(undefined)).toEqual(undefined)
+    expect(jsonPath.jsonClone(1)).toEqual(1)
+    expect(jsonPath.jsonClone(NaN)).toEqual(null)
+    expect(jsonPath.jsonClone(1.1)).toEqual(1.1)
+
+    const date = new Date()
+    expect(jsonPath.jsonClone(date)).toEqual(date.toISOString())
+  })
+})
+
 describe('set', () => {
   it('set through null', () => {
-    const obj = {
-      asd: null
-    }
     const res = jsonPath.set({
       asd: null
     }, 'asd.foo.bar', true)
@@ -51,6 +62,11 @@ describe('set', () => {
   it('set on null', () => {
     const res = jsonPath.set(null, null, { sad: true })
     expect(res).toEqual({ sad: true })
+  })
+
+  it('set string', () => {
+    const res = jsonPath.set({ foo: "ASD" }, null, { sad: "ASD" })
+    expect(res).toEqual({ sad: "ASD" })
   })
 })
 
