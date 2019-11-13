@@ -308,8 +308,7 @@ RecordHandler.prototype._$handle = function (message) {
   }
 
   if (message.action === C.ACTIONS.SYNC) {
-    this._syncEmit.add(message.data[0])
-    this._syncFlush()
+    this._syncEmitter.emit(message.data[0])
     return
   }
 
