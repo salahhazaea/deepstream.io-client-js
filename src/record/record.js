@@ -35,7 +35,6 @@ Record.prototype._reset = function () {
   this._stale = null
   this._dirty = true
   this._patchQueue = []
-  this._updateQueue = []
 }
 
 Record.prototype._$construct = function (name) {
@@ -171,7 +170,7 @@ Record.prototype._makeVersion = function (start) {
 Record.prototype.set = function (pathOrData, dataOrNil) {
   if (this.usages === 0 || this.provided) {
     this._client._$onError(C.TOPIC.RECORD, C.EVENT.UPDATE_ERROR, new Error('cannot set record'))
-    return
+    return Promise.resolve()
   }
 
   let path = arguments.length === 1 ? undefined : pathOrData
@@ -193,7 +192,7 @@ Record.prototype.set = function (pathOrData, dataOrNil) {
   }
 
   if (newData === this.data) {
-    return
+    return Promise.resolve()
   }
 
   this.data = utils.deepFreeze(newData)
@@ -209,6 +208,10 @@ Record.prototype.set = function (pathOrData, dataOrNil) {
   this._dirty = true
   this.emit('update', this)
   this._handler.isAsync = true
+
+  return this.isReady
+    ? Promise.resolve()
+    : new Promise(resolve => this.once('ready', resolve))
 }
 
 Record.prototype.update = function (pathOrUpdater, updaterOrNil) {
@@ -227,58 +230,16 @@ Record.prototype.update = function (pathOrUpdater, updaterOrNil) {
     throw new Error('invalid argument: path')
   }
 
-  return new Promise((resolve, reject) => {
-    this._updateQueue.push([ path, updater, resolve, reject ])
-    if (this._updateQueue.length === 1) {
-      this.ref()
-      this._dispatchUpdates()
-    }
-  })
-}
+  const readyPromise = this.isReady
+    ? Promise.resolve()
+    : new Promise(resolve => this.once('ready', resolve))
 
-Record.prototype._dispatchUpdates = function () {
-  if (this._updateQueue.length === 0) {
-    this.unref()
-    return
-  }
-
-  if (!this.ready) {
-    return this
-      ._whenReady()
-      .then(() => this._dispatchUpdates())
-  }
-
-  const [ path, updater, resolve, reject ] = this._updateQueue.shift()
-
-  try {
-    const prev = this.get(path)
-    Promise
-      .resolve(updater(prev))
-      .then(next => {
-        if (path) {
-          this.set(path, next)
-        } else if (next) {
-          this.set(next)
-        } else {
-          next = this.get(path)
-        }
-        return next
-      })
-      .then(resolve)
-      .catch(reject)
-      .then(() => this._dispatchUpdates())
-  } catch (err) {
-    reject(err)
-    this._dispatchUpdates()
-  }
-}
-
-Record.prototype._whenReady = function () {
-  if (this.usages === 0) {
-    return Promise.reject(new Error('discarded'))
-  }
-
-  return this.isReady ? Promise.resolve() : new Promise(resolve => this.once('ready', resolve))
+  return readyPromise
+    .then(() => {
+      const prev = this.get(path)
+      const next = updater(prev)
+      this.set(path, next)
+    })
 }
 
 Record.prototype.ref = function () {
