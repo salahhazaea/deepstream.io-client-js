@@ -21,11 +21,9 @@ const RecordHandler = function (options, connection, client) {
   this._listeners = new Map()
   this._pool = []
   this._prune = new Map()
-  this._syncRef = 0
-  this._syncSend = new Set()
-  this._syncEmit = new Set()
+  this._pending = new Set()
+
   this._syncEmitter = new EventEmitter()
-  this._syncTimeout = null
   this._syncCounter = 0
 
   this._stats = {
@@ -147,55 +145,36 @@ RecordHandler.prototype.provide = function (pattern, callback, recursive = false
   }
 }
 
-RecordHandler.prototype._$syncRef = function () {
-  this._syncRef += 1
-}
+RecordHandler.prototype.sync = function () {
+  // TODO (perf): Optimize
 
-RecordHandler.prototype._$syncUnref = function () {
-  this._syncRef = Math.max(0, this._syncRef - 1)
-  this._syncFlush()
-}
-
-RecordHandler.prototype._syncFlush = function () {
-  if (this._syncRef > 0) {
-    return
+  const pending = []
+  for (const rec of this._pending) {
+    pending.push(new Promise(resolve => rec.once('ready', resolve)))
   }
 
-  if (this._syncEmit.size > 0) {
-    for (const token of this._syncEmit) {
-      this._syncEmitter.emit(token)
-    }
-    this._syncEmit.clear()
-  }
+  const syncPromise = Promise
+    .all(pending)
+    .then(() => new Promise(resolve => {
+      const token = this._syncCounter.toString(16)
+      this._syncCounter = (this._syncCounter + 1) & 2147483647
 
-  if (!this._syncTimeout && this._syncSend.size > 0 && this.connected) {
-    const syncSend = this._syncSend
-    this._syncSend = new Set()
-    this._syncCounter = (this._syncCounter + 1) & 2147483647
-
-    this._syncTimeout = setTimeout(() => {
-      this._syncTimeout = null
-      for (const token of syncSend) {
+      this._syncEmitter.once(token, resolve)
+      if (this.connected) {
         this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.SYNC, [ token ])
       }
-      this._syncFlush()
-    }, this._options.syncDelay || 5)
-  }
-}
+    }))
 
-RecordHandler.prototype.sync = function () {
-  const token = this._syncCounter.toString(16)
-  this._syncSend.add(token)
-  this._syncFlush()
-  return new Promise((resolve, reject) => {
-    const timeout = setTimeout(() => {
+  const timeoutPromise = new Promise((resolve, reject) => {
+    setTimeout(() => {
       reject(new Error('sync timeout'))
     }, this._options.syncTimout || 60e3)
-    this._syncEmitter.once(token, () => {
-      clearTimeout(timeout)
-      resolve()
-    })
   })
+
+  return Promise.race([
+    syncPromise,
+    timeoutPromise
+  ])
 }
 
 RecordHandler.prototype.get = function (name, pathOrState, stateOrNil) {
@@ -348,13 +327,8 @@ RecordHandler.prototype._$handle = function (message) {
 RecordHandler.prototype._handleConnectionStateChange = function (connected) {
   if (this.connected) {
     for (const token of this._syncEmitter.eventNames()) {
-      this._syncSend.add(token)
+      this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.SYNC, [ token ])
     }
-    this._syncFlush()
-  } else {
-    this._syncSend.clear()
-    clearTimeout(this._syncTimeout)
-    this._syncTimeout = null
   }
 
   for (const record of this._records.values()) {

@@ -10,6 +10,7 @@ const Record = function (handler) {
   this._handler = handler
   this._stats = handler._stats
   this._prune = handler._prune
+  this._pending = handler._pending
   this._cache = handler._cache
   this._client = handler._client
   this._connection = handler._connection
@@ -48,7 +49,8 @@ Record.prototype._$construct = function (name) {
 
   this.name = name
 
-  this._ref()
+  this._pending.add(this)
+  this.ref()
   this._cache.get(this.name, (err, entry) => {
     if (err && !err.notFound) {
       this._stats.misses += 1
@@ -228,7 +230,7 @@ Record.prototype.update = function (pathOrUpdater, updaterOrNil) {
   return new Promise((resolve, reject) => {
     this._updateQueue.push([ path, updater, resolve, reject ])
     if (this._updateQueue.length === 1) {
-      this._ref()
+      this.ref()
       this._dispatchUpdates()
     }
   })
@@ -236,7 +238,7 @@ Record.prototype.update = function (pathOrUpdater, updaterOrNil) {
 
 Record.prototype._dispatchUpdates = function () {
   if (this._updateQueue.length === 0) {
-    this._unref()
+    this.unref()
     return
   }
 
@@ -295,16 +297,6 @@ Record.prototype.unref = function () {
   }
 }
 
-Record.prototype._ref = function () {
-  this.ref()
-  this._handler._$syncRef()
-}
-
-Record.prototype._unref = function () {
-  this.unref()
-  this._handler._$syncUnref()
-}
-
 Record.prototype.acquire = Record.prototype.ref
 Record.prototype.discard = Record.prototype.unref
 Record.prototype.destroy = Record.prototype.unref
@@ -326,6 +318,14 @@ Record.prototype._onSubscriptionHasProvider = function (data) {
   }
 }
 
+Record.prototype._onReady = function () {
+  this.unref()
+  this._patchQueue = null
+  this._pending.delete(this)
+  this.emit('ready')
+  this.emit('update', this)
+}
+
 Record.prototype._onUpdate = function ([name, version, data]) {
   if (this._stale) {
     if (!data || !version) {
@@ -343,10 +343,7 @@ Record.prototype._onUpdate = function ([name, version, data]) {
     if (!this._patchQueue) {
       return
     } else if (this.version.startsWith('INF')) {
-      this._unref()
-      this._patchQueue = null
-      this.emit('ready')
-      this.emit('update', this)
+      this._onReady()
       return
     }
   }
@@ -378,10 +375,7 @@ Record.prototype._onUpdate = function ([name, version, data]) {
       this._dirty = true
     }
 
-    this._unref()
-    this._patchQueue = null
-    this.emit('ready')
-    this.emit('update', this)
+    this._onReady()
   } else if (this.data !== oldValue) {
     this.data = utils.deepFreeze(this.data)
     this._dirty = true
