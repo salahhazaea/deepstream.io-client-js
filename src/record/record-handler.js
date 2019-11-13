@@ -187,7 +187,12 @@ RecordHandler.prototype.sync = function () {
   const token = this._syncCounter.toString(16)
   this._syncSend.add(token)
   this._syncFlush()
-  return new Promise(resolve => this._syncEmitter.once(token, resolve))
+  return new Promise(resolve => {
+    this._syncEmitter.once(token, resolve)
+    setTimeout(() => {
+      reject(new Error('sync timeout'))
+    }, this._options.syncTimout || 60e3)
+  })
 }
 
 RecordHandler.prototype.get = function (name, pathOrState, stateOrNil) {
