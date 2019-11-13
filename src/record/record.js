@@ -230,16 +230,21 @@ Record.prototype.update = function (pathOrUpdater, updaterOrNil) {
     throw new Error('invalid argument: path')
   }
 
-  const readyPromise = this.isReady
+  const doUpdate = () => {
+    const prev = this.get(path)
+    const next = updater(prev)
+    this.set(path, next)
+  }
+
+  if (this.isReady) {
+    doUpdate()
+  } else {
+    this.once('ready', doUpdate)
+  }
+
+  return this.isReady
     ? Promise.resolve()
     : new Promise(resolve => this.once('ready', resolve))
-
-  return readyPromise
-    .then(() => {
-      const prev = this.get(path)
-      const next = updater(prev)
-      this.set(path, next)
-    })
 }
 
 Record.prototype.ref = function () {
