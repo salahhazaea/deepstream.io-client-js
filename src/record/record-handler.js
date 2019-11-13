@@ -145,7 +145,7 @@ RecordHandler.prototype.provide = function (pattern, callback, recursive = false
   }
 }
 
-RecordHandler.prototype.sync = function () {
+RecordHandler.prototype.flush = function () {
   // TODO (perf): Optimize
 
   const pending = []
@@ -153,8 +153,25 @@ RecordHandler.prototype.sync = function () {
     pending.push(new Promise(resolve => rec.once('ready', resolve)))
   }
 
-  const syncPromise = Promise
-    .all(pending)
+  const flushPromise = Promise.all(pending)
+
+  const timeoutPromise = new Promise((resolve, reject) => {
+    setTimeout(() => {
+      reject(new Error('flush timeout'))
+    }, this._options.flushTimeout || 60e3)
+  })
+
+  return Promise.race([
+    flushPromise,
+    timeoutPromise
+  ])
+}
+
+RecordHandler.prototype.sync = function () {
+  // TODO (perf): Optimize
+
+  const syncPromise = this
+    .flush()
     .then(() => new Promise(resolve => {
       const token = this._syncCounter.toString(16)
       this._syncCounter = (this._syncCounter + 1) & 2147483647
