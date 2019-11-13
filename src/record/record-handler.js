@@ -187,11 +187,14 @@ RecordHandler.prototype.sync = function () {
   const token = this._syncCounter.toString(16)
   this._syncSend.add(token)
   this._syncFlush()
-  return new Promise(resolve => {
-    this._syncEmitter.once(token, resolve)
-    setTimeout(() => {
+  return new Promise((resolve, reject) => {
+    const timeout = setTimeout(() => {
       reject(new Error('sync timeout'))
     }, this._options.syncTimout || 60e3)
+    this._syncEmitter.once(token, () => {
+      clearTimeout(timeout)
+      resolve()
+    })
   })
 }
 
