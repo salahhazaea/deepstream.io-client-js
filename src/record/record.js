@@ -234,8 +234,10 @@ Record.prototype.update = function (pathOrUpdater, updaterOrNil) {
     const prev = this.get(path)
     const next = updater(prev)
     this.set(path, next)
+    this.unref()
   }
 
+  this.ref()
   if (this.isReady) {
     doUpdate()
   } else {
