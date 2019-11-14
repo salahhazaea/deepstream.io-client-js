@@ -231,9 +231,13 @@ Record.prototype.update = function (pathOrUpdater, updaterOrNil) {
   }
 
   const doUpdate = () => {
-    const prev = this.get(path)
-    const next = updater(prev)
-    this.set(path, next)
+    try {
+      const prev = this.get(path)
+      const next = updater(prev)
+      this.set(path, next)
+    } catch (err) {
+      this._client._$onError(C.TOPIC.RECORD, C.EVENT.UPDATE_ERROR, err)
+    }
     this.unref()
   }
 
