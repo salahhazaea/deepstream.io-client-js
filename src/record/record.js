@@ -287,11 +287,11 @@ Record.prototype._onSubscriptionHasProvider = function (data) {
 }
 
 Record.prototype._onReady = function () {
-  this.unref()
   this._patchQueue = null
   this._pending.delete(this)
   this.emit('ready')
   this.emit('update', this)
+  this.unref()
 }
 
 Record.prototype._onUpdate = function ([name, version, data]) {
