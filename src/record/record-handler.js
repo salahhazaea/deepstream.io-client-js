@@ -153,7 +153,11 @@ RecordHandler.prototype.flush = function () {
     pending.push(new Promise(resolve => rec.once('ready', resolve)))
   }
 
-  const flushPromise = Promise.all(pending)
+  const flushPromise = Promise
+    .all(pending)
+    .then(() => {
+      this._connection.flush()
+    })
 
   const timeoutPromise = new Promise((resolve, reject) => {
     setTimeout(() => {

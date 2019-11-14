@@ -88,6 +88,10 @@ Connection.prototype.send = function (message) {
   }
 }
 
+Connection.prototype.flush = function () {
+  this._sendQueuedMessages()
+}
+
 Connection.prototype.close = function () {
   this._sendQueuedMessages()
   this._reset()
