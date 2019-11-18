@@ -52,10 +52,6 @@ const RecordHandler = function (options, connection, client) {
       if (now - timestamp > 60e3) {
         const err = new Error('readTimeout')
         this._client._$onError(C.TOPIC.RECORD, C.EVENT.TIMEOUT, err, [ rec.name, rec.state ])
-
-        // TODO (fix): This is a failover. Rather than deadlocking try to recover using e.g.
-        // cached value.
-        rec._onUpdate([ rec.name ])
       }
     }
 
