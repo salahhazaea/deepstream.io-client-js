@@ -14,7 +14,6 @@ const Record = function (handler) {
   this._cache = handler._cache
   this._client = handler._client
   this._connection = handler._connection
-  this._onTimeout = this._onTimeout.bind(this)
 
   this._reset()
 }
@@ -35,16 +34,7 @@ Record.prototype._reset = function () {
   this._stale = null
   this._dirty = true
   this._patchQueue = []
-  this._readTimeout = null
   this.off()
-}
-
-Record.prototype._onTimeout = function () {
-  const err = new Error('readTimeout')
-  this._client._$onError(C.TOPIC.RECORD, C.EVENT.TIMEOUT, err, [ this.name, this.state ])
-
-  // NOTE: This is a failover and should never happen.
-  this._onUpdate([ this.name ])
 }
 
 Record.prototype._$construct = function (name) {
@@ -58,7 +48,7 @@ Record.prototype._$construct = function (name) {
 
   this.name = name
 
-  this._pending.add(this)
+  this._pending.set(this, Date.now())
   this.ref()
   this._cache.get(this.name, (err, entry) => {
     if (err && !err.notFound) {
@@ -79,7 +69,6 @@ Record.prototype._$construct = function (name) {
     }
   })
   this._stats.reads += 1
-  this._readTimeout = setTimeout(this._onTimeout, 60e3)
 
   return this
 }
@@ -300,8 +289,6 @@ Record.prototype._onSubscriptionHasProvider = function (data) {
 }
 
 Record.prototype._onReady = function () {
-  clearTimeout(this._readTimeout)
-  this._readTimeout = null
   this._patchQueue = null
   this._pending.delete(this)
   this.emit('ready')

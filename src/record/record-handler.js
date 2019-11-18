@@ -21,7 +21,7 @@ const RecordHandler = function (options, connection, client) {
   this._listeners = new Map()
   this._pool = []
   this._prune = new Map()
-  this._pending = new Set()
+  this._pending = new Map()
 
   this._syncEmitter = new EventEmitter()
   this._syncCounter = 0
@@ -47,6 +47,13 @@ const RecordHandler = function (options, connection, client) {
 
   const prune = () => {
     const now = Date.now()
+
+    for (const [ rec, timestamp ] of this._pending) {
+      if (now - timestamp > 60e3) {
+        const err = new Error('readTimeout')
+        this._client._$onError(C.TOPIC.RECORD, C.EVENT.TIMEOUT, err, [ rec.name, rec.state ])
+      }
+    }
 
     this._cache.flush(err => {
       if (err) {
@@ -149,7 +156,7 @@ RecordHandler.prototype.sync = function () {
   // TODO (perf): Optimize
 
   const pending = []
-  for (const rec of this._pending) {
+  for (const rec of this._pending.keys()) {
     pending.push(new Promise(resolve => rec.once('ready', resolve)))
   }
 
