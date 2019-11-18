@@ -164,7 +164,9 @@ RecordHandler.prototype.sync = function () {
     pending.push(new Promise(resolve => rec.once('ready', resolve)))
   }
 
-  return Promise
+  let timeout
+
+  const syncPromise = Promise
     .all(pending)
     .then(() => new Promise(resolve => {
       const token = this._syncCounter.toString(16)
@@ -174,7 +176,21 @@ RecordHandler.prototype.sync = function () {
       if (this.connected) {
         this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.SYNC, [ token ])
       }
+
+      clearTimeout(timeout)
     }))
+
+  // TODO (fix): Remove timeout.
+  const timeoutPromise = new Promise((resolve, reject) => {
+    timeout = setTimeout(() => {
+      reject(new Error('sync timeout'))
+    }, 120e3)
+  })
+
+  return Promise.race([
+    syncPromise,
+    timeoutPromise
+  ])
 }
 
 RecordHandler.prototype.get = function (name, pathOrState, stateOrNil) {
