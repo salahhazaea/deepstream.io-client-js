@@ -159,17 +159,17 @@ RecordHandler.prototype.provide = function (pattern, callback, recursive = false
 RecordHandler.prototype.sync = function () {
   // TODO (perf): Optimize
 
+  const pending = []
+  for (const rec of this._pending.keys()) {
+    pending.push(new Promise(resolve => rec.once('ready', resolve)))
+  }
+
   return new Promise(resolve => {
     const timeout = setTimeout(() => {
       const err = new Error('syncTimeout')
       this._client._$onError(C.TOPIC.RECORD, C.EVENT.TIMEOUT, err)
       resolve()
     }, 30e3)
-
-    const pending = []
-    for (const rec of this._pending.keys()) {
-      pending.push(new Promise(resolve => rec.once('ready', resolve)))
-    }
 
     return Promise
       .all(pending)
