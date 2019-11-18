@@ -42,6 +42,9 @@ Record.prototype._reset = function () {
 Record.prototype._onTimeout = function () {
   const err = new Error('readTimeout')
   this._client._$onError(C.TOPIC.RECORD, C.EVENT.TIMEOUT, err, [ this.name ])
+
+  // NOTE: This is a failover and should never happen.
+  this._onUpdate([ this.name ])
 }
 
 Record.prototype._$construct = function (name) {
