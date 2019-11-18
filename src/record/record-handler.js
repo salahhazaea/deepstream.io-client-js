@@ -186,7 +186,6 @@ RecordHandler.prototype.sync = function () {
           this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.SYNC, [ token ])
         }
       })
-
   })
 }
 
