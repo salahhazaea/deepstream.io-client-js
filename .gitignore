@@ -31,3 +31,4 @@ test-page-webpack/dist
 
 *.iml
 .idea
+.vscode
