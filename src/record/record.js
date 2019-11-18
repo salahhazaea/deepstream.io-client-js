@@ -36,6 +36,7 @@ Record.prototype._reset = function () {
   this._dirty = true
   this._patchQueue = []
   this._readTimeout = null
+  this.off()
 }
 
 Record.prototype._onTimeout = function () {
@@ -94,7 +95,6 @@ Record.prototype._$destroy = function () {
   }
 
   this._reset()
-  this.off()
 
   return this
 }
