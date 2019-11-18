@@ -55,7 +55,7 @@ const RecordHandler = function (options, connection, client) {
 
         // TODO (fix): This is a failover. Rather than deadlocking try to recover using e.g.
         // cached value.
-        rec.update([ rec.name ])
+        rec._onUpdate([ rec.name ])
       }
     }
 
