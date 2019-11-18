@@ -172,12 +172,14 @@ RecordHandler.prototype.sync = function () {
       const token = this._syncCounter.toString(16)
       this._syncCounter = (this._syncCounter + 1) & 2147483647
 
-      this._syncEmitter.once(token, resolve)
+      this._syncEmitter.once(token, () => {
+        clearTimeout(timeout)
+        resolve()
+      })
+
       if (this.connected) {
         this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.SYNC, [ token ])
       }
-
-      clearTimeout(timeout)
     }))
 
   // TODO (fix): Remove timeout.
