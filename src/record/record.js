@@ -32,7 +32,6 @@ Record.prototype._reset = function () {
   this.usages = 0
   this.provided = false
 
-  this._loading = true
   this._stale = null
   this._dirty = true
   this._patchQueue = []
@@ -74,7 +73,6 @@ Record.prototype._$construct = function (name) {
       this.emit('update', this)
     }
 
-    this._loading = false
     if (this.connected) {
       this._read()
     }
@@ -410,10 +408,6 @@ Record.prototype._read = function () {
 }
 
 Record.prototype._$handleConnectionStateChange = function () {
-  if (this._loading) {
-    return
-  }
-
   if (this.connected) {
     this._read()
   } else {
