@@ -332,19 +332,19 @@ RecordHandler.prototype._$handle = function (message) {
 }
 
 RecordHandler.prototype._handleConnectionStateChange = function (connected) {
-  if (this.connected) {
-    // TODO (fix): This should wait until all records are ready.
-    for (const token of this._syncEmitter.eventNames()) {
-      this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.SYNC, [ token ])
-    }
-  }
-
   for (const record of this._records.values()) {
     record._$handleConnectionStateChange(connected)
   }
 
   for (const listener of this._listeners.values()) {
     listener._$handleConnectionStateChange(connected)
+  }
+
+  if (this.connected) {
+    // TODO (fix): This should wait until all records are ready.
+    for (const token of this._syncEmitter.eventNames()) {
+      this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.SYNC, [ token ])
+    }
   }
 }
 
