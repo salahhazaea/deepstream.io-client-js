@@ -159,40 +159,35 @@ RecordHandler.prototype.provide = function (pattern, callback, recursive = false
 RecordHandler.prototype.sync = function () {
   // TODO (perf): Optimize
 
-  const pending = []
-  for (const rec of this._pending.keys()) {
-    pending.push(new Promise(resolve => rec.once('ready', resolve)))
-  }
+  return new Promise(resolve => {
+    const timeout = setTimeout(() => {
+      const err = new Error('syncTimeout')
+      this._client._$onError(C.TOPIC.RECORD, C.EVENT.TIMEOUT, err)
+      resolve()
+    }, 30e3)
 
-  let timeout
+    const pending = []
+    for (const rec of this._pending.keys()) {
+      pending.push(new Promise(resolve => rec.once('ready', resolve)))
+    }
 
-  const syncPromise = Promise
-    .all(pending)
-    .then(() => new Promise(resolve => {
-      const token = this._syncCounter.toString(16)
-      this._syncCounter = (this._syncCounter + 1) & 2147483647
+    return Promise
+      .all(pending)
+      .then(() => {
+        const token = this._syncCounter.toString(16)
+        this._syncCounter = (this._syncCounter + 1) & 2147483647
 
-      this._syncEmitter.once(token, () => {
-        clearTimeout(timeout)
-        resolve()
+        this._syncEmitter.once(token, () => {
+          clearTimeout(timeout)
+          resolve()
+        })
+
+        if (this.connected) {
+          this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.SYNC, [ token ])
+        }
       })
 
-      if (this.connected) {
-        this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.SYNC, [ token ])
-      }
-    }))
-
-  // TODO (fix): Remove timeout.
-  const timeoutPromise = new Promise((resolve, reject) => {
-    timeout = setTimeout(() => {
-      reject(new Error('sync timeout'))
-    }, 120e3)
   })
-
-  return Promise.race([
-    syncPromise,
-    timeoutPromise
-  ])
 }
 
 RecordHandler.prototype.get = function (name, pathOrState, stateOrNil) {
