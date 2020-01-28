@@ -49,9 +49,8 @@ const RecordHandler = function (options, connection, client) {
     const now = Date.now()
 
     for (const [ rec, timestamp ] of this._pending) {
-      if (now - timestamp > 60e3) {
-        const err = new Error('readTimeout')
-        this._client._$onError(C.TOPIC.RECORD, C.EVENT.TIMEOUT, err, [ rec.name, rec.state ])
+      if (now - timestamp > 120e3) {
+        rec._$onTimeout()
       }
     }
 

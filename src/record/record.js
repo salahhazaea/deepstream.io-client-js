@@ -271,6 +271,18 @@ Record.prototype.acquire = Record.prototype.ref
 Record.prototype.discard = Record.prototype.unref
 Record.prototype.destroy = Record.prototype.unref
 
+Record.prototype._$onTimeout = function () {
+  if (this._timeout) {
+    return
+  }
+  const err = new Error('readTimeout')
+  this._client._$onError(C.TOPIC.RECORD, C.EVENT.TIMEOUT, err, [ rec.name, rec.state ])
+  this._timeout = true
+
+  // TODO(fix): Is this the best we can do?
+  this._onReady()
+}
+
 Record.prototype._$onMessage = function (message) {
   if (message.action === C.ACTIONS.UPDATE) {
     this._onUpdate(message.data)
