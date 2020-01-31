@@ -31,6 +31,7 @@ Record.prototype._reset = function () {
   this.usages = 0
   this.provided = false
 
+  this._timeout = false
   this._stale = null
   this._dirty = true
   this._patchQueue = []
