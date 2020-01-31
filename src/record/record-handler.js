@@ -25,6 +25,7 @@ const RecordHandler = function (options, connection, client) {
 
   this._syncEmitter = new EventEmitter()
   this._syncCounter = 0
+  this._readTimeout = this._options.readTimeout || 120e3
 
   this._stats = {
     reads: 0,
@@ -49,7 +50,7 @@ const RecordHandler = function (options, connection, client) {
     const now = Date.now()
 
     for (const [ rec, timestamp ] of this._pending) {
-      if (now - timestamp > 120e3) {
+      if (now - timestamp > this._readTimeout) {
         rec._$onTimeout()
       }
     }
