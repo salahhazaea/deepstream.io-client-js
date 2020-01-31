@@ -280,7 +280,9 @@ Record.prototype._$onTimeout = function () {
   this._timeout = true
 
   // TODO(fix): Is this the best we can do?
-  this._onReady()
+  if (this.version) {
+    this._onReady()
+  }
 }
 
 Record.prototype._$onMessage = function (message) {
