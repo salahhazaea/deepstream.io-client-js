@@ -283,6 +283,8 @@ Record.prototype._$onTimeout = function () {
   // TODO(fix): Is this the best we can do?
   if (this.version) {
     this._onReady()
+  } else {
+    this._pending.delete(this)
   }
 }
 
