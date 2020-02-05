@@ -277,7 +277,7 @@ Record.prototype._$onTimeout = function () {
     return
   }
   const err = new Error('readTimeout')
-  this._client._$onError(C.TOPIC.RECORD, C.EVENT.TIMEOUT, err, [ rec.name, rec.state ])
+  this._client._$onError(C.TOPIC.RECORD, C.EVENT.TIMEOUT, err, [ this.name, this.state ])
   this._timeout = true
 
   // TODO(fix): Is this the best we can do?
