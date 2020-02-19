@@ -90,6 +90,7 @@ Record.prototype._$destroy = function () {
 }
 
 Object.defineProperty(Record.prototype, 'state', {
+  enumerable: true,
   get: function state () {
     if (!this.data) {
       return Record.STATE.VOID
