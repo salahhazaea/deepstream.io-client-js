@@ -291,20 +291,16 @@ RecordHandler.prototype.observe2 = function (name) {
       version: '0-00000000000000',
       data: jsonPath.EMPTY,
       state: C.RECORD_STATE.SERVER,
-      // TODO (fix): Remove
-      name,
-      connected: true, // This is not true...
-      empty: true,
-      ready: true,
-      stale: false,
-      isReady: true,
-      hasProvider: false
     }))
   }
 
   return Observable
     .create(o => {
-      const onUpdate = record => o.next(record)
+      const onUpdate = ({ version, data, state }) => o.next({
+        version,
+        data,
+        state
+      })
       const record = this.getRecord(name)
       if (record.version) {
         onUpdate(record)
