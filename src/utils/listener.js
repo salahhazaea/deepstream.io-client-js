@@ -3,7 +3,7 @@ const xuid = require('xuid')
 const { Observable } = require('rxjs')
 const lz = require('@nxtedition/lz-string')
 
-const Listener = function (topic, pattern, callback, handler, recursive) {
+const Listener = function (topic, pattern, callback, handler) {
   this._topic = topic
   this._pattern = pattern
   this._callback = callback
@@ -13,8 +13,6 @@ const Listener = function (topic, pattern, callback, handler, recursive) {
   this._connection = this._handler._connection
   this._lz = this._handler._lz
   this._providers = new Map()
-
-  this.recursive = recursive
 
   this._$handleConnectionStateChange()
 }
@@ -44,15 +42,22 @@ Listener.prototype._$onMessage = function (message) {
     }
 
     provider = {
-      value$: null,
+      name,
+      value$: Observable.empty(),
       version: null,
       body: null,
       ready: false,
       patternSubscription: null,
       valueSubscription: null
     }
-    provider.dispose = () => {
-      provider.value$ = null
+    provider.dispose = (err) => {
+      if (err) {
+        this._client._$onError(this._topic, C.EVENT.LISTENER_ERROR, err)
+      }
+      if (provider.value$) {
+        this._connection.sendMsg(this._topic, C.ACTIONS.LISTEN_REJECT, [ this._pattern, provider.name ])
+        provider.value$ = null
+      }
       if (provider.patternSubscription) {
         provider.patternSubscription.unsubscribe()
         provider.patternSubscription = null
@@ -61,37 +66,25 @@ Listener.prototype._$onMessage = function (message) {
         provider.valueSubscription.unsubscribe()
         provider.valueSubscription = null
       }
-      this._providers.delete(name)
+      this._providers.delete(provider.name)
     }
     provider.observer = {
       next: value => {
-        if (value == null) {
-          if (provider.valueSubscription) {
-            provider.valueSubscription.unsubscribe()
-            provider.valueSubscription = null
-          }
-
-          provider.value$ = null
-
-          this._connection.sendMsg(this._topic, C.ACTIONS.LISTEN_REJECT, [ this._pattern, name ])
-          return
-        }
-
         if (typeof value !== 'object') {
           const err = new Error('invalid value')
-          this._client._$onError(this._topic, C.EVENT.USER_ERROR, err, [ this._pattern, name, value ])
+          this._client._$onError(this._topic, C.EVENT.USER_ERROR, err, [ this._pattern, provider.name, value ])
           return
         }
 
         if (this._topic === C.TOPIC.EVENT) {
-          this._handler.emit(name, value)
+          this._handler.emit(provider.name, value)
         } else if (this._topic === C.TOPIC.RECORD) {
           // TODO (perf): Check for equality before compression.
           let body
           try {
             body = lz.compressToUTF16(JSON.stringify(value))
           } catch (err) {
-            this._client._$onError(this._topic, C.EVENT.LZ_ERROR, err, [ this._pattern, name, value ])
+            this._client._$onError(this._topic, C.EVENT.LZ_ERROR, err, [ this._pattern, provider.name, value ])
             return
           }
 
@@ -99,11 +92,11 @@ Listener.prototype._$onMessage = function (message) {
             provider.version = `INF-${xuid()}-${this._client.user || ''}`
             provider.body = body
             provider.ready = true
-            this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.UPDATE, [ name, provider.version, provider.body ])
+            this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.UPDATE, [ provider.name, provider.version, provider.body ])
 
             this._handler._$handle({
               action: C.ACTIONS.UPDATE,
-              data: [ name, provider.version, body ]
+              data: [ provider.name, provider.version, body ]
             })
 
             // TODO (perf): Let client handle its own has provider state instead of having the server
@@ -111,77 +104,59 @@ Listener.prototype._$onMessage = function (message) {
           } else if (!provider.ready) {
             provider.ready = true
             // TODO (perf): Sending body here should be unnecessary.
-            this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.UPDATE, [ name, provider.version, provider.body ])
+            this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.UPDATE, [ provider.name, provider.version, provider.body ])
 
             this._handler._$handle({
               action: C.ACTIONS.UPDATE,
-              data: [ name, provider.version, body ]
+              data: [ provider.name, provider.version, body ]
             })
           }
         }
       },
       error: err => {
         provider.value$ = null
-        this._connection.sendMsg(this._topic, C.ACTIONS.LISTEN_REJECT, [ this._pattern, name ])
+        if (provider.valueSubscription) {
+          provider.valueSubscription.unsubscribe()
+          provider.valueSubscription = null
+        }
+
+        this._connection.sendMsg(this._topic, C.ACTIONS.LISTEN_REJECT, [ this._pattern, provider.name ])
         this._client._$onError(this._topic, C.EVENT.LISTENER_ERROR, err)
       }
     }
-    provider.patternSubscription = Observable
-      .defer(() => {
-        const result = this._callback(name)
-        if (result && result.then) {
-          // TODO (fix): Deprecation warning
-        }
-        return Promise.resolve(result)
-      })
-      // recursive=false: Observable<T>|value|null
-      // recursive=true: Observable< Observable<T>|value|null >
-      .map(value => value == null || value.subscribe ? value : Observable.of(value))
-      // recursive=false: Observable<T|value>|null
-      // recursive=true: Observable< Observable<T>|value|null >
-      .switchMap(value$ => this.recursive ? value$ : Observable.of(value$))
-      // recursive=false: Observable<T|value|null>
-      // recursive=true: Observable<T>|value|null
-      .map(value$ => value$ == null || value$.subscribe ? value$ : Observable.of(value$))
-      // Observable<T|value>|null
+    provider.patternSubscription = this._callback(provider.name)
       .subscribe({
         next: value$ => {
-          if (value$) {
-            if (!provider.value$) {
-              this._connection.sendMsg(this._topic, C.ACTIONS.LISTEN_ACCEPT, [ this._pattern, name ])
-            }
-
-            if (provider.valueSubscription) {
-              provider.valueSubscription.unsubscribe()
-              provider.valueSubscription = value$.subscribe(provider.observer)
-            }
-          } else {
-            if (provider.value$) {
-              this._connection.sendMsg(this._topic, C.ACTIONS.LISTEN_REJECT, [ this._pattern, name ])
-            }
-
-            if (provider.valueSubscription) {
-              provider.valueSubscription.unsubscribe()
-              provider.valueSubscription = null
-            }
+          if (!value$) {
+            value$ = null
+          } else if (typeof value$.subscribe !== 'function') {
+            value$ = Observable.of(value$)
           }
+
+          if (value$ === provider.value$) {
+            return
+          }
+
+          if (Boolean(value) !== Boolean(provider.value$)) {
+            this._connection.sendMsg(this._topic, value$ ? C.ACTIONS.LISTEN_ACCEPT : C.ACTIONS.LISTEN_REJECT, [ this._pattern, provider.name ])
+          }
+
           provider.value$ = value$
+          if (provider.valueSubscription) {
+            provider.valueSubscription.unsubscribe()
+            provider.valueSubscription = value$ ? value$.subscribe(provider.observer) : value$
+          }
         },
         error: err => {
-          provider.dispose()
-          this._connection.sendMsg(this._topic, C.ACTIONS.LISTEN_REJECT, [ this._pattern, name ])
-          this._client._$onError(this._topic, C.EVENT.LISTENER_ERROR, err)
+          provider.dispose(err)
         }
       })
 
-    this._providers.set(name, provider)
+    this._providers.set(provider.name, provider)
   } else if (message.action === C.ACTIONS.LISTEN_ACCEPT) {
     if (!provider || !provider.value$) {
-      this._connection.sendMsg(this._topic, C.ACTIONS.LISTEN_REJECT, [ this._pattern, name ])
-      return
-    }
-
-    if (!provider.valueSubscription) {
+      this._connection.sendMsg(this._topic, C.ACTIONS.LISTEN_REJECT, [ this._pattern, provider.name ])
+    } else if (!provider.valueSubscription) {
       const [ version, body ] = message.data.slice(2)
       provider.ready = false
       provider.version = version
