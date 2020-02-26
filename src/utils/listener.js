@@ -117,7 +117,8 @@ Listener.prototype._$onMessage = function (message) {
         this._client._$onError(this._topic, C.EVENT.LISTENER_ERROR, err)
       }
     }
-    provider.patternSubscription = this._callback(provider.name)
+    const provider$ = this._callback(provider.name)
+    provider.patternSubscription = provider$ && provider$
       .subscribe({
         next: value$ => {
           if (!value$) {
