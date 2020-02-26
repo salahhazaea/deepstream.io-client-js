@@ -51,13 +51,6 @@ Listener.prototype._$onMessage = function (message) {
       valueSubscription: null
     }
     provider.dispose = (err) => {
-      if (err) {
-        this._client._$onError(this._topic, C.EVENT.LISTENER_ERROR, err)
-      }
-      if (provider.value$) {
-        this._connection.sendMsg(this._topic, C.ACTIONS.LISTEN_REJECT, [ this._pattern, provider.name ])
-        provider.value$ = null
-      }
       if (provider.patternSubscription) {
         provider.patternSubscription.unsubscribe()
         provider.patternSubscription = null
@@ -148,6 +141,14 @@ Listener.prototype._$onMessage = function (message) {
           }
         },
         error: err => {
+          if (err) {
+            this._client._$onError(this._topic, C.EVENT.LISTENER_ERROR, err)
+          }
+          if (provider.value$) {
+            this._connection.sendMsg(this._topic, C.ACTIONS.LISTEN_REJECT, [ this._pattern, provider.name ])
+            provider.value$ = null
+          }
+
           provider.dispose(err)
         }
       })
