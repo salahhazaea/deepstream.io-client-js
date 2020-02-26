@@ -130,7 +130,7 @@ Listener.prototype._$onMessage = function (message) {
             return
           }
 
-          if (Boolean(value) !== Boolean(provider.value$)) {
+          if (Boolean(value$) !== Boolean(provider.value$)) {
             this._connection.sendMsg(this._topic, value$ ? C.ACTIONS.LISTEN_ACCEPT : C.ACTIONS.LISTEN_REJECT, [ this._pattern, provider.name ])
           }
 
