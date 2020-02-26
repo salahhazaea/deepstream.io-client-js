@@ -43,7 +43,7 @@ Listener.prototype._$onMessage = function (message) {
 
     provider = {
       name,
-      value$: Observable.empty(),
+      value$: null,
       version: null,
       body: null,
       ready: false,
