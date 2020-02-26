@@ -50,7 +50,7 @@ Listener.prototype._$onMessage = function (message) {
       patternSubscription: null,
       valueSubscription: null
     }
-    provider.dispose = (err) => {
+    provider.dispose = () => {
       if (provider.patternSubscription) {
         provider.patternSubscription.unsubscribe()
         provider.patternSubscription = null
