@@ -119,7 +119,7 @@ Listener.prototype._$onMessage = function (message) {
       }
     }
 
-    const provider$ = this._callback(provider.name)
+    let provider$ = this._callback(provider.name)
     if (!this.recursive) {
       provider$ = Observable.of(provider$)
     }
