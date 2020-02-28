@@ -3,7 +3,7 @@ const xuid = require('xuid')
 const { Observable } = require('rxjs')
 const lz = require('@nxtedition/lz-string')
 
-const Listener = function (topic, pattern, callback, handler) {
+const Listener = function (topic, pattern, callback, handler, recursive) {
   this._topic = topic
   this._pattern = pattern
   this._callback = callback
@@ -13,6 +13,7 @@ const Listener = function (topic, pattern, callback, handler) {
   this._connection = this._handler._connection
   this._lz = this._handler._lz
   this._providers = new Map()
+  this.recursive = recursive
 
   this._$handleConnectionStateChange()
 }
@@ -117,14 +118,17 @@ Listener.prototype._$onMessage = function (message) {
         this._client._$onError(this._topic, C.EVENT.LISTENER_ERROR, err)
       }
     }
+
     const provider$ = this._callback(provider.name)
-    provider.patternSubscription = provider$ && provider$
+    if (!this.recursive) {
+      provider$ = Observable.of(provider$)
+    }
+
+    provider.patternSubscription = provider$
       .subscribe({
         next: value$ => {
           if (!value$) {
             value$ = null
-          } else if (typeof value$.subscribe !== 'function') {
-            value$ = Observable.of(value$)
           }
 
           if (value$ === provider.value$) {
