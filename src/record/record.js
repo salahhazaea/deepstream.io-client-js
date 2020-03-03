@@ -341,7 +341,9 @@ Record.prototype._onUpdate = function ([name, version, data]) {
   }
 
   if (!version || !data) {
-    this._client._$onError(C.TOPIC.RECORD, C.EVENT.UPDATE_ERROR, 'invalid update', [ this.name, this.version, this.state, version, data ])
+    // This is not an error since a full broadcast UPDATE might have arrived before
+    // a partial stale UPDATE.
+    // TODO: Refactor logic and add some guards for possible failure cases.
     return
   }
 
