@@ -25,7 +25,7 @@ EventEmitter(Record.prototype)
 Record.prototype._reset = function () {
   this.name = null
   this.version = null
-  this.data = null
+  this.data = jsonPath.EMPTY
 
   // TODO (fix): Make private
   this.usages = 0
@@ -92,7 +92,7 @@ Record.prototype._$destroy = function () {
 Object.defineProperty(Record.prototype, 'state', {
   enumerable: true,
   get: function state () {
-    if (!this.data) {
+    if (!this.version) {
       return Record.STATE.VOID
     }
 
@@ -122,7 +122,7 @@ Object.defineProperty(Record.prototype, 'connected', {
 // TODO (fix): Remove
 Object.defineProperty(Record.prototype, 'empty', {
   get: function empty () {
-    return !this.data || Object.keys(this.data).length === 0
+    return Object.keys(this.data).length === 0
   }
 })
 
@@ -136,7 +136,7 @@ Object.defineProperty(Record.prototype, 'ready', {
 // TODO (fix): Remove
 Object.defineProperty(Record.prototype, 'stale', {
   get: function ready () {
-    return this.data == null
+    return !this.version
   }
 })
 
