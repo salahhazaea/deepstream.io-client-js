@@ -37,6 +37,7 @@ module.exports.TOPIC.RPC = 'P'
 module.exports.TOPIC.PRIVATE = 'PRIVATE/'
 
 module.exports.EVENT = {}
+module.exports.EVENT.UNEXPECTED_STATE = 'UNEXPECTED_STATE'
 module.exports.EVENT.CONNECTION_ERROR = 'connectionError'
 module.exports.EVENT.CONNECTION_STATE_CHANGED = 'connectionStateChanged'
 module.exports.EVENT.MAX_RECONNECTION_ATTEMPTS_REACHED = 'MAX_RECONNECTION_ATTEMPTS_REACHED'

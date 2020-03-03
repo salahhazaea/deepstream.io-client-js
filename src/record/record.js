@@ -54,7 +54,7 @@ Record.prototype._$construct = function (name) {
   this._cache.get(this.name, (err, entry) => {
     if (err && !err.notFound) {
       this._stats.misses += 1
-      this._client._$onError(C.TOPIC.RECORD, C.EVENT.CACHE_ERROR, err, [ this.name ])
+      this._client._$onError(C.TOPIC.RECORD, C.EVENT.CACHE_ERROR, err, [ this.name, this.version, this.state ])
     } else if (entry && !this.version) {
       this._stats.hits += 1
       const [ version, data ] = entry
@@ -169,7 +169,7 @@ Record.prototype._makeVersion = function (start) {
 
 Record.prototype.set = function (pathOrData, dataOrNil) {
   if (this.usages === 0 || this.provided) {
-    this._client._$onError(C.TOPIC.RECORD, C.EVENT.UPDATE_ERROR, new Error('cannot set record'))
+    this._client._$onError(C.TOPIC.RECORD, C.EVENT.UPDATE_ERROR, new Error('cannot set record'), [ this.name, this.version, this.state ])
     return Promise.resolve()
   }
 
@@ -236,7 +236,7 @@ Record.prototype.update = function (pathOrUpdater, updaterOrNil) {
       const next = updater(prev)
       this.set(path, next)
     } catch (err) {
-      this._client._$onError(C.TOPIC.RECORD, C.EVENT.UPDATE_ERROR, err)
+      this._client._$onError(C.TOPIC.RECORD, C.EVENT.UPDATE_ERROR, err, [ this.name, this.version, this.state ])
     }
     this.unref()
   }
@@ -277,8 +277,7 @@ Record.prototype._$onTimeout = function () {
   if (this._timeout) {
     return
   }
-  const err = new Error('readTimeout')
-  this._client._$onError(C.TOPIC.RECORD, C.EVENT.TIMEOUT, err, [ this.name, this.state ])
+  this._client._$onError(C.TOPIC.RECORD, C.EVENT.TIMEOUT, new Error('read timeout'), [ this.name, this.version, this.state ])
   this._timeout = true
 
   // TODO(fix): Is this the best we can do?
@@ -301,6 +300,10 @@ Record.prototype._onSubscriptionHasProvider = function (data) {
   const provided = messageParser.convertTyped(data[1], this._client)
 
   if (this.connected && this.provided !== provided) {
+    if (!this.version) {
+      this._client._$onError(C.TOPIC.RECORD, C.EVENT.UNEXPECTED_STATE, new Error('missing version'), [ this.name, this.version, this.state ])
+    }
+
     this.provided = provided
     this.emit('update', this)
   }
@@ -339,7 +342,7 @@ Record.prototype._onUpdate = function ([name, version, data]) {
   try {
     data = typeof data === 'string' ? JSON.parse(lz.decompressFromUTF16(data)) : data
   } catch (err) {
-    this._client._$onError(C.TOPIC.RECORD, C.EVENT.LZ_ERROR, err, data)
+    this._client._$onError(C.TOPIC.RECORD, C.EVENT.LZ_ERROR, err, [ this.name, this.version, this.state, data ])
     return
   }
 
@@ -389,7 +392,7 @@ Record.prototype._sendUpdate = function () {
   try {
     body = lz.compressToUTF16(JSON.stringify(this.data))
   } catch (err) {
-    this._client._$onError(C.TOPIC.RECORD, C.EVENT.LZ_ERROR, err)
+    this._client._$onError(C.TOPIC.RECORD, C.EVENT.LZ_ERROR, err, [ this.name, this.version, this.state ])
     return
   }
 
