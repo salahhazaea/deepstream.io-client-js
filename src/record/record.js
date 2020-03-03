@@ -29,8 +29,8 @@ Record.prototype._reset = function () {
 
   // TODO (fix): Make private
   this.usages = 0
-  this.provided = false
 
+  this._provided = false
   this._timeout = false
   this._stale = null
   this._dirty = true
@@ -134,6 +134,13 @@ Object.defineProperty(Record.prototype, 'ready', {
 })
 
 // TODO (fix): Remove
+Object.defineProperty(Record.prototype, 'provided', {
+  get: function provided () {
+    return Boolean(this._provided && this.version)
+  }
+})
+
+// TODO (fix): Remove
 Object.defineProperty(Record.prototype, 'stale', {
   get: function ready () {
     return !this.version
@@ -168,7 +175,7 @@ Record.prototype._makeVersion = function (start) {
 }
 
 Record.prototype.set = function (pathOrData, dataOrNil) {
-  if (this.usages === 0 || this.provided) {
+  if (this.usages === 0 || this._provided) {
     this._client._$onError(C.TOPIC.RECORD, C.EVENT.UPDATE_ERROR, new Error('cannot set record'), [ this.name, this.version, this.state ])
     return Promise.resolve()
   }
@@ -215,7 +222,7 @@ Record.prototype.set = function (pathOrData, dataOrNil) {
 }
 
 Record.prototype.update = function (pathOrUpdater, updaterOrNil) {
-  if (this.usages === 0 || this.provided) {
+  if (this.usages === 0 || this._provided) {
     return Promise.resolve()
   }
 
@@ -299,13 +306,11 @@ Record.prototype._$onMessage = function (message) {
 Record.prototype._onSubscriptionHasProvider = function (data) {
   const provided = messageParser.convertTyped(data[1], this._client)
 
-  if (this.connected && this.provided !== provided) {
-    if (!this.version) {
-      this._client._$onError(C.TOPIC.RECORD, C.EVENT.UNEXPECTED_STATE, new Error('missing version'), [ this.name, this.version, this.state ])
+  if (this.connected && this._provided !== provided) {
+    this._provided = provided
+    if (this.version) {
+      this.emit('update', this)
     }
-
-    this.provided = provided
-    this.emit('update', this)
   }
 }
 
@@ -378,7 +383,7 @@ Record.prototype._onUpdate = function ([name, version, data]) {
 Record.prototype._sendUpdate = function () {
   let [ start ] = this.version ? this.version.split('-') : [ '0' ]
 
-  if (start === 'INF' || this.provided) {
+  if (start === 'INF' || this._provided) {
     return
   }
 
@@ -419,7 +424,7 @@ Record.prototype._$handleConnectionStateChange = function () {
   if (this.connected) {
     this._read()
   } else {
-    this.provided = false
+    this._provided = false
   }
 
   this.emit('update', this)
