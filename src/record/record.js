@@ -405,7 +405,7 @@ Record.prototype._sendUpdate = function () {
     this.name,
     nextVersion,
     body,
-    prevVersion
+    prevVersion,
   ])
 
   this.version = nextVersion
