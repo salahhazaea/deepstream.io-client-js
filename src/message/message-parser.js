@@ -1,24 +1,9 @@
 const C = require('../constants/constants')
 
-/**
- * Parses ASCII control character seperated
- * message strings into digestable maps
- *
- * @constructor
- */
 const MessageParser = function () {
   this._actions = this._getActions()
 }
 
-/**
- * Deserializes values created by MessageBuilder.typed to
- * their original format
- *
- * @param {String} value
- *
- * @public
- * @returns {Mixed} original value
- */
 MessageParser.prototype.convertTyped = function (value, client) {
   const type = value.charAt(0)
 
@@ -60,14 +45,6 @@ MessageParser.prototype.convertTyped = function (value, client) {
   return undefined
 }
 
-/**
- * Turns the ACTION:SHORTCODE constants map
- * around to facilitate shortcode lookup
- *
- * @private
- *
- * @returns {Object} actions
- */
 MessageParser.prototype._getActions = function () {
   const actions = {}
 
@@ -78,16 +55,6 @@ MessageParser.prototype._getActions = function () {
   return actions
 }
 
-/**
- * Parses an individual message (as oppnosed to a
- * block of multiple messages as is processed by .parse())
- *
- * @param   {String} message
- *
- * @private
- *
- * @returns {Object} parsedMessage
- */
 MessageParser.prototype.parseMessage = function (message, client, result) {
   const parts = message.split(C.MESSAGE_PART_SEPERATOR)
 
