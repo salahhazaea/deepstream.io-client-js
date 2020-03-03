@@ -179,6 +179,11 @@ Record.prototype.set = function (pathOrData, dataOrNil) {
     return Promise.resolve()
   }
 
+  if (this.version && this.version.startsWith('INF')) {
+    this._client._$onError(C.TOPIC.RECORD, C.EVENT.UPDATE_ERROR, 'cannot set record', [ this.name, this.version, this.state ])
+    return Promise.resolve()
+  }
+
   let path = arguments.length === 1 ? undefined : pathOrData
   let data = arguments.length === 1 ? pathOrData : dataOrNil
 
@@ -222,6 +227,12 @@ Record.prototype.set = function (pathOrData, dataOrNil) {
 
 Record.prototype.update = function (pathOrUpdater, updaterOrNil) {
   if (this.usages === 0 || this._provided) {
+    this._client._$onError(C.TOPIC.RECORD, C.EVENT.UPDATE_ERROR, 'cannot update record', [ this.name, this.version, this.state ])
+    return Promise.resolve()
+  }
+
+  if (this.version && this.version.startsWith('INF')) {
+    this._client._$onError(C.TOPIC.RECORD, C.EVENT.UPDATE_ERROR, 'cannot update record', [ this.name, this.version, this.state ])
     return Promise.resolve()
   }
 
@@ -325,10 +336,13 @@ Record.prototype._onReady = function () {
 
 Record.prototype._onUpdate = function ([name, version, data]) {
   // TODO: Wait for deepstream server upgrade which always includes version
-  // in cached replies:
+  // in cached replies: assert(version)
 
   if (this.version && utils.isSameOrNewer(this.version, version)) {
     if (this._patchQueue) {
+      if (this._patchQueue.length) {
+        this._sendUpdate()
+      }
       this._onReady()
     }
     return
