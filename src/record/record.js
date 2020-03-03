@@ -308,6 +308,8 @@ Record.prototype._onSubscriptionHasProvider = function (data) {
 
   if (this.connected && this._provided !== provided) {
     this._provided = provided
+    // Depending on timing a buffered has SUBSCRIPTION_HAS_PROVIDER message
+    // can arrive the UPDATE message.
     if (this.version) {
       this.emit('update', this)
     }
