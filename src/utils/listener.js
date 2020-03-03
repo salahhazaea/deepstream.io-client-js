@@ -161,7 +161,7 @@ Listener.prototype._$onMessage = function (message) {
     this._providers.set(provider.name, provider)
   } else if (message.action === C.ACTIONS.LISTEN_ACCEPT) {
     if (!provider || !provider.value$) {
-      this._connection.sendMsg(this._topic, C.ACTIONS.LISTEN_REJECT, [ this._pattern, provider.name ])
+      this._connection.sendMsg(this._topic, C.ACTIONS.LISTEN_REJECT, [ this._pattern, name ])
     } else if (!provider.valueSubscription) {
       const [ version, body ] = message.data.slice(2)
       provider.ready = false
