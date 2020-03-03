@@ -338,14 +338,9 @@ Record.prototype._onUpdate = function ([name, version, data]) {
   // TODO: Wait for deepstream server upgrade which always includes version
   // in cached replies: assert(version)
 
-  if (this.version && utils.isSameOrNewer(this.version, version)) {
-    if (this._patchQueue) {
-      if (this._patchQueue.length) {
-        this._sendUpdate()
-      }
-      this._onReady()
-    }
-    return
+  if (utils.isSameOrNewer(this.version, version)) {
+    version = this.version
+    data = this.data
   }
 
   if (!version || !data) {
