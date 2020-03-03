@@ -32,6 +32,7 @@ Record.prototype._reset = function () {
 
   this._provided = false
   this._timeout = false
+  this._stale = null
   this._dirty = true
   this._patchQueue = []
   this.off()
@@ -335,17 +336,26 @@ Record.prototype._onReady = function () {
 }
 
 Record.prototype._onUpdate = function ([name, version, data]) {
-  // TODO: Wait for deepstream server upgrade which always includes version
-  // in cached replies: assert(version)
-
-  if (utils.isSameOrNewer(this.version, version)) {
-    version = this.version
-    data = this.data
+  if (this._stale) {
+    if (!data || !version) {
+      data = this._stale.data
+      version = this._stale.version
+    }
+    this._stale = null
   }
 
   if (!version || !data) {
     this._client._$onError(C.TOPIC.RECORD, C.EVENT.UPDATE_ERROR, 'invalid update', [ this.name, this.version, this.state, version, data ])
     return
+  }
+
+  if (utils.isSameOrNewer(this.version, version)) {
+    if (!this._patchQueue) {
+      return
+    } else if (this.version.startsWith('INF')) {
+      this._onReady()
+      return
+    }
   }
 
   try {
@@ -417,6 +427,7 @@ Record.prototype._sendUpdate = function () {
 
 Record.prototype._read = function () {
   if (this.version) {
+    this._stale = { version: this.version, data: this.data }
     this._connection.sendMsg2(C.TOPIC.RECORD, C.ACTIONS.READ, this.name, this.version)
   } else {
     this._connection.sendMsg1(C.TOPIC.RECORD, C.ACTIONS.READ, this.name)
