@@ -176,7 +176,7 @@ Record.prototype._makeVersion = function (start) {
 
 Record.prototype.set = function (pathOrData, dataOrNil) {
   if (this.usages === 0 || this._provided) {
-    this._client._$onError(C.TOPIC.RECORD, C.EVENT.UPDATE_ERROR, new Error('cannot set record'), [ this.name, this.version, this.state ])
+    this._client._$onError(C.TOPIC.RECORD, C.EVENT.UPDATE_ERROR, 'cannot set record', [ this.name, this.version, this.state ])
     return Promise.resolve()
   }
 
@@ -284,7 +284,7 @@ Record.prototype._$onTimeout = function () {
   if (this._timeout) {
     return
   }
-  this._client._$onError(C.TOPIC.RECORD, C.EVENT.TIMEOUT, new Error('read timeout'), [ this.name, this.version, this.state ])
+  this._client._$onError(C.TOPIC.RECORD, C.EVENT.TIMEOUT, 'read timeout', [ this.name, this.version, this.state ])
   this._timeout = true
 
   // TODO(fix): Is this the best we can do?
@@ -332,6 +332,7 @@ Record.prototype._onUpdate = function ([name, version, data]) {
   }
 
   if (!version || !data) {
+    this._client._$onError(C.TOPIC.RECORD, C.EVENT.UPDATE_ERROR, 'invalid update', [ this.name, this.version, this.state, version, data ])
     return
   }
 
