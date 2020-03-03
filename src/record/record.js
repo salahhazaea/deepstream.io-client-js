@@ -100,12 +100,8 @@ Object.defineProperty(Record.prototype, 'state', {
       return Record.STATE.CLIENT
     }
 
-    if (this.provided) {
-      return Record.STATE.PROVIDER
-    }
-
-    if (this.ready) {
-      return Record.STATE.SERVER
+    if (!this._patchQueue) {
+      return this._provided ? Record.STATE.PROVIDER : Record.STATE.SERVER
     }
 
     return Record.STATE.CLIENT
@@ -136,7 +132,7 @@ Object.defineProperty(Record.prototype, 'ready', {
 // TODO (fix): Remove
 Object.defineProperty(Record.prototype, 'provided', {
   get: function provided () {
-    return Boolean(this._provided && this.version)
+    return Boolean(this._provided && !this._patchQueue)
   }
 })
 
@@ -321,7 +317,7 @@ Record.prototype._onSubscriptionHasProvider = function (data) {
     this._provided = provided
     // Depending on timing a buffered has SUBSCRIPTION_HAS_PROVIDER message
     // can arrive the UPDATE message.
-    if (this.version) {
+    if (!this._patchQueue) {
       this.emit('update', this)
     }
   }
