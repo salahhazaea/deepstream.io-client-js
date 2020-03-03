@@ -348,7 +348,7 @@ Record.prototype._onUpdate = function ([name, version, data]) {
   try {
     data = typeof data === 'string' ? JSON.parse(lz.decompressFromUTF16(data)) : data
   } catch (err) {
-    this._client._$onError(C.TOPIC.RECORD, C.EVENT.LZ_ERROR, err, [ this.name, this.version, this.state, data ])
+    this._client._$onError(C.TOPIC.RECORD, C.EVENT.LZ_ERROR, err, [ this.name, this.version, this.state, version, data ])
     return
   }
 
@@ -398,7 +398,7 @@ Record.prototype._sendUpdate = function () {
   try {
     body = lz.compressToUTF16(JSON.stringify(this.data))
   } catch (err) {
-    this._client._$onError(C.TOPIC.RECORD, C.EVENT.LZ_ERROR, err, [ this.name, this.version, this.state ])
+    this._client._$onError(C.TOPIC.RECORD, C.EVENT.LZ_ERROR, err, [ this.name, this.version, this.state, nextVersion ])
     return
   }
 
