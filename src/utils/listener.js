@@ -132,7 +132,8 @@ Listener.prototype._$onMessage = function (message) {
             value$ = null
           }
 
-          if (utils.isPlainObject(value$) && !value$.subscribe) {
+          if (!value$.subscribe) {
+            // Compat for recursive with value
             value$ = Observable.of(value$)
           }
 
