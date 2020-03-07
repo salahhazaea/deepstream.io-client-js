@@ -2,6 +2,7 @@ const C = require('../constants/constants')
 const xuid = require('xuid')
 const { Observable } = require('rxjs')
 const lz = require('@nxtedition/lz-string')
+const utils = require('./utils')
 
 const Listener = function (topic, pattern, callback, handler, recursive) {
   this._topic = topic
@@ -129,6 +130,10 @@ Listener.prototype._$onMessage = function (message) {
         next: value$ => {
           if (!value$) {
             value$ = null
+          }
+
+          if (utils.isPlainObject(value$) && !value$.subscribe) {
+            value$ = Observable.of(value$)
           }
 
           if (value$ === provider.value$) {
