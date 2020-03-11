@@ -130,9 +130,7 @@ Listener.prototype._$onMessage = function (message) {
         next: value$ => {
           if (!value$) {
             value$ = null
-          }
-
-          if (value$ && !value$.subscribe) {
+          } else if (!value$.subscribe) {
             // Compat for recursive with value
             value$ = Observable.of(value$)
           }
