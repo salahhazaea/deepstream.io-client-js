@@ -116,7 +116,7 @@ Listener.prototype._$onMessage = function (message) {
         }
 
         this._connection.sendMsg(this._topic, C.ACTIONS.LISTEN_REJECT, [ this._pattern, provider.name ])
-        this._client._$onError(this._topic, C.EVENT.LISTENER_ERROR, err)
+        this._client._$onError(this._topic, C.EVENT.LISTENER_ERROR, err, [ this._pattern, provider.name ])
       }
     }
 
@@ -151,7 +151,7 @@ Listener.prototype._$onMessage = function (message) {
         },
         error: err => {
           if (err) {
-            this._client._$onError(this._topic, C.EVENT.LISTENER_ERROR, err)
+            this._client._$onError(this._topic, C.EVENT.LISTENER_ERROR, err, [ this._pattern, provider.name ])
           }
           if (provider.value$) {
             this._connection.sendMsg(this._topic, C.ACTIONS.LISTEN_REJECT, [ this._pattern, provider.name ])
