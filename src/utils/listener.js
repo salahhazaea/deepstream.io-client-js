@@ -2,7 +2,6 @@ const C = require('../constants/constants')
 const xuid = require('xuid')
 const { Observable } = require('rxjs')
 const lz = require('@nxtedition/lz-string')
-const utils = require('./utils')
 
 const Listener = function (topic, pattern, callback, handler, recursive) {
   this._topic = topic
