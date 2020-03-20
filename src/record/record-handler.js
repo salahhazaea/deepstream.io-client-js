@@ -245,24 +245,6 @@ RecordHandler.prototype.observe = function (name, pathOrState, stateOrNil) {
     return Observable.of(jsonPath.EMPTY)
   }
 
-  if (!path && !state) {
-    return Observable
-      .create(o => {
-        const onUpdate = record => {
-          o.next(record.get())
-        }
-        const record = this.getRecord(name)
-        if (record.version) {
-          onUpdate(record)
-        }
-        record.on('update', onUpdate)
-        return () => {
-          record.off('update', onUpdate)
-          record.unref()
-        }
-      })
-  }
-
   return Observable
     .create(o => {
       const onUpdate = record => {
