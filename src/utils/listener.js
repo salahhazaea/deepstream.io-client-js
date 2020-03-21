@@ -165,7 +165,9 @@ Listener.prototype._$onMessage = function (message) {
   } else if (message.action === C.ACTIONS.LISTEN_ACCEPT) {
     if (!provider || !provider.value$) {
       this._connection.sendMsg(this._topic, C.ACTIONS.LISTEN_REJECT, [ this._pattern, name ])
-    } else if (!provider.valueSubscription) {
+    } else if (provider.valueSubscription) {
+      this._client._$onError(this._topic, C.EVENT.LISTENER_ERROR, 'listener started', [ this._pattern, provider.name ])
+    } else {
       const [ version, body ] = message.data.slice(2)
       provider.ready = false
       provider.version = version
