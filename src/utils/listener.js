@@ -62,9 +62,46 @@ Listener.prototype._$onMessage = function (message) {
       }
       this._providers.delete(provider.name)
     }
+    provider.next = value$ => {
+      if (!value$) {
+        value$ = null
+      } else if (!value$.subscribe) {
+        // Compat for recursive with value
+        value$ = Observable.of(value$)
+      }
+
+      if (value$ === provider.value$) {
+        return
+      }
+
+      if (Boolean(value$) !== Boolean(provider.value$)) {
+        this._connection.sendMsg(this._topic, value$ ? C.ACTIONS.LISTEN_ACCEPT : C.ACTIONS.LISTEN_REJECT, [ this._pattern, provider.name ])
+      }
+
+      provider.value$ = value$
+      if (provider.valueSubscription) {
+        provider.valueSubscription.unsubscribe()
+        provider.valueSubscription = value$ ? value$.subscribe(provider.observer) : value$
+      }
+    }
+    provider.error = err => {
+      this._client._$onError(this._topic, C.EVENT.LISTENER_ERROR, err, [ this._pattern, provider.name ])
+      
+      if (provider.value$) {
+        this._connection.sendMsg(this._topic, C.ACTIONS.LISTEN_REJECT, [ this._pattern, provider.name ])
+        provider.value$ = null
+      }
+
+      provider.dispose()
+    }
     provider.observer = {
       next: value => {
-        if (!value || typeof value !== 'object') {
+        if (!value) {
+          provider.next(null)
+          return
+        }
+
+        if (typeof value !== 'object') {
           const err = new Error('invalid value')
           this._client._$onError(this._topic, C.EVENT.USER_ERROR, err, [ this._pattern, provider.name, value ])
           return
@@ -107,16 +144,7 @@ Listener.prototype._$onMessage = function (message) {
           }
         }
       },
-      error: err => {
-        provider.value$ = null
-        if (provider.valueSubscription) {
-          provider.valueSubscription.unsubscribe()
-          provider.valueSubscription = null
-        }
-
-        this._connection.sendMsg(this._topic, C.ACTIONS.LISTEN_REJECT, [ this._pattern, provider.name ])
-        this._client._$onError(this._topic, C.EVENT.LISTENER_ERROR, err, [ this._pattern, provider.name ])
-      }
+      error: provider.error
     }
 
     let provider$ = this._callback(provider.name)
@@ -124,42 +152,7 @@ Listener.prototype._$onMessage = function (message) {
       provider$ = Observable.of(provider$)
     }
 
-    provider.patternSubscription = provider$
-      .subscribe({
-        next: value$ => {
-          if (!value$) {
-            value$ = null
-          } else if (!value$.subscribe) {
-            // Compat for recursive with value
-            value$ = Observable.of(value$)
-          }
-
-          if (value$ === provider.value$) {
-            return
-          }
-
-          if (Boolean(value$) !== Boolean(provider.value$)) {
-            this._connection.sendMsg(this._topic, value$ ? C.ACTIONS.LISTEN_ACCEPT : C.ACTIONS.LISTEN_REJECT, [ this._pattern, provider.name ])
-          }
-
-          provider.value$ = value$
-          if (provider.valueSubscription) {
-            provider.valueSubscription.unsubscribe()
-            provider.valueSubscription = value$ ? value$.subscribe(provider.observer) : value$
-          }
-        },
-        error: err => {
-          if (err) {
-            this._client._$onError(this._topic, C.EVENT.LISTENER_ERROR, err, [ this._pattern, provider.name ])
-          }
-          if (provider.value$) {
-            this._connection.sendMsg(this._topic, C.ACTIONS.LISTEN_REJECT, [ this._pattern, provider.name ])
-            provider.value$ = null
-          }
-
-          provider.dispose(err)
-        }
-      })
+    provider.patternSubscription = provider$.subscribe(provider)
 
     this._providers.set(provider.name, provider)
   } else if (message.action === C.ACTIONS.LISTEN_ACCEPT) {
