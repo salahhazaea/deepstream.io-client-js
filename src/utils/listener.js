@@ -143,9 +143,14 @@ Listener.prototype._$onMessage = function (message) {
       error: provider.error
     }
 
-    let provider$ = this._callback(provider.name)
-    if (!this.recursive) {
-      provider$ = Observable.of(provider$)
+    let provider$
+    try {
+      provider$ = this._callback(provider.name)
+      if (!this.recursive) {
+        provider$ = Observable.of(provider$)
+      }
+    } catch (err) {
+      provider$ = Observable.throw(err)
     }
 
     provider.patternSubscription = provider$.subscribe(provider)
