@@ -82,7 +82,7 @@ Listener.prototype._$onMessage = function (message) {
     }
     provider.error = err => {
       this._client._$onError(this._topic, C.EVENT.LISTENER_ERROR, err, [ this._pattern, provider.name ])
-      
+
       if (provider.value$) {
         this._connection.sendMsg(this._topic, C.ACTIONS.LISTEN_REJECT, [ this._pattern, provider.name ])
         provider.value$ = null
@@ -157,10 +157,10 @@ Listener.prototype._$onMessage = function (message) {
 
     this._providers.set(provider.name, provider)
   } else if (message.action === C.ACTIONS.LISTEN_ACCEPT) {
-    if (!provider || !provider.value$) {
-      this._connection.sendMsg(this._topic, C.ACTIONS.LISTEN_REJECT, [ this._pattern, name ])
-    } else if (provider.valueSubscription) {
+    if (provider && provider.valueSubscription) {
       this._client._$onError(this._topic, C.EVENT.LISTENER_ERROR, 'listener started', [ this._pattern, provider.name ])
+    } else if (!provider || !provider.value$) {
+      this._connection.sendMsg(this._topic, C.ACTIONS.LISTEN_REJECT, [ this._pattern, name ])
     } else {
       const [ version, body ] = message.data.slice(2)
       provider.ready = false
