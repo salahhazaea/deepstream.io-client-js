@@ -86,6 +86,7 @@ Record.prototype._$destroy = function () {
     this._cache.set(this.name, this.version, this.data)
   }
 
+  // TODO (fix): Ensure unsubscribe is acked.
   this._connection.sendMsg1(C.TOPIC.RECORD, C.ACTIONS.UNSUBSCRIBE, this.name)
 
   this._prune.delete(this)
