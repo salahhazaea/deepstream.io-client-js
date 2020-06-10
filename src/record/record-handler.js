@@ -53,40 +53,38 @@ const RecordHandler = function (options, connection, client) {
       }
     })
 
-    if (this.connected) {
-      const now = Date.now()
+    const now = Date.now()
 
-      for (const [ rec, timestamp ] of this._pending) {
-        if (now - timestamp > this._readTimeout) {
-          rec._$onTimeout()
-        }
+    for (const [ rec, timestamp ] of this._pending) {
+      if (now - timestamp > this._readTimeout) {
+        rec._$onTimeout()
+      }
+    }
+
+    for (const [ rec, timestamp ] of this._prune) {
+      if (rec.usages !== 0) {
+        this._prune.delete(rec)
+        continue
       }
 
-      for (const [ rec, timestamp ] of this._prune) {
-        if (rec.usages !== 0) {
-          this._prune.delete(rec)
-          continue
-        }
+      if (!rec.isReady) {
+        continue
+      }
 
-        if (!rec.isReady) {
-          continue
-        }
+      // TODO (fix): This should move to userland.
+      const minAge = rec.version && rec.version.startsWith('I')
+        ? 1000
+        : 10000
 
-        // TODO (fix): This should move to userland.
-        const minAge = rec.version && rec.version.startsWith('I')
-          ? 1000
-          : 10000
+      if (now - timestamp <= minAge) {
+        continue
+      }
 
-        if (now - timestamp <= minAge) {
-          continue
-        }
+      this._records.delete(rec.name)
+      rec._$destroy()
 
-        this._records.delete(rec.name)
-        rec._$destroy()
-
-        if (this._pool.length < 65536) {
-          this._pool.push(rec)
-        }
+      if (this._pool.length < 65536) {
+        this._pool.push(rec)
       }
     }
 
