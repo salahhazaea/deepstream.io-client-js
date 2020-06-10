@@ -86,8 +86,6 @@ const RecordHandler = function (options, connection, client) {
       if (this._pool.length < 65536) {
         this._pool.push(rec)
       }
-
-      this._prune.delete(rec)
     }
 
     setTimeout(() => this._schedule ? this._schedule(prune) : prune(), 1000)
