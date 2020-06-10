@@ -50,8 +50,11 @@ Record.prototype._$construct = function (name) {
   this.name = name
 
   this._pending.set(this, Date.now())
+
   this.ref()
   this._cache.get(this.name, (err, entry) => {
+    this.unref()
+
     if (err && !err.notFound) {
       this._stats.misses += 1
       this._client._$onError(C.TOPIC.RECORD, C.EVENT.CACHE_ERROR, err, [ this.name, this.version, this.state ])
@@ -331,7 +334,6 @@ Record.prototype._onReady = function () {
   this._pending.delete(this)
   this.emit('ready')
   this.emit('update', this)
-  this.unref()
 }
 
 Record.prototype._onUpdate = function ([name, version, data]) {
