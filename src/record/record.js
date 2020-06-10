@@ -55,14 +55,17 @@ Record.prototype._$construct = function (name) {
     if (err && !err.notFound) {
       this._stats.misses += 1
       this._client._$onError(C.TOPIC.RECORD, C.EVENT.CACHE_ERROR, err, [ this.name, this.version, this.state ])
-    } else if (entry && !this.version) {
+    } else if (entry) {
       this._stats.hits += 1
+
       const [ version, data ] = entry
-      this.version = version
-      this.data = Object.keys(data).length === 0 ? jsonPath.EMPTY : data
-      this.data = utils.deepFreeze(this.data)
-      this._dirty = false
-      this.emit('update', this)
+
+      if (utils.isSameOrNewer(this.version, version)) {
+        this.data = utils.deepFreeze(Object.keys(data).length === 0 ? jsonPath.EMPTY : data)
+        this._dirty = false
+        this.version = version
+        this.emit('update', this)
+      }
     }
 
     if (this.connected) {
