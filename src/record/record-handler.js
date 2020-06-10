@@ -47,44 +47,46 @@ const RecordHandler = function (options, connection, client) {
     .subscribe(connected => this._handleConnectionStateChange(connected))
 
   const prune = () => {
-    const now = Date.now()
-
-    for (const [ rec, timestamp ] of this._pending) {
-      if (now - timestamp > this._readTimeout) {
-        rec._$onTimeout()
-      }
-    }
-
     this._cache.flush(err => {
       if (err) {
         this._client._$onError(C.TOPIC.RECORD, C.EVENT.CACHE_ERROR, err)
       }
     })
 
-    for (const [ rec, timestamp ] of this._prune) {
-      if (rec.usages !== 0) {
-        this._prune.delete(rec)
-        continue
+    if (this.connected) {
+      const now = Date.now()
+
+      for (const [ rec, timestamp ] of this._pending) {
+        if (now - timestamp > this._readTimeout) {
+          rec._$onTimeout()
+        }
       }
 
-      if (!rec.isReady) {
-        continue
-      }
+      for (const [ rec, timestamp ] of this._prune) {
+        if (rec.usages !== 0) {
+          this._prune.delete(rec)
+          continue
+        }
 
-      // TODO (fix): This should move to userland.
-      const minAge = rec.version && rec.version.startsWith('I')
-        ? 1000
-        : 10000
+        if (!rec.isReady) {
+          continue
+        }
 
-      if (now - timestamp <= minAge) {
-        continue
-      }
+        // TODO (fix): This should move to userland.
+        const minAge = rec.version && rec.version.startsWith('I')
+          ? 1000
+          : 10000
 
-      this._records.delete(rec.name)
-      rec._$destroy()
+        if (now - timestamp <= minAge) {
+          continue
+        }
 
-      if (this._pool.length < 65536) {
-        this._pool.push(rec)
+        this._records.delete(rec.name)
+        rec._$destroy()
+
+        if (this._pool.length < 65536) {
+          this._pool.push(rec)
+        }
       }
     }
 
