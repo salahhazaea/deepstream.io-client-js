@@ -199,6 +199,12 @@ Record.prototype.set = function (pathOrData, dataOrNil) {
     throw new Error('invalid argument: path')
   }
 
+  if (path === undefined && Object.keys(data).some(prop => prop.startsWith('_'))) {
+    throw new Error('invalid argument: data')
+  } else if (path.startsWith('_')) {
+    throw new Error('invalid argument: path')
+  }
+
   // TODO (perf): Avoid clone
   const jsonData = jsonPath.jsonClone(data)
 
