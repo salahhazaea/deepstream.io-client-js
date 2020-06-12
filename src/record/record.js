@@ -32,7 +32,6 @@ Record.prototype._reset = function () {
   this.usages = 0
 
   this._provided = null
-  this._timeout = false
   this._dirty = true
   this._patchQueue = []
   this.off()
@@ -308,11 +307,7 @@ Record.prototype.discard = Record.prototype.unref
 Record.prototype.destroy = Record.prototype.unref
 
 Record.prototype._$onTimeout = function () {
-  if (this._timeout) {
-    return
-  }
   this._client._$onError(C.TOPIC.RECORD, C.EVENT.TIMEOUT, 'read timeout', [ this.name, this.version, this.state ])
-  this._timeout = true
 
   // TODO(fix): Is this the best we can do?
   if (this.version) {
