@@ -5,6 +5,7 @@ const C = require('../constants/constants')
 const messageParser = require('../message/message-parser')
 const xuid = require('xuid')
 const lz = require('@nxtedition/lz-string')
+const invariant = require('invariant')
 
 const Record = function (handler) {
   this._handler = handler
@@ -30,7 +31,7 @@ Record.prototype._reset = function () {
   // TODO (fix): Make private
   this.usages = 0
 
-  this._provided = false
+  this._provided = null
   this._timeout = false
   this._dirty = true
   this._patchQueue = []
@@ -107,11 +108,11 @@ Object.defineProperty(Record.prototype, 'state', {
       return Record.STATE.CLIENT
     }
 
-    if (!this._provided) {
-      return Record.STATE.SERVER
+    if (utils.isSameOrNewer(this.version, this._provided)) {
+      return Record.STATE.PROVIDER
     }
 
-    return Record.STATE.PROVIDER
+    return Record.STATE.SERVER
   }
 })
 
@@ -139,7 +140,7 @@ Object.defineProperty(Record.prototype, 'ready', {
 // TODO (fix): Remove
 Object.defineProperty(Record.prototype, 'provided', {
   get: function provided () {
-    return Boolean(this._provided && !this._patchQueue)
+    return utils.isSameOrNewer(this.version, this._provided)
   }
 })
 
@@ -333,13 +334,10 @@ Record.prototype._$onMessage = function (message) {
 Record.prototype._onSubscriptionHasProvider = function (data) {
   const provided = messageParser.convertTyped(data[1], this._client)
 
-  if (this.connected && this._provided !== provided) {
+  if (this._provided !== provided) {
+    invariant(typeof provided === 'string', 'provided must be a version string')
     this._provided = provided
-    // Depending on timing a buffered has SUBSCRIPTION_HAS_PROVIDER message
-    // can arrive the UPDATE message.
-    if (!this._patchQueue) {
-      this.emit('update', this)
-    }
+    this.emit('update', this)
   }
 }
 
