@@ -63,7 +63,8 @@ Record.prototype._$construct = function (name) {
 
       const [ version, data ] = entry
 
-      if (utils.isSameOrNewer(version, this.version)) {
+      // TODO (fix): What if version is newer than this.version?
+      if (!this.version) {
         this.data = utils.deepFreeze(Object.keys(data).length === 0 ? jsonPath.EMPTY : data)
         this._dirty = false
         this.version = version
