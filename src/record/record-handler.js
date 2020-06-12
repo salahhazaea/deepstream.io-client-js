@@ -20,8 +20,8 @@ const RecordHandler = function (options, connection, client) {
   this._records = new Map()
   this._listeners = new Map()
   this._pool = []
-  this._prune = new Map()
-  this._pending = new Map()
+  this._prune = new Set()
+  this._pending = new Set()
 
   this._syncEmitter = new EventEmitter()
   this._syncCounter = 0
@@ -56,13 +56,14 @@ const RecordHandler = function (options, connection, client) {
     if (this.connected) {
       const now = Date.now()
 
-      for (const [ rec, timestamp ] of this._pending) {
-        if (now - timestamp > this._readTimeout) {
-          rec._$onTimeout()
+      for (const rec of this._pending) {
+        if (!rec.readTimestamp || now - rec.readTimestamp <= this._readTimeout) {
+          continue
         }
+        rec._$onTimeout()
       }
 
-      for (const [ rec, timestamp ] of this._prune) {
+      for (const rec of this._prune) {
         if (rec.usages !== 0) {
           this._prune.delete(rec)
           continue
@@ -77,7 +78,7 @@ const RecordHandler = function (options, connection, client) {
           ? 1000
           : 10000
 
-        if (now - timestamp <= minAge) {
+        if (!rec.pruneTimestamp || now - rec.pruneTimestamp <= minAge) {
           continue
         }
 
@@ -165,7 +166,7 @@ RecordHandler.prototype.sync = function () {
   // TODO (perf): Optimize
 
   const pending = []
-  for (const rec of this._pending.keys()) {
+  for (const rec of this._pending) {
     pending.push(new Promise(resolve => rec.once('ready', resolve)))
   }
 

@@ -30,6 +30,8 @@ Record.prototype._reset = function () {
 
   // TODO (fix): Make private
   this.usages = 0
+  this.readTimestamp = null
+  this.pruneTimestamp = null
 
   this._provided = null
   this._dirty = true
@@ -48,7 +50,7 @@ Record.prototype._$construct = function (name) {
 
   this.name = name
 
-  this._pending.set(this, Date.now())
+  this._pending.add(this)
 
   this.ref()
   this._cache.get(this.name, (err, entry) => {
@@ -290,6 +292,7 @@ Record.prototype.ref = function () {
   this.usages += 1
 
   if (this.usages === 1) {
+    this.pruneTimestamp = null
     this._prune.delete(this)
   }
 }
@@ -298,7 +301,8 @@ Record.prototype.unref = function () {
   this.usages = Math.max(0, this.usages - 1)
 
   if (this.usages === 0) {
-    this._prune.set(this, Date.now())
+    this.pruneTimestamp = Date.now()
+    this._prune.add(this)
   }
 }
 
@@ -435,6 +439,7 @@ Record.prototype._$handleConnectionStateChange = function () {
   this._provided = false
 
   if (this.connected) {
+    this.readTimestamp = Date.now()
     this._connection.sendMsg2(C.TOPIC.RECORD, C.ACTIONS.READ, this.name, this.version || '')
   }
 
