@@ -355,12 +355,10 @@ Record.prototype._onUpdate = function ([name, version, data]) {
   }
 
   if (utils.isSameOrNewer(this.version, version)) {
-    if (!this._patchQueue) {
-      return
-    } else if (this.version.startsWith('INF')) {
+    if (this._patchQueue && this.version.startsWith('INF')) {
       this._onReady()
-      return
     }
+    return
   }
 
   try {
@@ -440,10 +438,10 @@ Record.prototype._read = function () {
 }
 
 Record.prototype._$handleConnectionStateChange = function () {
+  this._provided = false
+
   if (this.connected) {
     this._read()
-  } else {
-    this._provided = false
   }
 
   this.emit('update', this)
