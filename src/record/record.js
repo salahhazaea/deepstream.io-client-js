@@ -189,6 +189,11 @@ Record.prototype.set = function (pathOrData, dataOrNil) {
     return Promise.resolve()
   }
 
+  if (this.name.startsWith('_')) {
+    this._client._$onError(C.TOPIC.RECORD, C.EVENT.UPDATE_ERROR, 'cannot set record', [ this.name, this.version, this.state ])
+    return Promise.resolve()
+  }
+
   let path = arguments.length === 1 ? undefined : pathOrData
   let data = arguments.length === 1 ? pathOrData : dataOrNil
 
