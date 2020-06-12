@@ -32,7 +32,6 @@ Record.prototype._reset = function () {
 
   this._provided = false
   this._timeout = false
-  this._stale = null
   this._dirty = true
   this._patchQueue = []
   this.off()
@@ -73,7 +72,7 @@ Record.prototype._$construct = function (name) {
     }
 
     if (this.connected) {
-      this._read()
+      this._connection.sendMsg2(C.TOPIC.RECORD, C.ACTIONS.READ, this.name, this.version || '')
     }
   })
   this._stats.reads += 1
@@ -352,25 +351,24 @@ Record.prototype._onReady = function () {
 }
 
 Record.prototype._onUpdate = function ([name, version, data]) {
-  if (this._stale) {
-    if (!data || !version) {
-      data = this._stale.data
-      version = this._stale.version
-    }
-    this._stale = null
-  }
-
-  if (!version || !data) {
-    // This is not an error since a full broadcast UPDATE might have arrived before
-    // a partial stale UPDATE.
-    // TODO: Refactor logic and add some guards for possible failure cases.
+  if (!version) {
+    const err = new Error('missing version')
+    this._client._$onError(C.TOPIC.RECORD, C.EVENT.UPDATE_ERROR, err, [ this.name, this.version ])
     return
   }
 
   if (utils.isSameOrNewer(this.version, version)) {
-    if (this._patchQueue && this.version.startsWith('INF')) {
+    if (!this._patchQueue) {
+      return
+    } else if (this.version.startsWith('INF')) {
       this._onReady()
+      return
     }
+    data = this.data
+  }
+
+  if (!data) {
+    // Can occur if we receive a buffered message from previous subscription.
     return
   }
 
@@ -441,20 +439,11 @@ Record.prototype._sendUpdate = function () {
   this.version = nextVersion
 }
 
-Record.prototype._read = function () {
-  if (this.version) {
-    this._stale = { version: this.version, data: this.data }
-    this._connection.sendMsg2(C.TOPIC.RECORD, C.ACTIONS.READ, this.name, this.version)
-  } else {
-    this._connection.sendMsg1(C.TOPIC.RECORD, C.ACTIONS.READ, this.name)
-  }
-}
-
 Record.prototype._$handleConnectionStateChange = function () {
   this._provided = false
 
   if (this.connected) {
-    this._read()
+    this._connection.sendMsg2(C.TOPIC.RECORD, C.ACTIONS.READ, this.name, this.version || '')
   }
 
   this.emit('update', this)
