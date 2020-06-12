@@ -82,8 +82,7 @@ Record.prototype._$construct = function (name) {
 }
 
 Record.prototype._$destroy = function () {
-  if (this.version && this._dirty) {
-    this._dirty = false
+  if (this._dirty) {
     this._cache.set(this.name, this.version, this.data)
   }
 
