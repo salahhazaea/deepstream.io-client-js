@@ -104,15 +104,15 @@ Object.defineProperty(Record.prototype, 'state', {
       return Record.STATE.VOID
     }
 
-    if (!this.connected) {
+    if (!this.connected || this._patchQueue) {
       return Record.STATE.CLIENT
     }
 
-    if (!this._patchQueue) {
-      return this._provided ? Record.STATE.PROVIDER : Record.STATE.SERVER
+    if (!this._provided) {
+      return Record.STATE.SERVER
     }
 
-    return Record.STATE.CLIENT
+    return Record.STATE.PROVIDER
   }
 })
 
