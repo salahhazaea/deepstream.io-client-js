@@ -108,7 +108,7 @@ Object.defineProperty(Record.prototype, 'state', {
       return Record.STATE.CLIENT
     }
 
-    if (utils.isSameOrNewer(this.version, this._provided)) {
+    if (this._provided && utils.isSameOrNewer(this.version, this._provided)) {
       return Record.STATE.PROVIDER
     }
 
@@ -140,7 +140,7 @@ Object.defineProperty(Record.prototype, 'ready', {
 // TODO (fix): Remove
 Object.defineProperty(Record.prototype, 'provided', {
   get: function provided () {
-    return utils.isSameOrNewer(this.version, this._provided)
+    return this._provided && utils.isSameOrNewer(this.version, this._provided)
   }
 })
 
