@@ -83,6 +83,9 @@ Record.prototype._$construct = function (name) {
 }
 
 Record.prototype._$destroy = function () {
+  invariant(this.version, 'must have version to destroy')
+  invariant(this.isReady, 'must be ready to destroy')
+
   if (this._dirty) {
     this._cache.set(this.name, this.version, this.data)
   }
