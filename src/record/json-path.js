@@ -25,7 +25,7 @@ function set (data, path, value, isPlainJSON) {
   data = data || EMPTY
 
   if (tokens.length === 0) {
-    return patch(data, value)
+    return patch(data, value, isPlainJSON)
   }
 
   const oldValue = get(data, path)
