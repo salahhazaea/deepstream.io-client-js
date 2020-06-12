@@ -199,7 +199,9 @@ Record.prototype.set = function (pathOrData, dataOrNil) {
     throw new Error('invalid argument: path')
   }
 
+  // TODO (perf): Avoid clone
   const jsonData = jsonPath.jsonClone(data)
+
   const newData = jsonPath.set(this.data, path, jsonData, true)
 
   if (this._patchQueue) {
