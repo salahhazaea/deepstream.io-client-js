@@ -25,7 +25,6 @@ const RecordHandler = function (options, connection, client) {
 
   this._syncEmitter = new EventEmitter()
   this._syncCounter = 0
-  this._readTimeout = this._options.readTimeout || 120e3
 
   this._stats = {
     reads: 0,
@@ -55,13 +54,6 @@ const RecordHandler = function (options, connection, client) {
 
     if (this.connected) {
       const now = Date.now()
-
-      for (const rec of this._pending) {
-        if (!rec.readTimestamp || now - rec.readTimestamp <= this._readTimeout) {
-          continue
-        }
-        rec._$onTimeout()
-      }
 
       for (const rec of this._prune) {
         if (rec.usages !== 0) {
@@ -174,7 +166,7 @@ RecordHandler.prototype.sync = function () {
     const timeout = setTimeout(() => {
       this._client._$onError(C.TOPIC.RECORD, C.EVENT.TIMEOUT, 'sync timeout')
       resolve()
-    }, 30e3)
+    }, 2 * 60e3)
 
     return Promise
       .all(pending)

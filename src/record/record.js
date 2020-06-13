@@ -30,7 +30,6 @@ Record.prototype._reset = function () {
 
   // TODO (fix): Make private
   this.usages = 0
-  this.readTimestamp = null
   this.pruneTimestamp = null
 
   this._provided = null
@@ -313,17 +312,6 @@ Record.prototype.acquire = Record.prototype.ref
 Record.prototype.discard = Record.prototype.unref
 Record.prototype.destroy = Record.prototype.unref
 
-Record.prototype._$onTimeout = function () {
-  this._client._$onError(C.TOPIC.RECORD, C.EVENT.TIMEOUT, 'read timeout', [ this.name, this.version, this.state ])
-
-  // TODO(fix): Is this the best we can do?
-  if (this.version) {
-    this._onReady()
-  } else {
-    this._pending.delete(this)
-  }
-}
-
 Record.prototype._$onMessage = function (message) {
   if (message.action === C.ACTIONS.UPDATE) {
     this._onUpdate(message.data)
@@ -444,7 +432,6 @@ Record.prototype._$handleConnectionStateChange = function () {
   this._provided = false
 
   if (this.connected) {
-    this.readTimestamp = Date.now()
     this._connection.sendMsg2(C.TOPIC.RECORD, C.ACTIONS.READ, this.name, this.version || '')
   }
 
