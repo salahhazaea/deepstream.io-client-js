@@ -367,7 +367,9 @@ Record.prototype._onUpdate = function ([name, version, data]) {
   }
 
   if (!data) {
-    // Can occur if we receive a buffered message from previous subscription.
+    // Can occur if we receive a buffered message from previous subscription?
+    const err = new Error('missing data')
+    this._client._$onError(C.TOPIC.RECORD, C.EVENT.UPDATE_ERROR, err, [ this.name, this.version ])
     return
   }
 
