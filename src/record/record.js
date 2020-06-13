@@ -118,62 +118,6 @@ Object.defineProperty(Record.prototype, 'state', {
   }
 })
 
-// TODO (fix): Remove
-Object.defineProperty(Record.prototype, 'connected', {
-  get: function connected () {
-    return this._client.getConnectionState() === C.CONNECTION_STATE.OPEN
-  }
-})
-
-// TODO (fix): Remove
-Object.defineProperty(Record.prototype, 'empty', {
-  get: function empty () {
-    return Object.keys(this.data).length === 0
-  }
-})
-
-// TODO (fix): Remove
-Object.defineProperty(Record.prototype, 'ready', {
-  get: function ready () {
-    return !this._patchQueue
-  }
-})
-
-// TODO (fix): Remove
-Object.defineProperty(Record.prototype, 'provided', {
-  get: function provided () {
-    return this._provided && utils.isSameOrNewer(this.version, this._provided)
-  }
-})
-
-// TODO (fix): Remove
-Object.defineProperty(Record.prototype, 'usages', {
-  get: function provided () {
-    return this._$usages
-  }
-})
-
-// TODO (fix): Remove
-Object.defineProperty(Record.prototype, 'stale', {
-  get: function ready () {
-    return !this.version
-  }
-})
-
-// TODO (fix): Remove
-Object.defineProperty(Record.prototype, 'isReady', {
-  get: function isReady () {
-    return !this._patchQueue
-  }
-})
-
-// TODO (fix): Remove
-Object.defineProperty(Record.prototype, 'hasProvider', {
-  get: function hasProvider () {
-    return this.provided
-  }
-})
-
 Record.prototype.get = function (path) {
   return jsonPath.get(this.data, path)
 }
@@ -315,10 +259,6 @@ Record.prototype.unref = function () {
   }
 }
 
-Record.prototype.acquire = Record.prototype.ref
-Record.prototype.discard = Record.prototype.unref
-Record.prototype.destroy = Record.prototype.unref
-
 Record.prototype._$onMessage = function (message) {
   if (message.action === C.ACTIONS.UPDATE) {
     this._onUpdate(message.data)
@@ -444,5 +384,67 @@ Record.prototype._$handleConnectionStateChange = function () {
 
   this.emit('update', this)
 }
+
+// Compat
+
+Record.prototype.acquire = Record.prototype.ref
+Record.prototype.discard = Record.prototype.unref
+Record.prototype.destroy = Record.prototype.unref
+
+// TODO (fix): Remove
+Object.defineProperty(Record.prototype, 'connected', {
+  get: function connected () {
+    return this._client.getConnectionState() === C.CONNECTION_STATE.OPEN
+  }
+})
+
+// TODO (fix): Remove
+Object.defineProperty(Record.prototype, 'empty', {
+  get: function empty () {
+    return Object.keys(this.data).length === 0
+  }
+})
+
+// TODO (fix): Remove
+Object.defineProperty(Record.prototype, 'ready', {
+  get: function ready () {
+    return !this._patchQueue
+  }
+})
+
+// TODO (fix): Remove
+Object.defineProperty(Record.prototype, 'provided', {
+  get: function provided () {
+    return this._provided && utils.isSameOrNewer(this.version, this._provided)
+  }
+})
+
+// TODO (fix): Remove
+Object.defineProperty(Record.prototype, 'usages', {
+  get: function provided () {
+    return this._$usages
+  }
+})
+
+// TODO (fix): Remove
+Object.defineProperty(Record.prototype, 'stale', {
+  get: function ready () {
+    return !this.version
+  }
+})
+
+// TODO (fix): Remove
+Object.defineProperty(Record.prototype, 'isReady', {
+  get: function isReady () {
+    return !this._patchQueue
+  }
+})
+
+// TODO (fix): Remove
+Object.defineProperty(Record.prototype, 'hasProvider', {
+  get: function hasProvider () {
+    return this.provided
+  }
+})
 
 module.exports = Record
