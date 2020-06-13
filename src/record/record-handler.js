@@ -164,6 +164,11 @@ RecordHandler.prototype.sync = function () {
 
   return new Promise(resolve => {
     const timeout = setTimeout(() => {
+      for (const rec of pending) {
+        if (this._pending.has(rec)) {
+          this._client._$onError(C.TOPIC.RECORD, C.EVENT.TIMEOUT, 'record timeout', [ rec.name ])
+        }
+      }
       this._client._$onError(C.TOPIC.RECORD, C.EVENT.TIMEOUT, 'sync timeout')
       resolve()
     }, 2 * 60e3)
