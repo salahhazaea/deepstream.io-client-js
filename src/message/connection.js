@@ -36,6 +36,12 @@ const Connection = function (client, url, options) {
 
   this._sendQueuedMessages = this._sendQueuedMessages.bind(this)
 
+  this._tokens = options.maxMessagesPerSecond || 4096
+  this._tokensInterval = setInterval(() => {
+    this._tokens = options.maxMessagesPerSecond || 4096
+    this._sendQueuedMessages()
+  }, 1e3)
+
   this._originalUrl = utils.parseUrl(url, this._options.path)
   this._url = this._originalUrl
   this._idleTimeout = this._options.maxIdleTime
@@ -108,19 +114,17 @@ Connection.prototype._createEndpoint = function () {
   this._endpoint.onmessage = this._onMessage.bind(this)
 }
 
-Connection.prototype._sendQueuedMessages = function (deadline) {
+Connection.prototype._sendQueuedMessages = function () {
   if (this._state !== C.CONNECTION_STATE.OPEN || this._endpoint.readyState !== this._endpoint.OPEN) {
     return
   }
 
-  if (this._logger) {
-    for (const msg of this._queuedMessages) {
-      this._logger.trace({ msg }, 'send')
-    }
-  }
+  const maxMessagesPerPacket = this._options.maxMessagesPerPacket
 
-  while (this._queuedMessages.length > 0) {
-    this._submit(this._queuedMessages.splice(0, this._options.maxMessagesPerPacket).join(''))
+  while (this._queuedMessages.length > 0 && this._tokens > 0) {
+    const messages = this._queuedMessages.splice(0, Math.min(maxMessagesPerPacket, this._tokens))
+    this._tokens -= message.length
+    this._submit(messages.join(''))
   }
 
   this._messageSender = null
@@ -256,6 +260,11 @@ Connection.prototype._reset = function () {
     clearTimeout(this._messageSender)
     this._messageSender = null
     this._queuedMessages.length = 0
+  }
+
+  if (this._tokensInterval) {
+    clearInterval(this._tokensInterval)
+    this._tokensInterval = null
   }
 }
 
