@@ -429,7 +429,7 @@ Record.prototype._sendUpdate = function () {
 }
 
 Record.prototype._$handleConnectionStateChange = function () {
-  this._provided = false
+  this._provided = null
 
   if (this.connected) {
     this._connection.sendMsg2(C.TOPIC.RECORD, C.ACTIONS.READ, this.name, this.version || '')
