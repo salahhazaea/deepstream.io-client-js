@@ -56,7 +56,7 @@ const RecordHandler = function (options, connection, client) {
       const now = Date.now()
 
       for (const rec of this._prune) {
-        if (rec.usages !== 0) {
+        if (rec._$usages !== 0) {
           this._prune.delete(rec)
           continue
         }
@@ -70,7 +70,7 @@ const RecordHandler = function (options, connection, client) {
           ? 1000
           : 10000
 
-        if (!rec.pruneTimestamp || now - rec.pruneTimestamp <= minAge) {
+        if (!rec._$pruneTimestamp || now - rec._$pruneTimestamp <= minAge) {
           continue
         }
 

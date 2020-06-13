@@ -29,8 +29,8 @@ Record.prototype._reset = function () {
   this.data = jsonPath.EMPTY
 
   // TODO (fix): Make private
-  this.usages = 0
-  this.pruneTimestamp = null
+  this._$usages = 0
+  this._$pruneTimestamp = null
 
   this._provided = null
   this._dirty = true
@@ -39,7 +39,7 @@ Record.prototype._reset = function () {
 }
 
 Record.prototype._$construct = function (name) {
-  if (this.usages !== 0) {
+  if (this._$usages !== 0) {
     throw new Error('invalid operation: cannot construct referenced record')
   }
 
@@ -147,6 +147,13 @@ Object.defineProperty(Record.prototype, 'provided', {
 })
 
 // TODO (fix): Remove
+Object.defineProperty(Record.prototype, 'usages', {
+  get: function provided () {
+    return this._$usages
+  }
+})
+
+// TODO (fix): Remove
 Object.defineProperty(Record.prototype, 'stale', {
   get: function ready () {
     return !this.version
@@ -181,7 +188,7 @@ Record.prototype._makeVersion = function (start) {
 }
 
 Record.prototype.set = function (pathOrData, dataOrNil) {
-  if (this.usages === 0 || this._provided) {
+  if (this._$usages === 0 || this._provided) {
     this._client._$onError(C.TOPIC.RECORD, C.EVENT.UPDATE_ERROR, 'cannot set record', [ this.name, this.version, this.state ])
     return Promise.resolve()
   }
@@ -246,7 +253,7 @@ Record.prototype.set = function (pathOrData, dataOrNil) {
 }
 
 Record.prototype.update = function (pathOrUpdater, updaterOrNil) {
-  if (this.usages === 0 || this._provided) {
+  if (this._$usages === 0 || this._provided) {
     this._client._$onError(C.TOPIC.RECORD, C.EVENT.UPDATE_ERROR, 'cannot update record', [ this.name, this.version, this.state ])
     return Promise.resolve()
   }
@@ -291,19 +298,19 @@ Record.prototype.update = function (pathOrUpdater, updaterOrNil) {
 }
 
 Record.prototype.ref = function () {
-  this.usages += 1
+  this._$usages += 1
 
-  if (this.usages === 1) {
-    this.pruneTimestamp = null
+  if (this._$usages === 1) {
+    this._$pruneTimestamp = null
     this._prune.delete(this)
   }
 }
 
 Record.prototype.unref = function () {
-  this.usages = Math.max(0, this.usages - 1)
+  this._$usages = Math.max(0, this._$usages - 1)
 
-  if (this.usages === 0) {
-    this.pruneTimestamp = Date.now()
+  if (this._$usages === 0) {
+    this._$pruneTimestamp = Date.now()
     this._prune.add(this)
   }
 }
