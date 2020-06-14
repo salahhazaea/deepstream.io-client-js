@@ -195,6 +195,8 @@ Connection.prototype._onError = function (err) {
 Connection.prototype._onClose = function () {
   this._reset()
 
+  this._queuedMessages.length = 0
+
   if (this._redirecting === true) {
     this._redirecting = false
     this._createEndpoint()
