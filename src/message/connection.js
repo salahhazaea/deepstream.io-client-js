@@ -123,7 +123,7 @@ Connection.prototype._sendQueuedMessages = function () {
 
   while (this._queuedMessages.length > 0 && this._tokens > 0) {
     const messages = this._queuedMessages.splice(0, Math.min(maxMessagesPerPacket, this._tokens))
-    this._tokens -= message.length
+    this._tokens -= messages.length
     this._submit(messages.join(''))
   }
 
