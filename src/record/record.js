@@ -268,7 +268,7 @@ Record.prototype._$onMessage = function (message) {
 }
 
 Record.prototype._onSubscriptionHasProvider = function (data) {
-  const provided = messageParser.convertTyped(data[1], this._client)
+  const provided = messageParser.convertTyped(data[1], this._client) || null
 
   if (this._provided !== provided) {
     invariant(provided && typeof provided === 'string', 'provided must be a version string')
