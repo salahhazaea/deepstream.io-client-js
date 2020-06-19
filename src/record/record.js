@@ -53,8 +53,6 @@ Record.prototype._$construct = function (name) {
 
   this.name = name
 
-  this._pending.add(this)
-
   this.ref()
   this._cache.get(this.name, (err, entry) => {
     this.unref()
@@ -100,7 +98,6 @@ Record.prototype._$destroy = function () {
   this._connection.sendMsg1(C.TOPIC.RECORD, C.ACTIONS.UNSUBSCRIBE, this.name)
 
   this._prune.delete(this)
-  this._pending.delete(this)
   this._reset()
 
   return this
@@ -177,6 +174,7 @@ Record.prototype.set = function (pathOrData, dataOrNil) {
   if (this._patchQueue) {
     this._patchQueue = path ? this._patchQueue : []
     this._patchQueue.push(path, jsonData)
+    this._pending.add(this)
   }
 
   if (newData === this.data) {
@@ -297,9 +295,10 @@ Record.prototype._onUpdate = function ([name, version, data]) {
       }
 
       if (this.version.startsWith('INF')) {
+        // TODO (fix): This is weird...
         this._patchQueue = null
         this._pending.delete(this)
-        this.emit('ready')
+        this.emit('ready') // TODO: Deprecate
         this.emit('update', this)
         return
       }
@@ -341,7 +340,7 @@ Record.prototype._onUpdate = function ([name, version, data]) {
 
       this._patchQueue = null
       this._pending.delete(this)
-      this.emit('ready')
+      this.emit('ready')  // TODO: Deprecate
     } else if (this.data !== oldValue) {
       this.data = utils.deepFreeze(this.data)
       this._dirty = true
@@ -395,6 +394,7 @@ Record.prototype._$handleConnectionStateChange = function () {
   this._provided = null
 
   if (this.connected) {
+    // TODO (fix): Limit number of reads.
     this._read()
   } else if (!this._patchQueue) {
     this._patchQueue = []
