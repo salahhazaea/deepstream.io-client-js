@@ -288,14 +288,19 @@ Record.prototype._onUpdate = function ([name, version, data]) {
     return
   }
 
-  if (utils.isSameOrNewer(this.version, version)) {
+  const compare = utils.compareRev(this.version, version)
+
+  if (compare >= 0) {
     if (!this._patchQueue) {
       return
     } else if (this.version.startsWith('INF')) {
       this._onReady()
       return
     }
-    data = this.data
+
+    if (compare === 0) {
+      data = this.data
+    }
   }
 
   if (!data) {

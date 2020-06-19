@@ -100,6 +100,25 @@ module.exports.setInterval = function (callback, intervalDuration) {
   }
 }
 
+module.exports = function compareRev (a, b) {
+  if (!a) {
+    return b ? -1 : 0
+  }
+
+  if (!b) {
+    return a ? 1 : 0
+  }
+
+  if (a === b) {
+    return 0
+  }
+
+  const [av, ar] = splitRev(a)
+  const [bv, br] = splitRev(b)
+
+  return av !== bv ? (av < bv ? -1 : 1) : (ar < br ? -1 : 1)
+}
+
 module.exports.parseUrl = function (url, defaultPath) {
   if (unsupportedProtocol.test(url)) {
     throw new Error('Only ws and wss are supported')
