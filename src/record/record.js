@@ -283,13 +283,6 @@ Record.prototype._onSubscriptionHasProvider = function (data) {
   }
 }
 
-Record.prototype._onReady = function () {
-  this._patchQueue = null
-  this._pending.delete(this)
-  this.emit('ready')
-  this.emit('update', this)
-}
-
 Record.prototype._onUpdate = function ([name, version, data]) {
   try {
     if (!version) {
@@ -297,14 +290,18 @@ Record.prototype._onUpdate = function ([name, version, data]) {
     }
 
     if (utils.isSameOrNewer(this.version, version)) {
-      if (this.version) {
-        // TODO (fix): What to do when client version is newer than server version?
-      }
+      // TODO (fix): What to do when client version is newer than server version?
 
       if (!this._patchQueue) {
         return
-      } else if (this.version.startsWith('INF')) {
-        this._onReady()
+      }
+
+      if (this.version.startsWith('INF')) {
+        // TODO (fix): Send version to server?
+        this._patchQueue = null
+        this._pending.delete(this)
+        this.emit('ready')
+        this.emit('update', this)
         return
       }
     }
@@ -336,6 +333,8 @@ Record.prototype._onUpdate = function ([name, version, data]) {
         if (this.data !== data) {
           this._sendUpdate()
         }
+      } else if (this._patchQueue.length > 0) {
+        // TODO (fix): Warning?
       }
 
       if (this.data !== oldValue) {
@@ -343,13 +342,14 @@ Record.prototype._onUpdate = function ([name, version, data]) {
         this._dirty = true
       }
 
-      this._onReady()
+      this._patchQueue = null
+      this._pending.delete(this)
+      this.emit('ready')
     } else if (this.data !== oldValue) {
       this.data = utils.deepFreeze(this.data)
       this._dirty = true
-
-      this.emit('update', this)
     }
+    this.emit('update', this)
   } catch {
     this._client._$onError(C.TOPIC.RECORD, C.EVENT.UPDATE_ERROR, err, [ this.name, this.version, this.state, version, data ])
   }
