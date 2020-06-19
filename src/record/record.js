@@ -113,9 +113,11 @@ Object.defineProperty(Record.prototype, 'state', {
       return Record.STATE.VOID
     }
 
-    if (!this.connected || this._patchQueue) {
+    if (this._patchQueue) {
       return Record.STATE.CLIENT
     }
+
+    invariant(this.connected, 'must be connected when no patch queue')
 
     if (this._provided && utils.isSameOrNewer(this.version, this._provided)) {
       return Record.STATE.PROVIDER
@@ -295,7 +297,9 @@ Record.prototype._onUpdate = function ([name, version, data]) {
     }
 
     if (utils.isSameOrNewer(this.version, version)) {
-      // TODO (fix): What to do when client version is newer than server version?
+      if (this.version) {
+        // TODO (fix): What to do when client version is newer than server version?
+      }
 
       if (!this._patchQueue) {
         return
@@ -395,6 +399,8 @@ Record.prototype._$handleConnectionStateChange = function () {
 
   if (this.connected) {
     this._read()
+  } else if (!this._patchQueue) {
+    this._patchQueue = []
   }
 
   this.emit('update', this)
