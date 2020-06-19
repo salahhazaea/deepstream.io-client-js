@@ -289,68 +289,65 @@ Record.prototype._onReady = function () {
 }
 
 Record.prototype._onUpdate = function ([name, version, data]) {
-  if (!version) {
-    const err = new Error('missing version')
-    this._client._$onError(C.TOPIC.RECORD, C.EVENT.UPDATE_ERROR, err, [ this.name, this.version ])
-    return
-  }
-
-  if (utils.isSameOrNewer(this.version, version)) {
-    if (!this._patchQueue) {
-      return
-    } else if (this.version.startsWith('INF')) {
-      this._onReady()
-      return
+  try {
+    if (!version) {
+      throw new Error('missing version')
     }
-  }
 
-  if (this._staleVersion === version) {
-    data = this._staleData
-  } else {
-    try {
+    if (utils.isSameOrNewer(this.version, version)) {
+      // TODO (fix): What to do when client version is newer than server version?
+
+      if (!this._patchQueue) {
+        return
+      } else if (this.version.startsWith('INF')) {
+        this._onReady()
+        return
+      }
+    }
+
+    if (this._staleVersion === version) {
+      data = this._staleData
+    } else {
       data = typeof data === 'string' ? JSON.parse(lz.decompressFromUTF16(data)) : data
-    } catch (err) {
-      this._client._$onError(C.TOPIC.RECORD, C.EVENT.LZ_ERROR, err, [ this.name, this.version, this.state, version, data ])
-      return
+
+      this._staleDirty = true
+      this._staleVersion = version
+      this._staleData = data
     }
 
-    this._staleDirty = true
-    this._staleVersion = version
-    this._staleData = data
-  }
-
-  if (!data) {
-    const err = new Error('missing version')
-    this._client._$onError(C.TOPIC.RECORD, C.EVENT.UPDATE_ERROR, err, [ this.name, this.version ])
-    return
-  }
-
-  const oldValue = this.data
-
-  this.version = version
-  this.data = data = jsonPath.set(this.data, null, data, true)
-
-  if (this._patchQueue) {
-    if (!this.version.startsWith('INF')) {
-      for (let i = 0; i < this._patchQueue.length; i += 2) {
-        this.data = jsonPath.set(this.data, this._patchQueue[i + 0], this._patchQueue[i + 1], true)
-      }
-      if (this.data !== data) {
-        this._sendUpdate()
-      }
+    if (!data) {
+      throw new Error('missing data')
     }
 
-    if (this.data !== oldValue) {
+    const oldValue = this.data
+
+    this.version = version
+    this.data = data = jsonPath.set(this.data, null, data, true)
+
+    if (this._patchQueue) {
+      if (!this.version.startsWith('INF')) {
+        for (let i = 0; i < this._patchQueue.length; i += 2) {
+          this.data = jsonPath.set(this.data, this._patchQueue[i + 0], this._patchQueue[i + 1], true)
+        }
+        if (this.data !== data) {
+          this._sendUpdate()
+        }
+      }
+
+      if (this.data !== oldValue) {
+        this.data = utils.deepFreeze(this.data)
+        this._dirty = true
+      }
+
+      this._onReady()
+    } else if (this.data !== oldValue) {
       this.data = utils.deepFreeze(this.data)
       this._dirty = true
+
+      this.emit('update', this)
     }
-
-    this._onReady()
-  } else if (this.data !== oldValue) {
-    this.data = utils.deepFreeze(this.data)
-    this._dirty = true
-
-    this.emit('update', this)
+  } catch {
+    this._client._$onError(C.TOPIC.RECORD, C.EVENT.UPDATE_ERROR, err, [ this.name, this.version, this.state, version, data ])
   }
 }
 
