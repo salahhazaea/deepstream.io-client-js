@@ -308,16 +308,14 @@ Record.prototype._onUpdate = function ([name, version, data]) {
 
     if (this._staleVersion === version) {
       data = this._staleData
+    } else if (!data) {
+      throw new Error('missing data')
     } else {
       data = typeof data === 'string' ? JSON.parse(lz.decompressFromUTF16(data)) : data
 
       this._staleDirty = true
       this._staleVersion = version
       this._staleData = data
-    }
-
-    if (!data) {
-      throw new Error('missing data')
     }
 
     const oldValue = this.data
