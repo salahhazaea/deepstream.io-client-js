@@ -113,8 +113,8 @@ module.exports.compareRev = function compareRev (a, b) {
     return 0
   }
 
-  const [av, ar] = splitRev(a)
-  const [bv, br] = splitRev(b)
+  const [av, ar] = module.exports.splitRev(a)
+  const [bv, br] = module.exports.splitRev(b)
 
   return av !== bv ? (av < bv ? -1 : 1) : (ar < br ? -1 : 1)
 }
