@@ -33,6 +33,7 @@ Record.prototype._reset = function () {
   this._$pruneTimestamp = null
 
   this._provided = null
+  this._stale = null
   this._dirty = true
   this._patchQueue = []
   this.off()
@@ -65,15 +66,15 @@ Record.prototype._$construct = function (name) {
 
       // TODO (fix): What if version is newer than this.version?
       if (!this.version) {
+        this.version = version
         this.data = utils.deepFreeze(Object.keys(data).length === 0 ? jsonPath.EMPTY : data)
         this._dirty = false
-        this.version = version
         this.emit('update', this)
       }
     }
 
     if (this.connected) {
-      this._connection.sendMsg2(C.TOPIC.RECORD, C.ACTIONS.READ, this.name, this.version || '')
+      this._read()
     }
   })
   this._stats.reads += 1
@@ -85,7 +86,7 @@ Record.prototype._$destroy = function () {
   invariant(this.version, 'must have version to destroy')
   invariant(this.isReady, 'must be ready to destroy')
 
-  if (this._dirty) {
+  if (this.version && this._dirty) {
     this._cache.set(this.name, this.version, this.data)
   }
 
@@ -288,26 +289,25 @@ Record.prototype._onUpdate = function ([name, version, data]) {
     return
   }
 
-  const compare = utils.compareRev(this.version, version)
+  if (!data && this._stale && this._stale.version === version) {
+    data = this._stale.data
+  }
 
-  if (compare >= 0) {
+  if (!data) {
+    const err = new Error('missing version')
+    this._client._$onError(C.TOPIC.RECORD, C.EVENT.UPDATE_ERROR, err, [ this.name, this.version ])
+    return
+  }
+
+  this._stale = null
+
+  if (utils.isSameOrNewer(this.version, version)) {
     if (!this._patchQueue) {
       return
     } else if (this.version.startsWith('INF')) {
       this._onReady()
       return
     }
-
-    if (compare === 0) {
-      data = this.data
-    }
-  }
-
-  if (!data) {
-    // Can occur if we receive a buffered message from previous subscription?
-    const err = new Error('missing data')
-    this._client._$onError(C.TOPIC.RECORD, C.EVENT.UPDATE_ERROR, err, [ this.name, this.version ])
-    return
   }
 
   try {
@@ -377,11 +377,20 @@ Record.prototype._sendUpdate = function () {
   this.version = nextVersion
 }
 
+Record.prototype._read = function () {
+  if (this.version) {
+    this._stale = { version: this.version, data: this._data }
+    this._connection.sendMsg2(C.TOPIC.RECORD, C.ACTIONS.READ, this.name, this.version)
+  } else {
+    this._connection.sendMsg1(C.TOPIC.RECORD, C.ACTIONS.READ, this.name)
+  }
+}
+
 Record.prototype._$handleConnectionStateChange = function () {
   this._provided = null
 
   if (this.connected) {
-    this._connection.sendMsg2(C.TOPIC.RECORD, C.ACTIONS.READ, this.name, this.version || '')
+    this._read()
   }
 
   this.emit('update', this)
