@@ -297,7 +297,6 @@ Record.prototype._onUpdate = function ([name, version, data]) {
       }
 
       if (this.version.startsWith('INF')) {
-        // TODO (fix): Send version to server?
         this._patchQueue = null
         this._pending.delete(this)
         this.emit('ready')
