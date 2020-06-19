@@ -113,11 +113,8 @@ Connection.prototype._sendQueuedMessages = function () {
     return
   }
 
-  const maxMessagesPerPacket = this._options.maxMessagesPerPacket
-
   while (this._queuedMessages.length > 0) {
-    const messages = this._queuedMessages.splice(0, maxMessagesPerPacket)
-    this._submit(messages.join(''))
+    this._submit(this._queuedMessages.splice(0, this._options.maxMessagesPerPacket).join(''))
   }
 
   this._messageSender = null
@@ -187,8 +184,6 @@ Connection.prototype._onError = function (err) {
 
 Connection.prototype._onClose = function () {
   this._reset()
-
-  this._queuedMessages.length = 0
 
   if (this._redirecting === true) {
     this._redirecting = false
