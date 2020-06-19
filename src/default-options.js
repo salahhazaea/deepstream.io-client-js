@@ -1,7 +1,7 @@
 module.exports = {
   heartbeatInterval: 30000,
-  reconnectIntervalIncrement: 4000,
-  maxReconnectInterval: 120000,
+  reconnectIntervalIncrement: 1e3,
+  maxReconnectInterval: 6e3,
   maxReconnectAttempts: Infinity,
   maxMessagesPerPacket: 128,
   maxMessagesPerSecond: 4096,
