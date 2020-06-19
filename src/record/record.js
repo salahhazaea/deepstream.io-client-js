@@ -33,8 +33,11 @@ Record.prototype._reset = function () {
   this._$pruneTimestamp = null
 
   this._provided = null
-  this._stale = null
-  this._dirty = true
+
+  this._staleDirty = false
+  this._staleVersion = null
+  this._staleData = null
+
   this._patchQueue = []
   this.off()
 }
@@ -71,6 +74,9 @@ Record.prototype._$construct = function (name) {
         this._dirty = false
         this.emit('update', this)
       }
+
+      this._staleVersion = version
+      this._staleData = data
     }
 
     if (this.connected) {
@@ -86,8 +92,8 @@ Record.prototype._$destroy = function () {
   invariant(this.version, 'must have version to destroy')
   invariant(this.isReady, 'must be ready to destroy')
 
-  if (this.version && this._dirty) {
-    this._cache.set(this.name, this.version, this.data)
+  if (this._staleDirty) {
+    this._cache.set(this.name, this._staleVersion, this._staleData)
   }
 
   // TODO (fix): Ensure unsubscribe is acked.
@@ -289,18 +295,6 @@ Record.prototype._onUpdate = function ([name, version, data]) {
     return
   }
 
-  if (!data && this._stale && this._stale.version === version) {
-    data = this._stale.data
-  }
-
-  if (!data) {
-    const err = new Error('missing version')
-    this._client._$onError(C.TOPIC.RECORD, C.EVENT.UPDATE_ERROR, err, [ this.name, this.version ])
-    return
-  }
-
-  this._stale = null
-
   if (utils.isSameOrNewer(this.version, version)) {
     if (!this._patchQueue) {
       return
@@ -310,10 +304,24 @@ Record.prototype._onUpdate = function ([name, version, data]) {
     }
   }
 
-  try {
-    data = typeof data === 'string' ? JSON.parse(lz.decompressFromUTF16(data)) : data
-  } catch (err) {
-    this._client._$onError(C.TOPIC.RECORD, C.EVENT.LZ_ERROR, err, [ this.name, this.version, this.state, version, data ])
+  if (this._staleVersion === version) {
+    data = this._staleData
+  } else {
+    try {
+      data = typeof data === 'string' ? JSON.parse(lz.decompressFromUTF16(data)) : data
+    } catch (err) {
+      this._client._$onError(C.TOPIC.RECORD, C.EVENT.LZ_ERROR, err, [ this.name, this.version, this.state, version, data ])
+      return
+    }
+
+    this._staleDirty = true
+    this._staleVersion = version
+    this._staleData = data
+  }
+
+  if (!data) {
+    const err = new Error('missing version')
+    this._client._$onError(C.TOPIC.RECORD, C.EVENT.UPDATE_ERROR, err, [ this.name, this.version ])
     return
   }
 
@@ -378,9 +386,8 @@ Record.prototype._sendUpdate = function () {
 }
 
 Record.prototype._read = function () {
-  if (this.version) {
-    this._stale = { version: this.version, data: this._data }
-    this._connection.sendMsg2(C.TOPIC.RECORD, C.ACTIONS.READ, this.name, this.version)
+  if (this._staleVersion) {
+    this._connection.sendMsg2(C.TOPIC.RECORD, C.ACTIONS.READ, this.name, this._staleVersion)
   } else {
     this._connection.sendMsg1(C.TOPIC.RECORD, C.ACTIONS.READ, this.name)
   }
