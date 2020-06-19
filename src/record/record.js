@@ -153,13 +153,10 @@ Record.prototype.set = function (pathOrData, dataOrNil) {
   if (path === undefined && !utils.isPlainObject(data)) {
     throw new Error('invalid argument: data')
   }
-  if (path !== undefined && (typeof path !== 'string' || path.length === 0)) {
-    throw new Error('invalid argument: path')
-  }
-
   if (path === undefined && Object.keys(data).some(prop => prop.startsWith('_'))) {
     throw new Error('invalid argument: data')
-  } else if (path.startsWith('_')) {
+  }
+  if (path !== undefined && (typeof path !== 'string' || path.length === 0 || path.startsWith('_'))) {
     throw new Error('invalid argument: path')
   }
 
