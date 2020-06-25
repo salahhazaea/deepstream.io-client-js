@@ -275,7 +275,7 @@ Record.prototype._onSubscriptionHasProvider = function (data) {
   const provided = messageParser.convertTyped(data[1], this._client) || null
 
   if (this._provided !== provided) {
-    invariant(typeof provided === 'string', `provided must be a string ${provided} ${typeof provided}`)
+    invariant(typeof provided === 'string', `provided must be a string ${provided} ${typeof provided} ${data}`)
     this._provided = provided
     this.emit('update', this)
   }
