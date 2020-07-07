@@ -158,16 +158,23 @@ RecordHandler.prototype.sync = function () {
 
   return new Promise(resolve => {
     let token
+    let timeout
 
-    const timeout = setTimeout(() => {
-      for (const rec of pending) {
-        if (this._pending.has(rec)) {
-          this._client._$onError(C.TOPIC.RECORD, C.EVENT.TIMEOUT, 'record timeout', [ rec.name ])
+    const onTimeout = () => {
+      if (this.connected) {
+        for (const rec of pending) {
+          if (this._pending.has(rec)) {
+            this._client._$onError(C.TOPIC.RECORD, C.EVENT.TIMEOUT, 'record timeout', [ rec.name ])
+          }
         }
+        this._client._$onError(C.TOPIC.RECORD, C.EVENT.TIMEOUT, 'sync timeout', [ token ])
+        resolve()
+      } else {
+        timeout = setTimeout(onTimeout, 2 * 60e3)
       }
-      this._client._$onError(C.TOPIC.RECORD, C.EVENT.TIMEOUT, 'sync timeout', [ token ])
-      resolve()
-    }, 2 * 60e3)
+    }
+
+    timeout = setTimeout(onTimeout, 2 * 60e3)
 
     return Promise
       .all(pending)
