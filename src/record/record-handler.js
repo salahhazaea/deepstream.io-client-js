@@ -168,7 +168,7 @@ RecordHandler.prototype.sync = function () {
           }
         }
         this._client._$onError(C.TOPIC.RECORD, C.EVENT.TIMEOUT, 'sync timeout', [ token ])
-        resolve()
+        resolve(false)
       } else {
         timeout = setTimeout(onTimeout, 2 * 60e3)
       }
@@ -184,7 +184,7 @@ RecordHandler.prototype.sync = function () {
 
         this._syncEmitter.once(token, () => {
           clearTimeout(timeout)
-          resolve()
+          resolve(true)
         })
 
         if (this.connected) {
