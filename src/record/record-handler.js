@@ -168,10 +168,10 @@ RecordHandler.prototype.sync = function () {
       }
 
       for (const rec of pending) {
-        rec.unref()
-        if (this._pending.has(rec)) {
+        if (!rec.isReady) {
           this._client._$onError(C.TOPIC.RECORD, C.EVENT.TIMEOUT, 'record timeout', [ rec.name ])
         }
+        rec.unref()
       }
 
       this._client._$onError(C.TOPIC.RECORD, C.EVENT.TIMEOUT, 'sync timeout', [ token ])
