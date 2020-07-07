@@ -19,7 +19,6 @@ const RecordHandler = function (options, connection, client) {
   this._client = client
   this._records = new Map()
   this._listeners = new Map()
-  this._pool = []
   this._prune = new Set()
   this._pending = new Set()
 
@@ -76,10 +75,6 @@ const RecordHandler = function (options, connection, client) {
 
         this._records.delete(rec.name)
         rec._$destroy()
-
-        if (this._pool.length < 65536) {
-          this._pool.push(rec)
-        }
       }
     }
 
@@ -88,7 +83,6 @@ const RecordHandler = function (options, connection, client) {
 
   prune()
 }
-
 
 Object.defineProperty(RecordHandler.prototype, 'isAsync', {
   get: function isAsync () {
@@ -117,7 +111,7 @@ RecordHandler.prototype.getRecord = function (name) {
   let record = this._records.get(name)
 
   if (!record) {
-    record = (this._pool.pop() || new Record(this))._$construct(name)
+    record = new Record(name, this)
     this._records.set(name, record)
   }
 

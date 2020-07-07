@@ -7,7 +7,7 @@ const xuid = require('xuid')
 const lz = require('@nxtedition/lz-string')
 const invariant = require('invariant')
 
-const Record = function (handler) {
+const Record = function (name, handler) {
   this._handler = handler
   this._stats = handler._stats
   this._prune = handler._prune
@@ -16,15 +16,7 @@ const Record = function (handler) {
   this._client = handler._client
   this._connection = handler._connection
 
-  this._reset()
-}
-
-Record.STATE = C.RECORD_STATE
-
-EventEmitter(Record.prototype)
-
-Record.prototype._reset = function () {
-  this.name = null
+  this.name = name
   this.version = null
   this.data = jsonPath.EMPTY
 
@@ -33,25 +25,10 @@ Record.prototype._reset = function () {
   this._$pruneTimestamp = null
 
   this._provided = null
-
+  this._patchQueue = []
   this._staleDirty = false
   this._staleVersion = null
   this._staleData = null
-
-  this._patchQueue = []
-  this.off()
-}
-
-Record.prototype._$construct = function (name) {
-  if (this._$usages !== 0) {
-    throw new Error('invalid operation: cannot construct referenced record')
-  }
-
-  if (typeof name !== 'string' || name.length === 0) {
-    throw new Error('invalid argument: name')
-  }
-
-  this.name = name
 
   this.ref()
   this._cache.get(this.name, (err, entry) => {
@@ -82,9 +59,11 @@ Record.prototype._$construct = function (name) {
     }
   })
   this._stats.reads += 1
-
-  return this
 }
+
+Record.STATE = C.RECORD_STATE
+
+EventEmitter(Record.prototype)
 
 Record.prototype._$destroy = function () {
   invariant(this.version, 'must have version to destroy')
@@ -98,7 +77,6 @@ Record.prototype._$destroy = function () {
   this._connection.sendMsg1(C.TOPIC.RECORD, C.ACTIONS.UNSUBSCRIBE, this.name)
 
   this._prune.delete(this)
-  this._reset()
 
   return this
 }
