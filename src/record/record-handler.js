@@ -157,20 +157,22 @@ RecordHandler.prototype.sync = function () {
   }
 
   return new Promise(resolve => {
+    let token
+
     const timeout = setTimeout(() => {
       for (const rec of pending) {
         if (this._pending.has(rec)) {
           this._client._$onError(C.TOPIC.RECORD, C.EVENT.TIMEOUT, 'record timeout', [ rec.name ])
         }
       }
-      this._client._$onError(C.TOPIC.RECORD, C.EVENT.TIMEOUT, 'sync timeout')
+      this._client._$onError(C.TOPIC.RECORD, C.EVENT.TIMEOUT, 'sync timeout', [ token ])
       resolve()
     }, 2 * 60e3)
 
     return Promise
       .all(pending)
       .then(() => {
-        const token = this._syncCounter.toString(16)
+        token = this._syncCounter.toString(16)
         this._syncCounter = (this._syncCounter + 1) & 2147483647
 
         this._syncEmitter.once(token, () => {
