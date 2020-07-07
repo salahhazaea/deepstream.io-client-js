@@ -174,6 +174,10 @@ RecordHandler.prototype.sync = function () {
         rec.unref()
       }
 
+      if (token) {
+        this._syncEmitter.off(token)
+      }
+
       this._client._$onError(C.TOPIC.RECORD, C.EVENT.TIMEOUT, 'sync timeout', [ token ])
 
       resolve(false)
