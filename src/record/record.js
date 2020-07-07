@@ -65,12 +65,16 @@ Record.STATE = C.RECORD_STATE
 EventEmitter(Record.prototype)
 
 Record.prototype._$destroy = function () {
+  invariant(this._$usages === 0, 'must have no refs')
   invariant(this.version, 'must have version to destroy')
   invariant(this.isReady, 'must be ready to destroy')
 
   if (this._staleDirty) {
     this._cache.set(this.name, this._staleVersion, this._staleData)
   }
+
+  this._provided = null
+  this._patchQueue = []
 
   // TODO (fix): Ensure unsubscribe is acked.
   this._connection.sendMsg1(C.TOPIC.RECORD, C.ACTIONS.UNSUBSCRIBE, this.name)
@@ -83,6 +87,10 @@ Record.prototype._$destroy = function () {
 Object.defineProperty(Record.prototype, 'state', {
   enumerable: true,
   get: function state () {
+    if (this._$usages === 0) {
+      this._client._$onError(C.TOPIC.RECORD, C.EVENT.REF_ERROR, 'cannot get state', [ this.name ])
+    }
+
     if (!this.version) {
       return Record.STATE.VOID
     }
@@ -102,6 +110,10 @@ Object.defineProperty(Record.prototype, 'state', {
 })
 
 Record.prototype.get = function (path) {
+  if (this._$usages === 0) {
+    this._client._$onError(C.TOPIC.RECORD, C.EVENT.REF_ERROR, 'cannot get data', [ this.name ])
+  }
+
   return jsonPath.get(this.data, path)
 }
 
@@ -116,17 +128,17 @@ Record.prototype._makeVersion = function (start) {
 
 Record.prototype.set = function (pathOrData, dataOrNil) {
   if (this._$usages === 0 || this._provided) {
-    this._client._$onError(C.TOPIC.RECORD, C.EVENT.UPDATE_ERROR, 'cannot set record', [ this.name, this.version, this.state ])
+    this._client._$onError(C.TOPIC.RECORD, C.EVENT.UPDATE_ERROR, 'cannot set', [ this.name, this.version, this.state ])
     return Promise.resolve()
   }
 
   if (this.version && this.version.startsWith('INF')) {
-    this._client._$onError(C.TOPIC.RECORD, C.EVENT.UPDATE_ERROR, 'cannot set record', [ this.name, this.version, this.state ])
+    this._client._$onError(C.TOPIC.RECORD, C.EVENT.UPDATE_ERROR, 'cannot set', [ this.name, this.version, this.state ])
     return Promise.resolve()
   }
 
   if (this.name.startsWith('_')) {
-    this._client._$onError(C.TOPIC.RECORD, C.EVENT.UPDATE_ERROR, 'cannot set record', [ this.name, this.version, this.state ])
+    this._client._$onError(C.TOPIC.RECORD, C.EVENT.UPDATE_ERROR, 'cannot set', [ this.name, this.version, this.state ])
     return Promise.resolve()
   }
 
@@ -178,12 +190,12 @@ Record.prototype.set = function (pathOrData, dataOrNil) {
 
 Record.prototype.update = function (pathOrUpdater, updaterOrNil) {
   if (this._$usages === 0 || this._provided) {
-    this._client._$onError(C.TOPIC.RECORD, C.EVENT.UPDATE_ERROR, 'cannot update record', [ this.name, this.version, this.state ])
+    this._client._$onError(C.TOPIC.RECORD, C.EVENT.UPDATE_ERROR, 'cannot update', [ this.name, this.version, this.state ])
     return Promise.resolve()
   }
 
   if (this.version && this.version.startsWith('INF')) {
-    this._client._$onError(C.TOPIC.RECORD, C.EVENT.UPDATE_ERROR, 'cannot update record', [ this.name, this.version, this.state ])
+    this._client._$onError(C.TOPIC.RECORD, C.EVENT.UPDATE_ERROR, 'cannot update', [ this.name, this.version, this.state ])
     return Promise.resolve()
   }
 
@@ -227,12 +239,18 @@ Record.prototype.ref = function () {
   if (this._$usages === 1) {
     this._$pruneTimestamp = null
     this._prune.delete(this)
+
+    // TODO: resubscribe?
   }
 }
 
 Record.prototype.unref = function () {
-  this._$usages = Math.max(0, this._$usages - 1)
+  if (this._$usages === 0) {
+    this._client._$onError(C.TOPIC.RECORD, C.EVENT.REF_ERROR, 'cannot unref', [ this.name ])
+    return
+  }
 
+  this._$usages -= 1
   if (this._$usages === 0) {
     this._$pruneTimestamp = Date.now()
     this._prune.add(this)
