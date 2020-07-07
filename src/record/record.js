@@ -46,7 +46,6 @@ const Record = function (name, handler) {
       if (!this.version) {
         this.version = version
         this.data = utils.deepFreeze(Object.keys(data).length === 0 ? jsonPath.EMPTY : data)
-        this._dirty = false
         this.emit('update', this)
       }
 
@@ -160,7 +159,6 @@ Record.prototype.set = function (pathOrData, dataOrNil) {
   }
 
   this.data = utils.deepFreeze(newData)
-  this._dirty = true
 
   if (!this._patchQueue) {
     this._sendUpdate()
@@ -313,7 +311,6 @@ Record.prototype._onUpdate = function ([name, version, data]) {
 
       if (this.data !== oldValue) {
         this.data = utils.deepFreeze(this.data)
-        this._dirty = true
       }
 
       this._patchQueue = null
@@ -321,7 +318,6 @@ Record.prototype._onUpdate = function ([name, version, data]) {
       this.emit('ready')  // TODO: Deprecate
     } else if (this.data !== oldValue) {
       this.data = utils.deepFreeze(this.data)
-      this._dirty = true
     }
     this.emit('update', this)
   } catch {
