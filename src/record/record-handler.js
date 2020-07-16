@@ -169,7 +169,7 @@ RecordHandler.prototype.sync = function () {
 
       for (const rec of pending) {
         if (!rec.isReady) {
-          this._client._$onError(C.TOPIC.RECORD, C.EVENT.TIMEOUT, 'record timeout', [ rec.name ])
+          this._client._$onError(C.TOPIC.RECORD, C.EVENT.TIMEOUT, 'record timeout', [rec.name])
         }
         rec.unref()
       }
@@ -178,7 +178,7 @@ RecordHandler.prototype.sync = function () {
         this._syncEmitter.off(token)
       }
 
-      this._client._$onError(C.TOPIC.RECORD, C.EVENT.TIMEOUT, 'sync timeout', [ token ])
+      this._client._$onError(C.TOPIC.RECORD, C.EVENT.TIMEOUT, 'sync timeout', [token])
 
       resolve(false)
     }
@@ -197,7 +197,7 @@ RecordHandler.prototype.sync = function () {
         })
 
         if (this.connected) {
-          this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.SYNC, [ token ])
+          this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.SYNC, [token])
         }
       })
   })
@@ -280,7 +280,7 @@ RecordHandler.prototype.observe2 = function (name) {
     return Observable.of(utils.deepFreeze({
       version: '0-00000000000000',
       data: jsonPath.EMPTY,
-      state: C.RECORD_STATE.SERVER,
+      state: C.RECORD_STATE.SERVER
     }))
   }
 
@@ -339,7 +339,7 @@ RecordHandler.prototype._handleConnectionStateChange = function (connected) {
   if (this.connected) {
     // TODO (fix): This should wait until all records are ready.
     for (const token of this._syncEmitter.eventNames()) {
-      this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.SYNC, [ token ])
+      this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.SYNC, [token])
     }
   }
 }

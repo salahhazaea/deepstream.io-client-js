@@ -65,8 +65,8 @@ describe('set', () => {
   })
 
   it('set string', () => {
-    const res = jsonPath.set({ foo: "ASD" }, null, { sad: "ASD" })
-    expect(res).toEqual({ sad: "ASD" })
+    const res = jsonPath.set({ foo: 'ASD' }, null, { sad: 'ASD' })
+    expect(res).toEqual({ sad: 'ASD' })
   })
 })
 
@@ -82,7 +82,7 @@ describe('order', () => {
     })
 
     expect(res).not.toBe(obj)
-    expect(res).toEqual({ bar: 1, foo: 2})
+    expect(res).toEqual({ bar: 1, foo: 2 })
   })
 
   it('keeps order', () => {
@@ -99,20 +99,21 @@ describe('order', () => {
   })
 })
 
-
 describe('paths are tokenized and retrieved correctly', () => {
-  const testRecord = { _$data: {
-    firstname: 'Wolfram',
-    lastname: 'Hempel',
-    address:{
-      street: 'currentStreet'
-    },
-    pastAddresses: [
-      { street: 'firststreet', postCode: 1001 },
-      { street: 'secondstreet', postCode: 2002 }
-    ],
-    1234: 'integer index'
-  } }
+  const testRecord = {
+    _$data: {
+      firstname: 'Wolfram',
+      lastname: 'Hempel',
+      address: {
+        street: 'currentStreet'
+      },
+      pastAddresses: [
+        { street: 'firststreet', postCode: 1001 },
+        { street: 'secondstreet', postCode: 2002 }
+      ],
+      1234: 'integer index'
+    }
+  }
 
   it('retrieves simple paths', () => {
     expect(jsonPath.get(testRecord._$data, 'firstname')).toBe('Wolfram')
@@ -173,14 +174,14 @@ describe('paths are tokenized and retrieved correctly', () => {
 
 describe('objects are created from paths and their value is set correctly', () => {
   it('sets simple values', () => {
-    const record = { _$data:{} }
+    const record = { _$data: {} }
     record._$data = jsonPath.set(record._$data, 'firstname', 'Wolfram')
     expect(jsonPath.get(record._$data, 'firstname')).toBe('Wolfram')
     expect(record._$data).toEqual({ firstname: 'Wolfram' })
   })
 
   it('sets values for nested objects', () => {
-    const record = { _$data:{} }
+    const record = { _$data: {} }
     record._$data = jsonPath.set(record._$data, 'adress.street', 'someStreet')
     expect(jsonPath.get(record._$data, 'adress.street')).toBe('someStreet')
     expect(record._$data).toEqual({
@@ -191,7 +192,7 @@ describe('objects are created from paths and their value is set correctly', () =
   })
 
   it('sets values for arrays', () => {
-    const record = { _$data:{} }
+    const record = { _$data: {} }
     record._$data = jsonPath.set(record._$data, 'pastAddresses[1].street', 'someStreet')
     expect(jsonPath.get(record._$data, 'pastAddresses[1].street')).toBe('someStreet')
     expect(record._$data).toEqual({
@@ -204,10 +205,12 @@ describe('objects are created from paths and their value is set correctly', () =
   })
 
   it('sets values for null values', () => {
-    const record = { _$data:{
-      job: null,
-      joinedAt: 1480020987915
-    } }
+    const record = {
+      _$data: {
+        job: null,
+        joinedAt: 1480020987915
+      }
+    }
     const jobId = { id: 88 }
     record._$data = jsonPath.set(record._$data, 'job', jobId, true)
     expect(jsonPath.get(record._$data, 'job.id')).toBe(88)
@@ -238,10 +241,12 @@ describe('objects are created from paths and their value is set correctly', () =
   })
 
   it('extends existing arrays', () => {
-    const record = { _$data: {
-      firstname: 'Wolfram',
-      animals: ['Bear', 'Cow', 'Ostrich']
-    } }
+    const record = {
+      _$data: {
+        firstname: 'Wolfram',
+        animals: ['Bear', 'Cow', 'Ostrich']
+      }
+    }
     record._$data = jsonPath.set(record._$data, 'animals[ 1 ]', 'Emu')
     expect(jsonPath.get(record._$data, 'animals[ 1 ]')).toBe('Emu')
     expect(record._$data).toEqual({
@@ -257,7 +262,7 @@ describe('plain JSON', () => {
     const x = {
       a: time,
       b: undefined,
-      c: [ undefined ],
+      c: [undefined],
       d: NaN,
       e: Infinity,
       g: {
@@ -267,7 +272,7 @@ describe('plain JSON', () => {
     const res = jsonPath.set({ a: 1 }, null, x)
     expect(res).toEqual({
       a: time.toISOString(),
-      c: [ null ],
+      c: [null],
       d: null,
       e: null,
       g: {

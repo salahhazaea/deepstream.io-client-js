@@ -25,7 +25,7 @@ RecordCache.prototype.set = function (name, version, data) {
     return
   }
 
-  const entry = [ version, data ]
+  const entry = [version, data]
   this._lru.set(name, entry)
   if (this._db && this._db.isOpen()) {
     if (!this._batch) {

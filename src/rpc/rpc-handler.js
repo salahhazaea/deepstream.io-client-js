@@ -50,7 +50,7 @@ RpcHandler.prototype.provide = function (name, callback) {
   this._providers.set(name, callback)
 
   if (this.connected) {
-    this._connection.sendMsg(C.TOPIC.RPC, C.ACTIONS.SUBSCRIBE, [ name ])
+    this._connection.sendMsg(C.TOPIC.RPC, C.ACTIONS.SUBSCRIBE, [name])
   }
 
   return () => this.unprovide(name)
@@ -69,7 +69,7 @@ RpcHandler.prototype.unprovide = function (name) {
   this._providers.delete(name)
 
   if (this.connected) {
-    this._connection.sendMsg(C.TOPIC.RPC, C.ACTIONS.UNSUBSCRIBE, [ name ])
+    this._connection.sendMsg(C.TOPIC.RPC, C.ACTIONS.UNSUBSCRIBE, [name])
   }
 }
 
@@ -96,13 +96,13 @@ RpcHandler.prototype.make = function (name, data, callback) {
     data,
     callback
   })
-  this._connection.sendMsg(C.TOPIC.RPC, C.ACTIONS.REQUEST, [ name, id, messageBuilder.typed(data) ])
+  this._connection.sendMsg(C.TOPIC.RPC, C.ACTIONS.REQUEST, [name, id, messageBuilder.typed(data)])
 
   return promise
 }
 
 RpcHandler.prototype._respond = function (message) {
-  const [ name, id, data ] = message.data
+  const [name, id, data] = message.data
 
   const callback = this._providers.get(name)
   const response = new RpcResponse(this._connection, name, id)
@@ -137,7 +137,7 @@ RpcHandler.prototype._$handle = function (message) {
   if (message.action === C.ACTIONS.REQUEST) {
     this._respond(message)
   } else if (message.action === C.ACTIONS.RESPONSE) {
-    const [ , id, data, error ] = message.data
+    const [, id, data, error] = message.data
 
     const rpc = this._rpcs.get(id)
     if (!rpc) {
@@ -161,12 +161,12 @@ RpcHandler.prototype._$handle = function (message) {
 RpcHandler.prototype._handleConnectionStateChange = function (state) {
   if (state === C.CONNECTION_STATE.OPEN) {
     for (const name of this._providers.keys()) {
-      this._connection.sendMsg(C.TOPIC.RPC, C.ACTIONS.SUBSCRIBE, [ name ])
+      this._connection.sendMsg(C.TOPIC.RPC, C.ACTIONS.SUBSCRIBE, [name])
     }
   } else if (state === C.CONNECTION_STATE.RECONNECTING || state === C.CONNECTION_STATE.CLOSED) {
     const err = new Error('socket hang up')
     err.code = 'ECONNRESET'
-    for (const [ , rpc ] of this._rpcs) {
+    for (const [, rpc] of this._rpcs) {
       rpc.callback(err)
     }
     this._rpcs.clear()

@@ -45,7 +45,7 @@ EventHandler.prototype.subscribe = function (name, callback) {
   }
 
   if (!this._emitter.hasListeners(name) && this.connected) {
-    this._connection.sendMsg(C.TOPIC.EVENT, C.ACTIONS.SUBSCRIBE, [ name ])
+    this._connection.sendMsg(C.TOPIC.EVENT, C.ACTIONS.SUBSCRIBE, [name])
   }
 
   this._emitter.on(name, callback)
@@ -82,7 +82,7 @@ EventHandler.prototype.emit = function (name, data) {
     throw new Error('invalid argument name')
   }
 
-  this._connection.sendMsg(C.TOPIC.EVENT, C.ACTIONS.EVENT, [ name, messageBuilder.typed(data) ])
+  this._connection.sendMsg(C.TOPIC.EVENT, C.ACTIONS.EVENT, [name, messageBuilder.typed(data)])
   this._emitter.emit(name, data)
   this._stats.emitted += 1
 }
@@ -118,7 +118,7 @@ EventHandler.prototype.provide = function (pattern, callback) {
 }
 
 EventHandler.prototype._$handle = function (message) {
-  const [ name, data ] = message.action !== C.ACTIONS.ERROR
+  const [name, data] = message.action !== C.ACTIONS.ERROR
     ? message.data
     : message.data.slice(1).concat(message.data.slice(0, 1))
 
@@ -140,7 +140,7 @@ EventHandler.prototype._$handle = function (message) {
 EventHandler.prototype._handleConnectionStateChange = function () {
   if (this.connected) {
     for (const eventName of this._emitter.eventNames()) {
-      this._connection.sendMsg(C.TOPIC.EVENT, C.ACTIONS.SUBSCRIBE, [ eventName ])
+      this._connection.sendMsg(C.TOPIC.EVENT, C.ACTIONS.SUBSCRIBE, [eventName])
     }
   }
 }

@@ -130,7 +130,7 @@ Connection.prototype._submit = function (message) {
 
 Connection.prototype._sendAuthParams = function () {
   this._setState(C.CONNECTION_STATE.AUTHENTICATING)
-  const authMessage = messageBuilder.getMsg(C.TOPIC.AUTH, C.ACTIONS.REQUEST, [ this._authParams ])
+  const authMessage = messageBuilder.getMsg(C.TOPIC.AUTH, C.ACTIONS.REQUEST, [this._authParams])
   this._submit(authMessage)
 }
 
@@ -264,26 +264,26 @@ Connection.prototype._handleConnectionResponse = function (message) {
     }
   } else if (message.action === C.ACTIONS.CHALLENGE) {
     this._setState(C.CONNECTION_STATE.CHALLENGING)
-    this._submit(messageBuilder.getMsg(C.TOPIC.CONNECTION, C.ACTIONS.CHALLENGE_RESPONSE, [ this._originalUrl ]))
+    this._submit(messageBuilder.getMsg(C.TOPIC.CONNECTION, C.ACTIONS.CHALLENGE_RESPONSE, [this._originalUrl]))
   } else if (message.action === C.ACTIONS.REJECTION) {
     this._challengeDenied = true
     this.close()
   } else if (message.action === C.ACTIONS.REDIRECT) {
-    this._url = message.data[ 0 ]
+    this._url = message.data[0]
     this._redirecting = true
     this._endpoint.close()
   } else if (message.action === C.ACTIONS.ERROR) {
-    if (message.data[ 0 ] === C.EVENT.CONNECTION_AUTHENTICATION_TIMEOUT) {
+    if (message.data[0] === C.EVENT.CONNECTION_AUTHENTICATION_TIMEOUT) {
       this._deliberateClose = true
       this._connectionAuthenticationTimeout = true
-      this._client._$onError(C.TOPIC.CONNECTION, message.data[ 0 ], message.data[ 1 ])
+      this._client._$onError(C.TOPIC.CONNECTION, message.data[0], message.data[1])
     }
   }
 }
 
 Connection.prototype._handleAuthResponse = function (message) {
   if (message.action === C.ACTIONS.ERROR) {
-    if (message.data[ 0 ] === C.EVENT.TOO_MANY_AUTH_ATTEMPTS) {
+    if (message.data[0] === C.EVENT.TOO_MANY_AUTH_ATTEMPTS) {
       this._deliberateClose = true
       this._tooManyAuthAttempts = true
     } else {
@@ -291,13 +291,13 @@ Connection.prototype._handleAuthResponse = function (message) {
     }
 
     if (this._authCallback) {
-      this._authCallback(false, this._getAuthData(message.data[ 1 ]))
+      this._authCallback(false, this._getAuthData(message.data[1]))
     }
   } else if (message.action === C.ACTIONS.ACK) {
     this._setState(C.CONNECTION_STATE.OPEN)
 
     if (this._authCallback) {
-      this._authCallback(true, this._getAuthData(message.data[ 0 ]))
+      this._authCallback(true, this._getAuthData(message.data[0]))
     }
 
     this._sendQueuedMessages()

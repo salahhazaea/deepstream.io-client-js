@@ -17,7 +17,7 @@ RpcResponse.prototype.reject = function () {
   this._connection.sendMsg(
     C.TOPIC.RPC,
     C.ACTIONS.REJECTION,
-    [ this._name, this._id ]
+    [this._name, this._id]
   )
 }
 
@@ -30,7 +30,7 @@ RpcResponse.prototype.error = function (error) {
   this._connection.sendMsg(
     C.TOPIC.RPC,
     C.ACTIONS.RESPONSE,
-    [ this._name, this._id, error.message || error, true ]
+    [this._name, this._id, error.message || error, true]
   )
 }
 
@@ -43,7 +43,7 @@ RpcResponse.prototype.send = function (data) {
   this._connection.sendMsg(
     C.TOPIC.RPC,
     C.ACTIONS.RESPONSE,
-    [ this._name, this._id, messageBuilder.typed(data) ]
+    [this._name, this._id, messageBuilder.typed(data)]
   )
 }
 

@@ -36,11 +36,11 @@ const Record = function (name, handler) {
 
     if (err && !err.notFound) {
       this._stats.misses += 1
-      this._client._$onError(C.TOPIC.RECORD, C.EVENT.CACHE_ERROR, err, [ this.name, this.version, this.state ])
+      this._client._$onError(C.TOPIC.RECORD, C.EVENT.CACHE_ERROR, err, [this.name, this.version, this.state])
     } else if (entry) {
       this._stats.hits += 1
 
-      const [ version, data ] = entry
+      const [version, data] = entry
 
       // TODO (fix): What if version is newer than this.version?
       if (!this.version) {
@@ -88,7 +88,7 @@ Object.defineProperty(Record.prototype, 'state', {
   enumerable: true,
   get: function state () {
     if (this._$usages === 0) {
-      this._client._$onError(C.TOPIC.RECORD, C.EVENT.REF_ERROR, 'cannot get state', [ this.name ])
+      this._client._$onError(C.TOPIC.RECORD, C.EVENT.REF_ERROR, 'cannot get state', [this.name])
     }
 
     if (!this.version) {
@@ -111,7 +111,7 @@ Object.defineProperty(Record.prototype, 'state', {
 
 Record.prototype.get = function (path) {
   if (this._$usages === 0) {
-    this._client._$onError(C.TOPIC.RECORD, C.EVENT.REF_ERROR, 'cannot get data', [ this.name ])
+    this._client._$onError(C.TOPIC.RECORD, C.EVENT.REF_ERROR, 'cannot get data', [this.name])
   }
 
   return jsonPath.get(this.data, path)
@@ -128,22 +128,22 @@ Record.prototype._makeVersion = function (start) {
 
 Record.prototype.set = function (pathOrData, dataOrNil) {
   if (this._$usages === 0 || this._provided) {
-    this._client._$onError(C.TOPIC.RECORD, C.EVENT.UPDATE_ERROR, 'cannot set', [ this.name, this.version, this.state ])
+    this._client._$onError(C.TOPIC.RECORD, C.EVENT.UPDATE_ERROR, 'cannot set', [this.name, this.version, this.state])
     return Promise.resolve()
   }
 
   if (this.version && this.version.startsWith('INF')) {
-    this._client._$onError(C.TOPIC.RECORD, C.EVENT.UPDATE_ERROR, 'cannot set', [ this.name, this.version, this.state ])
+    this._client._$onError(C.TOPIC.RECORD, C.EVENT.UPDATE_ERROR, 'cannot set', [this.name, this.version, this.state])
     return Promise.resolve()
   }
 
   if (this.name.startsWith('_')) {
-    this._client._$onError(C.TOPIC.RECORD, C.EVENT.UPDATE_ERROR, 'cannot set', [ this.name, this.version, this.state ])
+    this._client._$onError(C.TOPIC.RECORD, C.EVENT.UPDATE_ERROR, 'cannot set', [this.name, this.version, this.state])
     return Promise.resolve()
   }
 
-  let path = arguments.length === 1 ? undefined : pathOrData
-  let data = arguments.length === 1 ? pathOrData : dataOrNil
+  const path = arguments.length === 1 ? undefined : pathOrData
+  const data = arguments.length === 1 ? pathOrData : dataOrNil
 
   if (path === undefined && !utils.isPlainObject(data)) {
     throw new Error('invalid argument: data')
@@ -175,7 +175,7 @@ Record.prototype.set = function (pathOrData, dataOrNil) {
   if (!this._patchQueue) {
     this._sendUpdate()
   } else {
-    const [ start ] = this.version ? this.version.split('-') : [ '0' ]
+    const [start] = this.version ? this.version.split('-') : ['0']
     this.version = this._makeVersion(start)
   }
 
@@ -190,12 +190,12 @@ Record.prototype.set = function (pathOrData, dataOrNil) {
 
 Record.prototype.update = function (pathOrUpdater, updaterOrNil) {
   if (this._$usages === 0 || this._provided) {
-    this._client._$onError(C.TOPIC.RECORD, C.EVENT.UPDATE_ERROR, 'cannot update', [ this.name, this.version, this.state ])
+    this._client._$onError(C.TOPIC.RECORD, C.EVENT.UPDATE_ERROR, 'cannot update', [this.name, this.version, this.state])
     return Promise.resolve()
   }
 
   if (this.version && this.version.startsWith('INF')) {
-    this._client._$onError(C.TOPIC.RECORD, C.EVENT.UPDATE_ERROR, 'cannot update', [ this.name, this.version, this.state ])
+    this._client._$onError(C.TOPIC.RECORD, C.EVENT.UPDATE_ERROR, 'cannot update', [this.name, this.version, this.state])
     return Promise.resolve()
   }
 
@@ -216,7 +216,7 @@ Record.prototype.update = function (pathOrUpdater, updaterOrNil) {
       const next = updater(prev)
       this.set(path, next)
     } catch (err) {
-      this._client._$onError(C.TOPIC.RECORD, C.EVENT.UPDATE_ERROR, err, [ this.name, this.version, this.state ])
+      this._client._$onError(C.TOPIC.RECORD, C.EVENT.UPDATE_ERROR, err, [this.name, this.version, this.state])
     }
     this.unref()
   }
@@ -246,7 +246,7 @@ Record.prototype.ref = function () {
 
 Record.prototype.unref = function () {
   if (this._$usages === 0) {
-    this._client._$onError(C.TOPIC.RECORD, C.EVENT.REF_ERROR, 'cannot unref', [ this.name ])
+    this._client._$onError(C.TOPIC.RECORD, C.EVENT.REF_ERROR, 'cannot unref', [this.name])
     return
   }
 
@@ -269,7 +269,7 @@ Record.prototype._onSubscriptionHasProvider = function (data) {
   const provided = messageParser.convertTyped(data[1], this._client) || null
 
   if (this._provided !== provided) {
-    invariant(provided === null || typeof provided === 'string', `provided must be null or string`)
+    invariant(provided === null || typeof provided === 'string', 'provided must be null or string')
     this._provided = provided
     this.emit('update', this)
   }
@@ -333,18 +333,18 @@ Record.prototype._onUpdate = function ([name, version, data]) {
 
       this._patchQueue = null
       this._pending.delete(this)
-      this.emit('ready')  // TODO: Deprecate
+      this.emit('ready') // TODO: Deprecate
     } else if (this.data !== oldValue) {
       this.data = utils.deepFreeze(this.data)
     }
     this.emit('update', this)
-  } catch {
-    this._client._$onError(C.TOPIC.RECORD, C.EVENT.UPDATE_ERROR, err, [ this.name, this.version, this.state, version, data ])
+  } catch (err) {
+    this._client._$onError(C.TOPIC.RECORD, C.EVENT.UPDATE_ERROR, err, [this.name, this.version, this.state, version, data])
   }
 }
 
 Record.prototype._sendUpdate = function () {
-  let [ start ] = this.version ? this.version.split('-') : [ '0' ]
+  let [start] = this.version ? this.version.split('-') : ['0']
 
   if (start === 'INF' || this._provided) {
     return
@@ -360,7 +360,7 @@ Record.prototype._sendUpdate = function () {
   try {
     body = lz.compressToUTF16(JSON.stringify(this.data))
   } catch (err) {
-    this._client._$onError(C.TOPIC.RECORD, C.EVENT.LZ_ERROR, err, [ this.name, this.version, this.state, nextVersion ])
+    this._client._$onError(C.TOPIC.RECORD, C.EVENT.LZ_ERROR, err, [this.name, this.version, this.state, nextVersion])
     return
   }
 
@@ -368,7 +368,7 @@ Record.prototype._sendUpdate = function () {
     this.name,
     nextVersion,
     body,
-    prevVersion,
+    prevVersion
   ])
 
   this.version = nextVersion
