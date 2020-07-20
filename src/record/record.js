@@ -23,6 +23,7 @@ const Record = function (name, handler) {
   // TODO (fix): Make private
   this._$usages = 0
   this._$pruneTimestamp = null
+  this._$readTimestamp = null
 
   this._provided = null
   this._patchQueue = []
@@ -380,6 +381,7 @@ Record.prototype._read = function () {
   } else {
     this._connection.sendMsg1(C.TOPIC.RECORD, C.ACTIONS.READ, this.name)
   }
+  this._$readTimestamp = Date.now()
 }
 
 Record.prototype._$handleConnectionStateChange = function () {
