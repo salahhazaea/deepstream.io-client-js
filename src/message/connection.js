@@ -146,6 +146,8 @@ Connection.prototype._checkHeartBeat = function () {
       C.EVENT.CONNECTION_ERROR,
       `heartbeat not received in the last ${heartBeatTolerance} milliseconds`)
   }
+
+  this._submit(messageBuilder.getMsg(C.TOPIC.CONNECTION, C.ACTIONS.PING))
 }
 
 Connection.prototype._onOpen = function () {
@@ -266,6 +268,8 @@ Connection.prototype._handleConnectionResponse = function (message) {
   if (message.action === C.ACTIONS.PING) {
     this._lastHeartBeat = Date.now()
     this._submit(messageBuilder.getMsg(C.TOPIC.CONNECTION, C.ACTIONS.PONG))
+  } else if (message.action === C.ACTIONS.PONG) {
+    this._lastHeartBeat = Date.now()
   } else if (message.action === C.ACTIONS.ACK) {
     this._setState(C.CONNECTION_STATE.AWAITING_AUTHENTICATION)
     if (this._authParams) {
