@@ -43,7 +43,7 @@ module.exports.isPlainObject = function (value) {
   if (
     typeof value !== 'object' ||
     value == null ||
-    Object.prototype.toString(value) != '[object Object]'
+    Object.prototype.toString(value) !== '[object Object]'
   ) {
     return false
   }
@@ -128,7 +128,7 @@ module.exports.parseUrl = function (url, defaultPath) {
   } else if (url.indexOf('//') === 0) {
     url = 'ws:' + url
   }
-  const serverUrl = URL.parse(url)
+  const serverUrl = URL.parse(url) // eslint-disable-line
   if (!serverUrl.host) {
     throw new Error('invalid url, missing host')
   }
@@ -136,3 +136,24 @@ module.exports.parseUrl = function (url, defaultPath) {
   serverUrl.pathname = serverUrl.pathname ? serverUrl.pathname : defaultPath
   return URL.format(serverUrl)
 }
+
+module.exports.requestIdleCallback = isNode || !window.requestIdleCallback
+  ? function (cb) {
+    const start = Date.now()
+    return setTimeout(function () {
+      const options = {
+        didTimeout: false,
+        timeRemaining: function () {
+          return Math.max(0, 50 - (Date.now() - start))
+        }
+      }
+      cb(options)
+    }, 1)
+  }
+  : window.requestIdleCallback
+
+module.exports.cancelIdleCallback = isNode || !window.requestIdleCallback
+  ? function (id) {
+    clearTimeout(id)
+  }
+  : window.cancelIdleCallback

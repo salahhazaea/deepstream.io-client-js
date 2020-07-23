@@ -25,8 +25,7 @@ const Connection = function (client, url, options) {
   }
   this._messages = []
   this._messagesIndex = 0
-  this._rawMessages = []
-  this._rawMessagesIndex = 0
+  this._buffer = ''
   this._reconnectTimeout = null
   this._reconnectionAttempt = 0
   this._messageSender = null
@@ -35,6 +34,8 @@ const Connection = function (client, url, options) {
   this._heartbeatInterval = null
 
   this._sendQueuedMessages = this._sendQueuedMessages.bind(this)
+  this._processMessages = this._processMessages.bind(this)
+  this._processIdleCallback = null
 
   this._originalUrl = utils.parseUrl(url, this._options.path)
   this._url = this._originalUrl
@@ -196,19 +197,27 @@ Connection.prototype._onClose = function () {
 }
 
 Connection.prototype._onMessage = function (message) {
-  this._rawMessages.push(message.data)
+  this._buffer += message.data
+  if (!this._processIdleCallback) {
+    this._processIdleCallback = utils.requestIdleCallback(this._processMessages)
+  }
+}
 
+Connection.prototype._processMessages = function (deadline) {
   while (true) {
-    if (this._messages.length === 0) {
-      const rawMessage = this._rawMessages[this._rawMessagesIndex]
-      this._rawMessages[this._rawMessagesIndex++] = undefined
+    if (deadline.timeRemaining() <= 0) {
+      this._processIdleCallback = utils.requestIdleCallback(this._processMessages)
+      return
+    }
 
-      if (rawMessage === undefined) {
-        this._rawMessages.length = 0
-        this._rawMessagesIndex = 0
-        break
+    if (this._messages.length === 0) {
+      this._messages = this._buffer.split(C.MESSAGE_SEPERATOR)
+      this._buffer = this._messages.pop()
+
+      if (this._messages.length === 0) {
+        this._processIdleCallback = null
+        return
       }
-      this._messages = rawMessage.split(C.MESSAGE_SEPERATOR)
     } else {
       const message = this._messages[this._messagesIndex]
       this._messages[this._messagesIndex++] = undefined
