@@ -1,5 +1,5 @@
 module.exports = {
-  heartbeatInterval: 2 * 60e3,
+  heartbeatInterval: 30e3,
   reconnectIntervalIncrement: 1e3,
   maxReconnectInterval: 6e3,
   maxReconnectAttempts: Infinity,
