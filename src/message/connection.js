@@ -145,9 +145,9 @@ Connection.prototype._checkHeartBeat = function () {
       C.TOPIC.CONNECTION,
       C.EVENT.CONNECTION_ERROR,
       `heartbeat not received in the last ${heartBeatTolerance} milliseconds`)
+  } else {
+    this._submit(messageBuilder.getMsg(C.TOPIC.CONNECTION, C.ACTIONS.PING))
   }
-
-  this._submit(messageBuilder.getMsg(C.TOPIC.CONNECTION, C.ACTIONS.PING))
 }
 
 Connection.prototype._onOpen = function () {
