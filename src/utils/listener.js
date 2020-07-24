@@ -68,10 +68,14 @@ Listener.prototype._$onMessage = function (message) {
 
     provider = new Provider(name)
     provider.next = value$ => {
-      if (value$ !== null && typeof value$ !== 'object') {
+      if (value$ != null && typeof value$ !== 'object') {
         const err = new Error('invalid value')
         this._client._$onError(this._topic, C.EVENT.USER_ERROR, err, [this._pattern, provider.name, typeof value$])
         return
+      }
+
+      if (!value$) {
+        value$ = null
       }
 
       if (Boolean(value$) !== Boolean(provider.value$)) {
