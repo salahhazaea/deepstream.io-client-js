@@ -211,7 +211,7 @@ Connection.prototype._processMessages = function (deadline) {
       return
     }
 
-    if (this._messages.length === 0) {
+    if (this._messagesIndex === this._messages.length) {
       this._processIdleCallback = null
       return
     }
