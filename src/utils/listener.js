@@ -184,10 +184,9 @@ class Listener {
       } else if (!provider || !provider.value$) {
         this._connection.sendMsg(this._topic, C.ACTIONS.LISTEN_REJECT, [this._pattern, name])
       } else {
-        const [version, body] = message.data.slice(2)
         provider.ready = false
-        provider.version = version
-        provider.body = body
+        provider.version = message.data[2]
+        provider.body = message.data[3]
         provider.valueSubscription = provider.value$.subscribe(provider.observer)
       }
     } else if (message.action === C.ACTIONS.SUBSCRIPTION_FOR_PATTERN_REMOVED) {
