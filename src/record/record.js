@@ -263,7 +263,10 @@ Record.prototype._$onMessage = function (message) {
     this._onUpdate(message.data)
   } else if (message.action === C.ACTIONS.SUBSCRIPTION_HAS_PROVIDER) {
     this._onSubscriptionHasProvider(message.data)
+  } else {
+    return false
   }
+  return true
 }
 
 Record.prototype._onSubscriptionHasProvider = function (data) {

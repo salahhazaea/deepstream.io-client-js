@@ -322,18 +322,20 @@ RecordHandler.prototype._$handle = function (message) {
 
   if (message.action === C.ACTIONS.SYNC) {
     this._syncEmitter.emit(message.data[0])
-    return
+    return true
   }
 
   const record = this._records.get(name)
-  if (record) {
-    record._$onMessage(message)
+  if (record && record._$onMessage(message)) {
+    return true
   }
 
   const listener = this._listeners.get(name)
-  if (listener) {
-    listener._$onMessage(message)
+  if (listener && listener._$onMessage(message)) {
+    return true
   }
+
+  return false
 }
 
 RecordHandler.prototype._handleConnectionStateChange = function (connected) {

@@ -172,7 +172,10 @@ Listener.prototype._$onMessage = function (message) {
     if (provider) {
       provider.dispose()
     }
+  } else {
+    return false
   }
+  return true
 }
 
 Listener.prototype._$handleConnectionStateChange = function () {
