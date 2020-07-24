@@ -3,18 +3,6 @@ const xuid = require('xuid')
 const { Observable } = require('rxjs')
 const lz = require('@nxtedition/lz-string')
 
-class Provider {
-  constructor (name) {
-    this.name = name
-    this.value$ = null
-    this.version = null
-    this.body = null
-    this.ready = false
-    this.patternSubscription = null
-    this.valueSubscription = null
-  }
-}
-
 const Listener = function (topic, pattern, callback, handler, recursive) {
   this._topic = topic
   this._pattern = pattern
@@ -55,41 +43,36 @@ Listener.prototype._$onMessage = function (message) {
       return
     }
 
-    provider = new Provider(name)
+    provider = {
+      name,
+      value$: null,
+      version: null,
+      body: null,
+      ready: false,
+      patternSubscription: null,
+      valueSubscription: null
+    }
     provider.dispose = () => {
-      if (this.patternSubscription) {
-        this.patternSubscription.unsubscribe()
-        this.patternSubscription = null
+      if (provider.patternSubscription) {
+        provider.patternSubscription.unsubscribe()
+        provider.patternSubscription = null
       }
-      if (this.valueSubscription) {
-        this.valueSubscription.unsubscribe()
-        this.valueSubscription = null
+      if (provider.valueSubscription) {
+        provider.valueSubscription.unsubscribe()
+        provider.valueSubscription = null
       }
-
-      this._providers.delete(name)
+      this._providers.delete(provider.name)
     }
     provider.next = value$ => {
-      if (value$ != null && typeof value$ !== 'object') {
-        const err = new Error('invalid value')
-        this._client._$onError(this._topic, C.EVENT.USER_ERROR, err, [this._pattern, provider.name, typeof value$])
-        return
-      }
-
       if (!value$) {
         value$ = null
+      } else if (!value$.subscribe) {
+        // Compat for recursive with value
+        value$ = Observable.of(value$)
       }
 
       if (Boolean(value$) !== Boolean(provider.value$)) {
         this._connection.sendMsg(this._topic, value$ ? C.ACTIONS.LISTEN_ACCEPT : C.ACTIONS.LISTEN_REJECT, [this._pattern, provider.name])
-      }
-
-      if (value$ === this.value$) {
-        return
-      }
-
-      if (value$ && !value$.subscribe) {
-        // Compat for recursive with value
-        value$ = Observable.of(value$)
       }
 
       provider.value$ = value$
@@ -110,9 +93,14 @@ Listener.prototype._$onMessage = function (message) {
     }
     provider.observer = {
       next: value => {
-        if (value == null || typeof value !== 'object') {
+        if (!value) {
+          provider.next(null)
+          return
+        }
+
+        if (typeof value !== 'object') {
           const err = new Error('invalid value')
-          this._client._$onError(this._topic, C.EVENT.USER_ERROR, err, [this._pattern, provider.name, typeof value])
+          this._client._$onError(this._topic, C.EVENT.USER_ERROR, err, [this._pattern, provider.name, value])
           return
         }
 
@@ -166,7 +154,7 @@ Listener.prototype._$onMessage = function (message) {
       provider$ = Observable.throw(err)
     }
 
-    this._providers.set(name, provider)
+    this._providers.set(provider.name, provider)
     provider.patternSubscription = provider$.subscribe(provider)
   } else if (message.action === C.ACTIONS.LISTEN_ACCEPT) {
     if (provider && provider.valueSubscription) {
