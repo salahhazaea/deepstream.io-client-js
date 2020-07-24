@@ -217,7 +217,7 @@ Connection.prototype._processMessages = function (deadline) {
     }
 
     if (this._messagesIndex > 1024) {
-      this._messages.splice(this._messagesIndex)
+      this._messages.splice(0, this._messagesIndex)
       this._messagesIndex = 0
     }
 
