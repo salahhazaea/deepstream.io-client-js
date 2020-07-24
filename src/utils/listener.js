@@ -95,12 +95,7 @@ class Listener {
       }
       provider.observer = {
         next: value => {
-          if (!value) {
-            provider.next(null)
-            return
-          }
-
-          if (typeof value !== 'object') {
+          if (value == null || typeof value !== 'object') {
             const err = new Error('invalid value')
             this._client._$onError(this._topic, C.EVENT.USER_ERROR, err, [this._pattern, provider.name, value])
             return
