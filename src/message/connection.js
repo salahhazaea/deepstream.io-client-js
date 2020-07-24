@@ -25,7 +25,6 @@ const Connection = function (client, url, options) {
   }
   this._messages = []
   this._messagesIndex = 0
-  this._buffer = ''
   this._reconnectTimeout = null
   this._reconnectionAttempt = 0
   this._messageSender = null
@@ -199,7 +198,7 @@ Connection.prototype._onClose = function () {
 }
 
 Connection.prototype._onMessage = function (message) {
-  this._buffer += C.MESSAGE_SEPERATOR + message.data
+  Array.prototype.push.apply(this._messages, message.data.split(C.MESSAGE_SEPERATOR))
   if (!this._processIdleCallback) {
     this._processIdleCallback = utils.requestIdleCallback(this._processMessages)
   }
@@ -212,15 +211,14 @@ Connection.prototype._processMessages = function (deadline) {
       return
     }
 
-    if (this._messagesIndex === this._messages.length) {
-      this._messages = this._buffer.split(C.MESSAGE_SEPERATOR)
-      this._messagesIndex = 0
-      this._buffer = this._messages.pop()
-    }
-
     if (this._messages.length === 0) {
       this._processIdleCallback = null
       return
+    }
+
+    if (this._messagesIndex > 1024) {
+      this._messages.splice(this._messagesIndex)
+      this._messagesIndex = 0
     }
 
     const message = this._messages[this._messagesIndex]
