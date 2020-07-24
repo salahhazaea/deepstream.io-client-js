@@ -148,7 +148,7 @@ class Listener {
 
       let provider$
       try {
-        provider$ = this._callback(provider.name)
+        provider$ = this._callback(name)
         if (!this.recursive) {
           provider$ = Observable.of(provider$)
         }
@@ -156,15 +156,15 @@ class Listener {
         provider$ = Observable.throw(err)
       }
 
-      this._providers.set(provider.name, provider)
+      this._providers.set(name, provider)
       provider.patternSubscription = provider$
         .subscribe(provider)
         .add(() => {
-          this._providers.delete(provider.name)
+          this._providers.delete(name)
         })
     } else if (message.action === C.ACTIONS.LISTEN_ACCEPT) {
       if (provider && provider.valueSubscription) {
-        this._client._$onError(this._topic, C.EVENT.LISTENER_ERROR, 'listener started', [this._pattern, provider.name])
+        this._client._$onError(this._topic, C.EVENT.LISTENER_ERROR, 'listener started', [this._pattern, name])
       } else if (!provider || !provider.value$) {
         this._connection.sendMsg(this._topic, C.ACTIONS.LISTEN_REJECT, [this._pattern, name])
       } else {
