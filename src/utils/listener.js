@@ -33,13 +33,13 @@ Listener.prototype._$destroy = function () {
 }
 
 Listener.prototype._$onMessage = function (message) {
-  const [, name] = message.data
+  const name = message.data[1]
 
   let provider = this._providers.get(name)
 
   if (message.action === C.ACTIONS.SUBSCRIPTION_FOR_PATTERN_FOUND) {
     if (provider && provider.patternSubscription) {
-      this._client._$onError(this._topic, C.EVENT.LISTENER_ERROR, 'listener exists', [this._pattern, provider.name])
+      this._client._$onError(this._topic, C.EVENT.LISTENER_ERROR, 'listener exists', [this._pattern, name])
       return
     }
 
@@ -146,7 +146,7 @@ Listener.prototype._$onMessage = function (message) {
 
     let provider$
     try {
-      provider$ = this._callback(provider.name)
+      provider$ = this._callback(name)
       if (!this.recursive) {
         provider$ = Observable.of(provider$)
       }
@@ -158,7 +158,7 @@ Listener.prototype._$onMessage = function (message) {
     provider.patternSubscription = provider$.subscribe(provider)
   } else if (message.action === C.ACTIONS.LISTEN_ACCEPT) {
     if (provider && provider.valueSubscription) {
-      this._client._$onError(this._topic, C.EVENT.LISTENER_ERROR, 'listener started', [this._pattern, provider.name])
+      this._client._$onError(this._topic, C.EVENT.LISTENER_ERROR, 'listener started', [this._pattern, name])
     } else if (!provider || !provider.value$) {
       this._connection.sendMsg(this._topic, C.ACTIONS.LISTEN_REJECT, [this._pattern, name])
     } else {
