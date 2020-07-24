@@ -199,7 +199,7 @@ Connection.prototype._onClose = function () {
 }
 
 Connection.prototype._onMessage = function (message) {
-  this._buffer += message.data
+  this._buffer += C.MESSAGE_SEPERATOR + message.data
   if (!this._processIdleCallback) {
     this._processIdleCallback = utils.requestIdleCallback(this._processMessages)
   }
