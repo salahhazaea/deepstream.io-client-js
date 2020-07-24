@@ -322,19 +322,17 @@ RecordHandler.prototype._$handle = function (message) {
 
   if (message.action === C.ACTIONS.SYNC) {
     this._syncEmitter.emit(message.data[0])
-  } else if (
-    message.action === C.ACTIONS.UPDATE ||
-    message.action === C.ACTIONS.SUBSCRIPTION_HAS_PROVIDER
-  ) {
-    const record = this._records.get(name)
-    if (record) {
-      record._$onMessage(message.data)
-    }
-  } else {
-    const listener = this._listeners.get(name)
-    if (listener) {
-      listener._$onMessage(message)
-    }
+    return
+  }
+
+  const record = this._records.get(name)
+  if (record) {
+    record._$onMessage(message)
+  }
+
+  const listener = this._listeners.get(name)
+  if (listener) {
+    listener._$onMessage(message)
   }
 }
 

@@ -2,6 +2,7 @@ const C = require('../constants/constants')
 const RpcResponse = require('./rpc-response')
 const messageParser = require('../message/message-parser')
 const messageBuilder = require('../message/message-builder')
+const utils = require('../utils/utils')
 const xuid = require('xuid')
 
 const RpcHandler = function (options, connection, client) {
