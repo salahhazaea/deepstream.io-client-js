@@ -228,6 +228,10 @@ Connection.prototype._processMessages = function (deadline) {
       continue
     }
 
+    if (this._logger) {
+      this._logger.trace(message, 'receive')
+    }
+
     messageParser.parseMessage(message, this._client, this._message)
 
     if (this._message.topic === C.TOPIC.CONNECTION) {
@@ -235,9 +239,6 @@ Connection.prototype._processMessages = function (deadline) {
     } else if (this._message.topic === C.TOPIC.AUTH) {
       this._handleAuthResponse(this._message)
     } else {
-      if (this._logger) {
-        this._logger.trace(this._message.raw, 'receive')
-      }
       this._client._$onMessage(this._message)
     }
   }
