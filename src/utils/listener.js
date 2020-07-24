@@ -31,11 +31,14 @@ class Provider {
   }
 
   next (value$) {
+    if (value$ != null && typeof value !== 'object') {
+      const err = new Error('invalid value$')
+      this._client._$onError(this._topic, C.EVENT.USER_ERROR, err, [this._pattern, this.name, value$])
+      return
+    }
+
     if (!value$) {
       value$ = null
-    } else if (!value$.subscribe) {
-      // Compat for recursive with value
-      value$ = Observable.of(value$)
     }
 
     if (this.value$ === value$) {
@@ -44,6 +47,11 @@ class Provider {
 
     if (Boolean(value$) !== Boolean(this.value$)) {
       this.connection.sendMsg(this.topic, value$ ? C.ACTIONS.LISTEN_ACCEPT : C.ACTIONS.LISTEN_REJECT, [this.pattern, this.name])
+    }
+
+    if (value$ && !value$.subscribe) {
+      // Compat for recursive with value
+      value$ = Observable.of(value$)
     }
 
     this.value$ = value$
