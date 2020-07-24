@@ -212,40 +212,35 @@ Connection.prototype._processMessages = function (deadline) {
       return
     }
 
-    if (this._messages.length === 0) {
+    if (this._messagesIndex === this._messages.length) {
       this._messages = this._buffer.split(C.MESSAGE_SEPERATOR)
+      this._messagesIndex = 0
       this._buffer = this._messages.pop()
+    }
 
-      if (this._messages.length === 0) {
-        this._processIdleCallback = null
-        return
-      }
+    if (this._messages.length === 0) {
+      this._processIdleCallback = null
+      return
+    }
+
+    const message = this._messages[this._messagesIndex]
+    this._messages[this._messagesIndex++] = null
+
+    if (message.length <= 2) {
+      continue
+    }
+
+    messageParser.parseMessage(message, this._client, this._message)
+
+    if (this._message.topic === C.TOPIC.CONNECTION) {
+      this._handleConnectionResponse(this._message)
+    } else if (this._message.topic === C.TOPIC.AUTH) {
+      this._handleAuthResponse(this._message)
     } else {
-      const message = this._messages[this._messagesIndex]
-      this._messages[this._messagesIndex++] = undefined
-
-      if (message === undefined) {
-        this._messages.length = 0
-        this._messagesIndex = 0
-        continue
+      if (this._logger) {
+        this._logger.trace(this._message.raw, 'receive')
       }
-
-      if (message.length <= 2) {
-        continue
-      }
-
-      messageParser.parseMessage(message, this._client, this._message)
-
-      if (this._message.topic === C.TOPIC.CONNECTION) {
-        this._handleConnectionResponse(this._message)
-      } else if (this._message.topic === C.TOPIC.AUTH) {
-        this._handleAuthResponse(this._message)
-      } else {
-        if (this._logger) {
-          this._logger.trace(this._message.raw, 'receive')
-        }
-        this._client._$onMessage(this._message)
-      }
+      this._client._$onMessage(this._message)
     }
   }
 }
