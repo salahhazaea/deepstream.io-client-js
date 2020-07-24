@@ -13,17 +13,6 @@ class Provider {
     this.patternSubscription = null
     this.valueSubscription = null
   }
-
-  dispose () {
-    if (this.patternSubscription) {
-      this.patternSubscription.unsubscribe()
-      this.patternSubscription = null
-    }
-    if (this.valueSubscription) {
-      this.valueSubscription.unsubscribe()
-      this.valueSubscription = null
-    }
-  }
 }
 
 const Listener = function (topic, pattern, callback, handler, recursive) {
@@ -67,6 +56,18 @@ Listener.prototype._$onMessage = function (message) {
     }
 
     provider = new Provider(name)
+    provider.dispose = () => {
+      if (this.patternSubscription) {
+        this.patternSubscription.unsubscribe()
+        this.patternSubscription = null
+      }
+      if (this.valueSubscription) {
+        this.valueSubscription.unsubscribe()
+        this.valueSubscription = null
+      }
+
+      this._providers.delete(name)
+    }
     provider.next = value$ => {
       if (value$ != null && typeof value$ !== 'object') {
         const err = new Error('invalid value')
@@ -166,11 +167,7 @@ Listener.prototype._$onMessage = function (message) {
     }
 
     this._providers.set(name, provider)
-    provider.patternSubscription = provider$
-      .subscribe(provider)
-      .add(() => {
-        this._providers.delete(name)
-      })
+    provider.patternSubscription = provider$.subscribe(provider)
   } else if (message.action === C.ACTIONS.LISTEN_ACCEPT) {
     if (provider && provider.valueSubscription) {
       this._client._$onError(this._topic, C.EVENT.LISTENER_ERROR, 'listener started', [this._pattern, name])
