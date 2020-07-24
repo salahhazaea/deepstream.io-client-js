@@ -77,7 +77,7 @@ Listener.prototype._$onMessage = function (message) {
       provider.value$ = value$
       if (provider.valueSubscription) {
         provider.valueSubscription.unsubscribe()
-        provider.valueSubscription = value$ ? value$.subscribe(provider.observer) : value$
+        provider.valueSubscription = value$ ? value$.subscribe(provider.observer) : null
       }
     }
     provider.error = err => {
