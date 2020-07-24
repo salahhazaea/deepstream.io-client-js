@@ -3,6 +3,29 @@ const xuid = require('xuid')
 const { Observable } = require('rxjs')
 const lz = require('@nxtedition/lz-string')
 
+class Provider {
+  constructor (name) {
+    this.name = name
+    this.value$ = null
+    this.version = null
+    this.body = null
+    this.ready = false
+    this.patternSubscription = null
+    this.valueSubscription = null
+  }
+
+  dispose () {
+    if (this.patternSubscription) {
+      this.patternSubscription.unsubscribe()
+      this.patternSubscription = null
+    }
+    if (this.valueSubscription) {
+      this.valueSubscription.unsubscribe()
+      this.valueSubscription = null
+    }
+  }
+}
+
 const Listener = function (topic, pattern, callback, handler, recursive) {
   this._topic = topic
   this._pattern = pattern
@@ -43,26 +66,7 @@ Listener.prototype._$onMessage = function (message) {
       return
     }
 
-    provider = {
-      name,
-      value$: null,
-      version: null,
-      body: null,
-      ready: false,
-      patternSubscription: null,
-      valueSubscription: null
-    }
-    provider.dispose = () => {
-      if (provider.patternSubscription) {
-        provider.patternSubscription.unsubscribe()
-        provider.patternSubscription = null
-      }
-      if (provider.valueSubscription) {
-        provider.valueSubscription.unsubscribe()
-        provider.valueSubscription = null
-      }
-      this._providers.delete(provider.name)
-    }
+    provider = new Provider(name)
     provider.next = value$ => {
       if (!value$) {
         value$ = null
@@ -154,8 +158,12 @@ Listener.prototype._$onMessage = function (message) {
       provider$ = Observable.throw(err)
     }
 
-    this._providers.set(provider.name, provider)
-    provider.patternSubscription = provider$.subscribe(provider)
+    this._providers.set(name, provider)
+    provider.patternSubscription = provider$
+      .subscribe(provider)
+      .add(() => {
+        this._providers.delete(name)
+      })
   } else if (message.action === C.ACTIONS.LISTEN_ACCEPT) {
     if (provider && provider.valueSubscription) {
       this._client._$onError(this._topic, C.EVENT.LISTENER_ERROR, 'listener started', [this._pattern, name])
