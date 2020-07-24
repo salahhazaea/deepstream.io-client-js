@@ -13,6 +13,17 @@ class Provider {
     this.patternSubscription = null
     this.valueSubscription = null
   }
+
+  dispose () {
+    if (this.patternSubscription) {
+      this.patternSubscription.unsubscribe()
+      this.patternSubscription = null
+    }
+    if (this.valueSubscription) {
+      this.valueSubscription.unsubscribe()
+      this.valueSubscription = null
+    }
+  }
 }
 
 class Listener {
@@ -54,17 +65,6 @@ class Listener {
       }
 
       provider = new Provider(name, this)
-      provider.dispose = () => {
-        if (provider.patternSubscription) {
-          provider.patternSubscription.unsubscribe()
-          provider.patternSubscription = null
-        }
-        if (provider.valueSubscription) {
-          provider.valueSubscription.unsubscribe()
-          provider.valueSubscription = null
-        }
-        this._providers.delete(provider.name)
-      }
       provider.next = value$ => {
         if (!value$) {
           value$ = null
@@ -157,7 +157,11 @@ class Listener {
       }
 
       this._providers.set(provider.name, provider)
-      provider.patternSubscription = provider$.subscribe(provider)
+      provider.patternSubscription = provider$
+        .subscribe(provider)
+        .add(() => {
+          this._providers.delete(provider.name)
+        })
     } else if (message.action === C.ACTIONS.LISTEN_ACCEPT) {
       if (provider && provider.valueSubscription) {
         this._client._$onError(this._topic, C.EVENT.LISTENER_ERROR, 'listener started', [this._pattern, provider.name])
