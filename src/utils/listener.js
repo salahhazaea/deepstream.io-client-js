@@ -107,7 +107,7 @@ class Listener {
     let provider = this._providers.get(name)
 
     if (message.action === C.ACTIONS.SUBSCRIPTION_FOR_PATTERN_FOUND) {
-      if (provider) {
+      if (provider && provider.patternSubscription) {
         return
       }
 
