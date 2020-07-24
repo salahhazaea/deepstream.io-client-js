@@ -31,7 +31,7 @@ class Provider {
   }
 
   next (value$) {
-    if (value$ != null && typeof value !== 'object') {
+    if (value$ != null && typeof value$ !== 'object') {
       const err = new Error('invalid value$')
       this.client._$onError(this.topic, C.EVENT.USER_ERROR, err, [this.pattern, this.name, typeof value$])
       return
