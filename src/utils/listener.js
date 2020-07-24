@@ -33,7 +33,7 @@ class Provider {
   next (value$) {
     if (value$ != null && typeof value !== 'object') {
       const err = new Error('invalid value$')
-      this._client._$onError(this._topic, C.EVENT.USER_ERROR, err, [this._pattern, this.name, value$])
+      this.client._$onError(this.topic, C.EVENT.USER_ERROR, err, [this.pattern, this.name, typeof value$])
       return
     }
 
@@ -124,7 +124,7 @@ class Listener {
         next: value => {
           if (value == null || typeof value !== 'object') {
             const err = new Error('invalid value')
-            this._client._$onError(this._topic, C.EVENT.USER_ERROR, err, [this._pattern, provider.name, value])
+            this._client._$onError(this._topic, C.EVENT.USER_ERROR, err, [this._pattern, provider.name, typeof value])
             return
           }
 
