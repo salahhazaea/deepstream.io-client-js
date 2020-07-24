@@ -4,14 +4,19 @@ const { Observable } = require('rxjs')
 const lz = require('@nxtedition/lz-string')
 
 class Provider {
-  constructor (name) {
+  constructor (topic, pattern, name, client, connection) {
+    this.topic = topic
+    this.pattern = pattern
     this.name = name
+    this.client = client
+    this.connection = connection
     this.value$ = null
     this.version = null
     this.body = null
     this.ready = false
     this.patternSubscription = null
     this.valueSubscription = null
+    this.observer = null
   }
 
   dispose () {
@@ -23,6 +28,40 @@ class Provider {
       this.valueSubscription.unsubscribe()
       this.valueSubscription = null
     }
+  }
+
+  next (value$) {
+    if (!value$) {
+      value$ = null
+    } else if (!value$.subscribe) {
+      // Compat for recursive with value
+      value$ = Observable.of(value$)
+    }
+
+    if (this.value$ === value$) {
+      return
+    }
+
+    if (Boolean(value$) !== Boolean(this.value$)) {
+      this.connection.sendMsg(this.topic, value$ ? C.ACTIONS.LISTEN_ACCEPT : C.ACTIONS.LISTEN_REJECT, [this.pattern, this.name])
+    }
+
+    this.value$ = value$
+    if (this.valueSubscription) {
+      this.valueSubscription.unsubscribe()
+      this.valueSubscription = value$ ? value$.subscribe(this.observer) : null
+    }
+  }
+
+  error (err) {
+    this.client._$onError(this.topic, C.EVENT.LISTENER_ERROR, err, [this.pattern, this.name])
+
+    if (this.value$) {
+      this.connection.sendMsg(this.topic, C.ACTIONS.LISTEN_REJECT, [this.pattern, this.name])
+      this.value$ = null
+    }
+
+    this.dispose()
   }
 }
 
@@ -64,35 +103,15 @@ class Listener {
         return
       }
 
-      provider = new Provider(name, this)
-      provider.next = value$ => {
-        if (!value$) {
-          value$ = null
-        } else if (!value$.subscribe) {
-          // Compat for recursive with value
-          value$ = Observable.of(value$)
-        }
+      provider = new Provider(
+        this._topic,
+        this._pattern,
+        name,
+        this._client,
+        this._connection
+      )
 
-        if (Boolean(value$) !== Boolean(provider.value$)) {
-          this._connection.sendMsg(this._topic, value$ ? C.ACTIONS.LISTEN_ACCEPT : C.ACTIONS.LISTEN_REJECT, [this._pattern, provider.name])
-        }
-
-        provider.value$ = value$
-        if (provider.valueSubscription) {
-          provider.valueSubscription.unsubscribe()
-          provider.valueSubscription = value$ ? value$.subscribe(provider.observer) : null
-        }
-      }
-      provider.error = err => {
-        this._client._$onError(this._topic, C.EVENT.LISTENER_ERROR, err, [this._pattern, provider.name])
-
-        if (provider.value$) {
-          this._connection.sendMsg(this._topic, C.ACTIONS.LISTEN_REJECT, [this._pattern, provider.name])
-          provider.value$ = null
-        }
-
-        provider.dispose()
-      }
+      // TODO: Refactor
       provider.observer = {
         next: value => {
           if (value == null || typeof value !== 'object') {
@@ -119,6 +138,7 @@ class Listener {
               provider.ready = true
               this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.UPDATE, [provider.name, provider.version, provider.body])
 
+              // TODO: Does this handle hasProvider?
               this._handler._$handle({
                 action: C.ACTIONS.UPDATE,
                 data: [provider.name, provider.version, value]
@@ -131,6 +151,7 @@ class Listener {
               // TODO (perf): Sending body here should be unnecessary.
               this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.UPDATE, [provider.name, provider.version, provider.body])
 
+              // TODO: Does this handle hasProvider?
               this._handler._$handle({
                 action: C.ACTIONS.UPDATE,
                 data: [provider.name, provider.version, value]
