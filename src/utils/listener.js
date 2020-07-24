@@ -153,9 +153,8 @@ Listener.prototype._$onMessage = function (message) {
       provider$ = Observable.throw(err)
     }
 
-    provider.patternSubscription = provider$.subscribe(provider)
-
     this._providers.set(provider.name, provider)
+    provider.patternSubscription = provider$.subscribe(provider)
   } else if (message.action === C.ACTIONS.LISTEN_ACCEPT) {
     if (provider && provider.valueSubscription) {
       this._client._$onError(this._topic, C.EVENT.LISTENER_ERROR, 'listener started', [this._pattern, provider.name])
