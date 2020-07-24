@@ -38,7 +38,8 @@ Listener.prototype._$onMessage = function (message) {
   let provider = this._providers.get(name)
 
   if (message.action === C.ACTIONS.SUBSCRIPTION_FOR_PATTERN_FOUND) {
-    if (provider) {
+    if (provider && provider.patternSubscription) {
+      this._client._$onError(this._topic, C.EVENT.LISTENER_ERROR, 'listener exists', [this._pattern, provider.name])
       return
     }
 
