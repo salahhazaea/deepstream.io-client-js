@@ -33,7 +33,7 @@ Listener.prototype._$destroy = function () {
 }
 
 Listener.prototype._$onMessage = function (message) {
-  const [, name] = message.data
+  const name = message.data[1]
 
   let provider = this._providers.get(name)
 
