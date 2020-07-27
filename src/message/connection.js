@@ -4,6 +4,7 @@ const messageParser = require('./message-parser')
 const messageBuilder = require('./message-builder')
 const utils = require('../utils/utils')
 const C = require('../constants/constants')
+const pkg = require('../../package.json')
 
 const Connection = function (client, url, options) {
   this._client = client
@@ -130,7 +131,7 @@ Connection.prototype._submit = function (message) {
 
 Connection.prototype._sendAuthParams = function () {
   this._setState(C.CONNECTION_STATE.AUTHENTICATING)
-  const authMessage = messageBuilder.getMsg(C.TOPIC.AUTH, C.ACTIONS.REQUEST, [this._authParams])
+  const authMessage = messageBuilder.getMsg(C.TOPIC.AUTH, C.ACTIONS.REQUEST, [this._authParams, pkg.version])
   this._submit(authMessage)
 }
 
