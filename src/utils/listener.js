@@ -136,7 +136,7 @@ Listener.prototype._$onMessage = function (message) {
   } else if (message.action === C.ACTIONS.LISTEN_ACCEPT) {
     const provider = this._providers.get(name)
 
-    if (provider) {
+    if (provider && provider.valueSubscription) {
       this._client._$onError(this._topic, C.EVENT.LISTENER_ERROR, 'listener started', [this._pattern, name])
     } else if (!provider || !provider.value$) {
       this._connection.sendMsg(this._topic, C.ACTIONS.LISTEN_REJECT, [this._pattern, name])
