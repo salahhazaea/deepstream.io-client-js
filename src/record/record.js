@@ -308,7 +308,7 @@ Record.prototype._onUpdate = function ([name, version, data]) {
       throw new Error('missing data')
     } else {
       if (typeof data === 'string') {
-        data = JSON.parse(/^\{.*\}$/.test(data) ? data : lz.decompressFromUTF16(data)))
+        data = JSON.parse(/^\{.*\}$/.test(data) ? data : lz.decompressFromUTF16(data))
       }
 
       this._staleDirty = true
