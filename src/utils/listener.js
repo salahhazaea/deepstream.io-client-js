@@ -141,9 +141,6 @@ Listener.prototype._$onMessage = function (message) {
     } else if (!provider || !provider.value$) {
       this._connection.sendMsg(this._topic, C.ACTIONS.LISTEN_REJECT, [this._pattern, name])
     } else {
-      provider.ready = false
-      provider.version = message.data[2]
-      provider.body = message.data[3]
       provider.valueSubscription = provider.value$.subscribe(provider.observer)
     }
   } else if (message.action === C.ACTIONS.SUBSCRIPTION_FOR_PATTERN_REMOVED) {
