@@ -347,7 +347,7 @@ RecordHandler.prototype._handleConnectionStateChange = function (connected) {
     listener._$handleConnectionStateChange(connected)
   }
 
-  if (this.connected) {
+  if (connected) {
     // TODO (fix): This should wait until all records are ready.
     for (const token of this._syncEmitter.eventNames()) {
       this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.SYNC, [token])
