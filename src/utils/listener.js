@@ -42,6 +42,9 @@ class Listener {
       const provider = {
         name,
         value$: null,
+        version: null,
+        body: null,
+        ready: false,
         patternSubscription: null,
         valueSubscription: null
       }
@@ -108,13 +111,29 @@ class Listener {
               return
             }
 
-            const version = `INF-${xuid()}-${this._client.user || ''}`
+            if (provider.body !== body || !/^INF-/.test(provider.version)) {
+              provider.version = `INF-${xuid()}-${this._client.user || ''}`
+              provider.body = body
+              provider.ready = true
+              this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.UPDATE, [provider.name, provider.version, provider.body])
 
-            this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.UPDATE, [provider.name, version, body])
-            this._handler._$handle({
-              action: C.ACTIONS.UPDATE,
-              data: [provider.name, version, value]
-            })
+              this._handler._$handle({
+                action: C.ACTIONS.UPDATE,
+                data: [ provider.name, provider.version, body]
+              })
+
+              // TODO (perf): Let client handle its own has provider state instead of having the server
+              // send on/off messages.
+            } else if (!provider.ready) {
+              provider.ready = true
+              // TODO (perf): Sending body here should be unnecessary.
+              this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.UPDATE, [provider.name, provider.version, provider.body])
+
+              this._handler._$handle({
+                action: C.ACTIONS.UPDATE,
+                data: [provider.name, provider.version, body]
+              })
+            }
           }
         },
         error: provider.error
@@ -140,6 +159,10 @@ class Listener {
       } else if (!provider || !provider.value$) {
         this._connection.sendMsg(this._topic, C.ACTIONS.LISTEN_REJECT, [this._pattern, name])
       } else {
+        const [version, body] = message.data.slice(2)
+        provider.ready = false
+        provider.version = version
+        provider.body = body
         provider.valueSubscription = provider.value$.subscribe(provider.observer)
       }
     } else if (message.action === C.ACTIONS.SUBSCRIPTION_FOR_PATTERN_REMOVED) {
