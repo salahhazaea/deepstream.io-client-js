@@ -107,10 +107,6 @@ Object.defineProperty(Record.prototype, 'state', {
 })
 
 Record.prototype.get = function (path) {
-  if (this._$usages === 0) {
-    this._client._$onError(C.TOPIC.RECORD, C.EVENT.REF_ERROR, 'cannot get data', [this.name])
-  }
-
   return jsonPath.get(this.data, path)
 }
 
