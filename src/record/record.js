@@ -88,10 +88,6 @@ Record.prototype._$destroy = function () {
 Object.defineProperty(Record.prototype, 'state', {
   enumerable: true,
   get: function state () {
-    if (this._$usages === 0) {
-      this._client._$onError(C.TOPIC.RECORD, C.EVENT.REF_ERROR, 'cannot get state', [this.name])
-    }
-
     if (!this.version) {
       return Record.STATE.VOID
     }
