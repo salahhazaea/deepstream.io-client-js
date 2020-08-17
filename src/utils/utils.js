@@ -150,10 +150,10 @@ module.exports.requestIdleCallback = isNode || !window.requestIdleCallback
       cb(options)
     }, 1)
   }
-  : window.requestIdleCallback
+  : window.requestIdleCallback.bind(window)
 
 module.exports.cancelIdleCallback = isNode || !window.requestIdleCallback
   ? function (id) {
     clearTimeout(id)
   }
-  : window.cancelIdleCallback
+  : window.cancelIdleCallback.bind(window)
