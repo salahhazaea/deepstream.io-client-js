@@ -35,7 +35,7 @@ const Connection = function (client, url, options) {
 
   this._sendQueuedMessages = this._sendQueuedMessages.bind(this)
   this._processMessages = this._processMessages.bind(this)
-  this._processIdleCallback = null
+  this._processing = null
 
   this._originalUrl = utils.parseUrl(url, this._options.path)
   this._url = this._originalUrl
@@ -200,20 +200,22 @@ Connection.prototype._onClose = function () {
 
 Connection.prototype._onMessage = function (message) {
   Array.prototype.push.apply(this._messages, message.data.split(C.MESSAGE_SEPERATOR))
-  if (!this._processIdleCallback) {
-    this._processIdleCallback = utils.requestIdleCallback(this._processMessages)
+  if (!this._processing) {
+    this._processing = Date.now()
+    setImmediate(this._processMessages)
   }
 }
 
-Connection.prototype._processMessages = function (deadline) {
+Connection.prototype._processMessages = function () {
   while (true) {
-    if (deadline.timeRemaining() <= 0) {
-      this._processIdleCallback = utils.requestIdleCallback(this._processMessages)
+    if (Date.now() - this._processing > 100) {
+      this._processing = Date.now()
+      setImmediate(this._processMessages)
       return
     }
 
     if (this._messagesIndex === this._messages.length) {
-      this._processIdleCallback = null
+      this._processing = null
       return
     }
 
