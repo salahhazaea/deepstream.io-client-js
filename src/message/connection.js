@@ -35,7 +35,7 @@ const Connection = function (client, url, options) {
 
   this._sendQueuedMessages = this._sendQueuedMessages.bind(this)
   this._processMessages = this._processMessages.bind(this)
-  this._processing = null
+  this._processing = false
 
   this._originalUrl = utils.parseUrl(url, this._options.path)
   this._url = this._originalUrl
@@ -201,21 +201,21 @@ Connection.prototype._onClose = function () {
 Connection.prototype._onMessage = function (message) {
   Array.prototype.push.apply(this._messages, message.data.split(C.MESSAGE_SEPERATOR))
   if (!this._processing) {
-    this._processing = Date.now()
+    this._processing = true
     setImmediate(this._processMessages)
   }
 }
 
 Connection.prototype._processMessages = function () {
+  const started = Date.now()
   while (true) {
-    if (Date.now() - this._processing > 100) {
-      this._processing = Date.now()
+    if (Date.now() - started > 100) {
       setImmediate(this._processMessages)
       return
     }
 
     if (this._messagesIndex === this._messages.length) {
-      this._processing = null
+      this._processing = false
       return
     }
 
