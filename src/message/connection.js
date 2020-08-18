@@ -115,6 +115,7 @@ Connection.prototype._sendQueuedMessages = function () {
   }
 
   while (this._queuedMessages.length > 0) {
+    // TODO: splice is slow...
     this._submit(this._queuedMessages.splice(0, this._options.maxMessagesPerPacket).join(''))
   }
 
@@ -209,6 +210,7 @@ Connection.prototype._onMessage = function (message) {
 Connection.prototype._processMessages = function () {
   const started = Date.now()
   while (true) {
+    // TODO: Date.now is slow...
     if (Date.now() - started > 100) {
       setImmediate(this._processMessages)
       return
