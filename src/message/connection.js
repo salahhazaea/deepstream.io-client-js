@@ -214,14 +214,14 @@ Connection.prototype._processMessages = function () {
       return
     }
 
+    if (this._messagesIndex > 1024 || this._messagesIndex === this._messages.length) {
+      this._messages.splice(0, this._messagesIndex)
+      this._messagesIndex = 0
+    }
+
     if (this._messagesIndex === this._messages.length) {
       this._processing = false
       return
-    }
-
-    if (this._messagesIndex > 1024) {
-      this._messages.splice(0, this._messagesIndex)
-      this._messagesIndex = 0
     }
 
     const message = this._messages[this._messagesIndex]
