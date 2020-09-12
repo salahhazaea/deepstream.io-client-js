@@ -223,6 +223,7 @@ RecordHandler.prototype.get = function (name, pathOrState, stateOrNil) {
   return this
     .observe(name, path, state)
     .first()
+    .timeout(2 * 60e3)
     .toPromise()
 }
 
