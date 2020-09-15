@@ -224,7 +224,6 @@ Record.prototype.update = function (pathOrUpdater, updaterOrNil) {
     } else {
       // TODO: Timeout?
       this.on('ready', update)
-      this.unref()
     }
   })
 }
