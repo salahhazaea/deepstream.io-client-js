@@ -203,27 +203,30 @@ Record.prototype.update = function (pathOrUpdater, updaterOrNil) {
     throw new Error('invalid argument: path')
   }
 
-  const doUpdate = () => {
-    try {
-      const prev = this.get(path)
-      const next = updater(prev)
-      this.set(path, next)
-    } catch (err) {
-      this._client._$onError(C.TOPIC.RECORD, C.EVENT.UPDATE_ERROR, err, [this.name, this.version, this.state])
+  return new Promise((resolve, reject) => {
+    const update = () => {
+      try {
+        const prev = this.get(path)
+        const next = updater(prev, this.version)
+        this.set(path, next)
+        resolve(next)
+      } catch (err) {
+        reject(err)
+      } finally {
+        this.off('ready', update)
+        this.unref()
+      }
     }
-    this.unref()
-  }
 
-  this.ref()
-  if (this.isReady) {
-    doUpdate()
-  } else {
-    this.once('ready', doUpdate)
-  }
-
-  return this.isReady
-    ? Promise.resolve()
-    : new Promise(resolve => this.once('ready', resolve))
+    this.ref()
+    if (this.isReady) {
+      update()
+    } else {
+      // TODO: Timeout?
+      this.on('ready', update)
+      this.unref()
+    }
+  })
 }
 
 Record.prototype.ref = function () {
