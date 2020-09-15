@@ -181,6 +181,29 @@ Record.prototype.set = function (pathOrData, dataOrNil) {
     : new Promise(resolve => this.once('ready', resolve))
 }
 
+Record.prototype.when = function (stateOrNull) {
+  const state = stateOrNull == null ? Record.STATE.SERVER : stateOrNull
+
+  if (!Number.isFinite(state) || state < 0) {
+    throw new Error('invalid argument: state')
+  }
+
+  return new Promise((resolve, reject) => {
+    const onUpdate = () => {
+      if (this.state >= state) {
+        resolve()
+        this.off('update', onUpdate)
+        this.unref()
+      }
+    }
+
+    // TODO: Timeout?
+    this.ref()
+    this.on('update', onUpdate)
+    onUpdate()
+  })
+}
+
 Record.prototype.update = function (pathOrUpdater, updaterOrNil) {
   if (this._$usages === 0 || this._provided) {
     this._client._$onError(C.TOPIC.RECORD, C.EVENT.UPDATE_ERROR, 'cannot update', [this.name, this.version, this.state])
@@ -204,7 +227,7 @@ Record.prototype.update = function (pathOrUpdater, updaterOrNil) {
   }
 
   return new Promise((resolve, reject) => {
-    const update = () => {
+    const onReady = () => {
       try {
         const prev = this.get(path)
         const next = updater(prev, this.version)
@@ -213,17 +236,17 @@ Record.prototype.update = function (pathOrUpdater, updaterOrNil) {
       } catch (err) {
         reject(err)
       } finally {
-        this.off('ready', update)
+        this.off('ready', onReady)
         this.unref()
       }
     }
 
+    // TODO: Timeout?
     this.ref()
+    this.on('ready', onReady)
+
     if (this.isReady) {
-      update()
-    } else {
-      // TODO: Timeout?
-      this.on('ready', update)
+      onReady()
     }
   })
 }
