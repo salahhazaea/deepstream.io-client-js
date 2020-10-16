@@ -114,16 +114,30 @@ Connection.prototype._sendQueuedMessages = function () {
     return
   }
 
-  while (this._queuedMessages.length > 0) {
-    // TODO: splice is slow...
-    this._submit(this._queuedMessages.splice(0, this._options.maxMessagesPerPacket).join(''))
+  const { maxMessagesPerPacket, maxPacketSize } = this._options
+  const len = Math.min(maxMessagesPerPacket, this._queuedMessages.length)
+
+  let idx = 0
+  while (idx < len) {
+    let packet = ''
+
+    do {
+      packet += this._queuedMessages[idx++]
+    } while (idx < len && (packet.length + this._queuedMessages[idx].length) < maxPacketSize)
+
+    this._submit(packet)
   }
 
+  this._queuedMessages.splice(0, idx)
   this._messageSender = null
 }
 
 Connection.prototype._submit = function (message) {
-  if (this._endpoint.readyState === this._endpoint.OPEN) {
+  const { maxPacketSize } = this._options
+
+  if (message.length > message) {
+    this._onError(new Error(`Packet to big: ${message.length} > ${maxPacketSize}`))
+  } else if (this._endpoint.readyState === this._endpoint.OPEN) {
     this._endpoint.send(message)
   } else {
     this._onError(new Error('Tried to send message on a closed websocket connection'))
