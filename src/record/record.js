@@ -107,19 +107,14 @@ Object.defineProperty(Record.prototype, 'state', {
 })
 
 Record.prototype.get = function (path) {
+  invariant(this._$usages > 0, 'must have refs')
+
   return jsonPath.get(this.data, path)
 }
 
-Record.prototype._makeVersion = function (start) {
-  let revid = `${xuid()}-${this._client.user || ''}`
-  if (revid.length === 32 || revid.length === 16) {
-    // HACK: https://github.com/apache/couchdb/issues/2015
-    revid += '-'
-  }
-  return `${start}-${revid}`
-}
-
 Record.prototype.set = function (pathOrData, dataOrNil) {
+  invariant(this._$usages > 0, 'must have refs')
+
   if (this._$usages === 0 || this._provided) {
     this._client._$onError(C.TOPIC.RECORD, C.EVENT.UPDATE_ERROR, 'cannot set', [this.name, this.version, this.state])
     return Promise.resolve()
@@ -182,6 +177,8 @@ Record.prototype.set = function (pathOrData, dataOrNil) {
 }
 
 Record.prototype.when = function (stateOrNull) {
+  invariant(this._$usages > 0, 'must have refs')
+
   const state = stateOrNull == null ? Record.STATE.SERVER : stateOrNull
 
   if (!Number.isFinite(state) || state < 0) {
@@ -206,6 +203,8 @@ Record.prototype.when = function (stateOrNull) {
 
     if (this.state < state) {
       timeout = setTimeout((reject) => {
+        this.off('update', onUpdate)
+        this.unref()
         reject(new Error('when timeout'))
       }, 2 * 60e3, reject)
       this.on('update', onUpdate)
@@ -216,6 +215,8 @@ Record.prototype.when = function (stateOrNull) {
 }
 
 Record.prototype.update = function (pathOrUpdater, updaterOrNil) {
+  invariant(this._$usages > 0, 'must have refs')
+
   if (this._$usages === 0 || this._provided) {
     this._client._$onError(C.TOPIC.RECORD, C.EVENT.UPDATE_ERROR, 'cannot update', [this.name, this.version, this.state])
     return Promise.resolve()
@@ -416,6 +417,15 @@ Record.prototype._$handleConnectionStateChange = function () {
   }
 
   this.emit('update', this)
+}
+
+Record.prototype._makeVersion = function (start) {
+  let revid = `${xuid()}-${this._client.user || ''}`
+  if (revid.length === 32 || revid.length === 16) {
+    // HACK: https://github.com/apache/couchdb/issues/2015
+    revid += '-'
+  }
+  return `${start}-${revid}`
 }
 
 // Compat
