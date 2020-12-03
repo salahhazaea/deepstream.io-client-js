@@ -27,9 +27,8 @@ const Record = function (name, handler) {
 
   this._provided = null
   this._patchQueue = []
+  this._staleEntry = null
   this._staleDirty = false
-  this._staleVersion = null
-  this._staleData = null
 
   this.ref()
   this._cache.get(this.name, (err, entry) => {
@@ -41,17 +40,15 @@ const Record = function (name, handler) {
     } else if (entry) {
       this._stats.hits += 1
 
-      const [version, data] = entry
-
       // TODO (fix): What if version is newer than this.version?
       if (!this.version) {
+        this._staleEntry = entry
+
+        const [version, data] = entry
         this.version = version
         this.data = utils.deepFreeze(Object.keys(data).length === 0 ? jsonPath.EMPTY : data)
         this.emit('update', this)
       }
-
-      this._staleVersion = version
-      this._staleData = data
     }
 
     if (this.connected) {
@@ -71,7 +68,8 @@ Record.prototype._$destroy = function () {
   invariant(this.isReady, 'must be ready to destroy')
 
   if (this._staleDirty) {
-    this._cache.set(this.name, this._staleVersion, this._staleData)
+    invariant(this._staleEntry, 'must have stale entry')
+    this._cache.set(this.name, this._staleEntry)
   }
 
   this._provided = null
@@ -328,8 +326,8 @@ Record.prototype._onUpdate = function ([name, version, data]) {
       }
     }
 
-    if (this._staleVersion === version) {
-      data = this._staleData
+    if (this._staleEntry && this._staleEntry[0] === version) {
+      data = this._staleEntry[1]
     } else if (!data) {
       throw new Error('missing data')
     } else {
@@ -337,9 +335,8 @@ Record.prototype._onUpdate = function ([name, version, data]) {
         data = JSON.parse(/^\{.*\}$/.test(data) ? data : lz.decompressFromUTF16(data))
       }
 
+      this._staleEntry = [version, data]
       this._staleDirty = true
-      this._staleVersion = version
-      this._staleData = data
     }
 
     const oldValue = this.data
@@ -407,8 +404,8 @@ Record.prototype._sendUpdate = function () {
 }
 
 Record.prototype._read = function () {
-  if (this._staleVersion) {
-    this._connection.sendMsg2(C.TOPIC.RECORD, C.ACTIONS.READ, this.name, this._staleVersion)
+  if (this._staleEntry) {
+    this._connection.sendMsg2(C.TOPIC.RECORD, C.ACTIONS.READ, this.name, this._staleEntry[0])
   } else {
     this._connection.sendMsg1(C.TOPIC.RECORD, C.ACTIONS.READ, this.name)
   }
