@@ -3,7 +3,6 @@ module.exports = {
   reconnectIntervalIncrement: 1e3,
   maxReconnectInterval: 6e3,
   maxReconnectAttempts: Infinity,
-  maxMessagesPerPacket: 128,
   maxPacketSize: 16 * 1024,
   sendDelay: 5,
   syncDelay: 5,

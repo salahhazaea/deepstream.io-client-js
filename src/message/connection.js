@@ -114,21 +114,23 @@ Connection.prototype._sendQueuedMessages = function () {
     return
   }
 
-  const { maxMessagesPerPacket, maxPacketSize } = this._options
-  const len = Math.min(maxMessagesPerPacket, this._queuedMessages.length)
+  const { maxPacketSize } = this._options
 
-  let idx = 0
-  while (idx < len) {
-    let packet = ''
-
-    do {
-      packet += this._queuedMessages[idx++]
-    } while (idx < len && (packet.length + this._queuedMessages[idx].length) < maxPacketSize)
-
-    this._submit(packet)
+  let pkt = ''
+  for (const msg of this._queuedMessages) {
+    if (pkt.length + msg.length > maxPacketSize) {
+      this._submit(pkt)
+      pkt = ''
+    }
+    pkt += msg
   }
 
-  this._queuedMessages.splice(0, idx)
+  if (pkt.length) {
+    this._submit(pkt)
+    pkt = ''
+  }
+
+  this._queuedMessages.length = 0
   this._messageSender = null
 }
 
