@@ -197,16 +197,19 @@ Record.prototype.when = function (stateOrNull) {
       }
 
       clearTimeout(timeout)
+
       this.off('update', onUpdate)
       this.unref()
+
       resolve()
     }
 
-    const timeout = setTimeout((reject) => {
+    const timeout = setTimeout(() => {
       this.off('update', onUpdate)
       this.unref()
+
       reject(new Error('when timeout'))
-    }, 2 * 60e3, reject)
+    }, 2 * 60e3)
 
     this.ref()
     this.on('update', onUpdate)
