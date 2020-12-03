@@ -264,6 +264,9 @@ Connection.prototype._processMessages = function () {
 }
 
 Connection.prototype._reset = function () {
+  this._messages = []
+  this._messagesIndex = 0
+
   if (this._heartbeatInterval) {
     clearInterval(this._heartbeatInterval)
     this._heartbeatInterval = null
