@@ -137,7 +137,7 @@ Connection.prototype._sendQueuedMessages = function () {
 Connection.prototype._submit = function (message) {
   const { maxPacketSize } = this._options
 
-  if (message.length > message) {
+  if (message.length > maxPacketSize) {
     this._onError(new Error(`Packet to big: ${message.length} > ${maxPacketSize}`))
   } else if (this._endpoint.readyState === this._endpoint.OPEN) {
     this._endpoint.send(message)
