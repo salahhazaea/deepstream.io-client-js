@@ -232,7 +232,13 @@ Record.prototype.update = function (pathOrUpdater, updaterOrNil) {
   }
 
   return new Promise((resolve, reject) => {
+    const timeout = setTimeout(() => {
+      reject(new Error('when timeout'))
+    }, 2 * 60e3)
+
     const onReady = () => {
+      clearTimeout(timeout)
+
       try {
         const prev = this.get(path)
         const next = updater(prev, this.version)
