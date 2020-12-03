@@ -186,7 +186,10 @@ Record.prototype.when = function (stateOrNull) {
   }
 
   return new Promise((resolve, reject) => {
-    let timeout = null
+    if (this.state >= state) {
+      resolve()
+      return
+    }
 
     const onUpdate = () => {
       if (this.state < state) {
@@ -199,18 +202,14 @@ Record.prototype.when = function (stateOrNull) {
       resolve()
     }
 
-    this.ref()
+    const timeout = setTimeout((reject) => {
+      this.off('update', onUpdate)
+      this.unref()
+      reject(new Error('when timeout'))
+    }, 2 * 60e3, reject)
 
-    if (this.state < state) {
-      timeout = setTimeout((reject) => {
-        this.off('update', onUpdate)
-        this.unref()
-        reject(new Error('when timeout'))
-      }, 2 * 60e3, reject)
-      this.on('update', onUpdate)
-    } else {
-      onUpdate()
-    }
+    this.ref()
+    this.on('update', onUpdate)
   })
 }
 
