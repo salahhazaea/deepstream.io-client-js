@@ -286,16 +286,23 @@ Record.prototype._$onMessage = function (message) {
 }
 
 Record.prototype._onSubscriptionHasProvider = function (data) {
+  invariant(this.connected, 'must be connected')
+
   const provided = messageParser.convertTyped(data[1], this._client) || null
 
-  if (this._provided !== provided) {
-    invariant(provided === null || typeof provided === 'string', 'provided must be null or string')
-    this._provided = provided
-    this.emit('update', this)
+  if (this._provided === provided) {
+    return
   }
+
+  invariant(provided === null || typeof provided === 'string', 'provided must be null or string')
+
+  this._provided = provided
+  this.emit('update', this)
 }
 
 Record.prototype._onUpdate = function ([name, version, data]) {
+  invariant(this.connected, 'must be connected')
+
   try {
     if (!version) {
       throw new Error('missing version')
