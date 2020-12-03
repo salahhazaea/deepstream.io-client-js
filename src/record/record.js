@@ -189,23 +189,29 @@ Record.prototype.when = function (stateOrNull) {
   }
 
   return new Promise((resolve, reject) => {
-    const timeout = setTimeout(() => {
-      reject(new Error('when timeout'))
-    }, 2 * 60e3)
+    let timeout = null
 
     const onUpdate = () => {
-      if (this.state >= state) {
-        clearTimeout(timeout)
-        resolve()
-        this.off('update', onUpdate)
-        this.unref()
+      if (this.state < state) {
+        return
       }
+
+      clearTimeout(timeout)
+      this.off('update', onUpdate)
+      this.unref()
+      resolve()
     }
 
-    // TODO: Timeout?
     this.ref()
-    this.on('update', onUpdate)
-    onUpdate()
+
+    if (this.state < state) {
+      timeout = setTimeout((reject) => {
+        reject(new Error('when timeout'))
+      }, 2 * 60e3, reject)
+      this.on('update', onUpdate)
+    } else {
+      onUpdate()
+    }
   })
 }
 
@@ -231,35 +237,17 @@ Record.prototype.update = function (pathOrUpdater, updaterOrNil) {
     throw new Error('invalid argument: path')
   }
 
-  return new Promise((resolve, reject) => {
-    const timeout = setTimeout(() => {
-      reject(new Error('when timeout'))
-    }, 2 * 60e3)
-
-    const onReady = () => {
-      clearTimeout(timeout)
-
-      try {
-        const prev = this.get(path)
-        const next = updater(prev, this.version)
-        this.set(path, next)
-        resolve(next)
-      } catch (err) {
-        reject(err)
-      } finally {
-        this.off('ready', onReady)
-        this.unref()
-      }
-    }
-
-    // TODO: Timeout?
-    this.ref()
-    this.on('ready', onReady)
-
-    if (this.isReady) {
-      onReady()
-    }
-  })
+  this.ref()
+  return this
+    .when(Record.STATE.SERVER)
+    .then(() => {
+      const prev = this.get(path)
+      const next = updater(prev, this.version)
+      this.set(path, next)
+    })
+    .finally(() => {
+      this.unref()
+    })
 }
 
 Record.prototype.ref = function () {
