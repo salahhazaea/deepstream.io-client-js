@@ -189,8 +189,13 @@ Record.prototype.when = function (stateOrNull) {
   }
 
   return new Promise((resolve, reject) => {
+    const timeout = setTimeout(() => {
+      reject(new Error('when timeout'))
+    }, 2 * 60e3)
+
     const onUpdate = () => {
       if (this.state >= state) {
+        clearTimeout(timeout)
         resolve()
         this.off('update', onUpdate)
         this.unref()
