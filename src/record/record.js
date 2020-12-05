@@ -23,8 +23,8 @@ const Record = function (name, handler) {
   // TODO (fix): Make private
   this._$usages = 0
   this._$pruneTimestamp = null
-  this._$readTimestamp = null
 
+  this._subscribed = false
   this._provided = null
   this._patchQueue = []
   this._staleDirty = false
@@ -54,7 +54,7 @@ const Record = function (name, handler) {
       this._staleData = data
     }
 
-    this._read()
+    this._subscribe()
   })
   this._stats.reads += 1
 }
@@ -73,7 +73,7 @@ Record.prototype._$destroy = function () {
     this._cache.set(this.name, this._staleVersion, this._staleData)
   }
 
-  this._$readTimestamp = null
+  this._subscribed = false
   this._provided = null
   this._patchQueue = this._patchQueue || []
 
@@ -258,7 +258,7 @@ Record.prototype.ref = function () {
     this._$pruneTimestamp = null
     this._prune.delete(this)
 
-    this._read()
+    this._subscribe()
   }
 }
 
@@ -402,8 +402,8 @@ Record.prototype._sendUpdate = function () {
   this.version = nextVersion
 }
 
-Record.prototype._read = function () {
-  if (!this.connected || this._$readTimestamp) {
+Record.prototype._subscribe = function () {
+  if (!this.connected || this._subscribed) {
     return
   }
 
@@ -415,14 +415,14 @@ Record.prototype._read = function () {
     this._connection.sendMsg1(C.TOPIC.RECORD, C.ACTIONS.READ, this.name)
   }
 
-  this._$readTimestamp = Date.now()
+  this._subscribed = true
 }
 
 Record.prototype._$handleConnectionStateChange = function () {
   if (this.connected) {
-    this._read()
+    this._subscribe()
   } else {
-    this._$readTimestamp = null
+    this._subscribed = false
     this._provided = null
     this._patchQueue = this._patchQueue || []
   }

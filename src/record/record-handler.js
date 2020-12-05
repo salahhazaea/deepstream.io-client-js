@@ -77,15 +77,6 @@ const RecordHandler = function (options, connection, client) {
         this._prune.delete(rec)
         rec._$destroy()
       }
-
-      for (const rec of this._pending) {
-        if (rec._$readTimestamp && now - rec._$readTimestamp > 2 * 60e3) {
-          this._client._$onError(C.TOPIC.RECORD, C.EVENT.TIMEOUT, 'read timeout', [rec.name])
-          rec._$readTimestamp = null
-
-          // TODO (fix): What to do?
-        }
-      }
     }
 
     setTimeout(() => this._schedule ? this._schedule(prune) : prune(), 1000)
