@@ -43,15 +43,18 @@ const Record = function (name, handler) {
 
       const [version, data] = entry
 
+      // TODO (fix): What if version is newer than this._staleVersion?
+      if (!this._staleVersion) {
+        this._staleVersion = version
+        this._staleData = data
+      }
+
       // TODO (fix): What if version is newer than this.version?
       if (!this.version) {
         this.version = version
         this.data = utils.deepFreeze(Object.keys(data).length === 0 ? jsonPath.EMPTY : data)
         this.emit('update', this)
       }
-
-      this._staleVersion = version
-      this._staleData = data
     }
 
     this._subscribe()
@@ -399,7 +402,7 @@ Record.prototype._sendUpdate = function () {
 }
 
 Record.prototype._subscribe = function () {
-  if (!this.connected || this._subscribed) {
+  if (!this.connected || this._subscribed || this._$usages === 0) {
     return
   }
 
