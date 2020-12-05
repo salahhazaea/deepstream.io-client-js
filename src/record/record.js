@@ -253,11 +253,8 @@ Record.prototype.update = function (pathOrUpdater, updaterOrNil) {
 
 Record.prototype.ref = function () {
   this._$usages += 1
-
   if (this._$usages === 1) {
-    this._$pruneTimestamp = null
     this._prune.delete(this)
-
     this._subscribe()
   }
 }
@@ -270,8 +267,7 @@ Record.prototype.unref = function () {
 
   this._$usages -= 1
   if (this._$usages === 0) {
-    this._$pruneTimestamp = Date.now()
-    this._prune.add(this)
+    this._prune.set(this, Date.now())
   }
 }
 
