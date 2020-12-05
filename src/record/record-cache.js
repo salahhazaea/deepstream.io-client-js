@@ -1,29 +1,16 @@
+const LRU = require('lru-cache')
 const levelup = require('levelup')
 const encodingdown = require('encoding-down')
 
-/* global FinalizationRegistry, WeakRef */
-
 const RecordCache = function (options, callback) {
-  this._cache = null
-  this._finalizer = null
+  this._lru = new LRU({ max: options.cacheSize || 1024 })
   this._db = options.cacheDb ? levelup(encodingdown(options.cacheDb, { valueEncoding: 'json' }), callback) : null
   this._filter = options.cacheFilter
   this._batch = null
-
-  if (global.FinalizationRegistry && global.WeakRef) {
-    this._cache = new Map()
-    this._finalizer = new FinalizationRegistry(name => {
-      const ref = this._cache.get(name)
-      if (ref && !ref.deref()) {
-        this._cache.delete(name)
-      }
-    })
-  }
 }
 
 RecordCache.prototype.get = function (name, callback) {
-  const ref = this._cache && this._cache.get(name)
-  const entry = ref && ref.deref()
+  const entry = this._lru.get(name)
   if (entry) {
     callback(null, entry)
   } else if (this._db && this._db.isOpen()) {
@@ -33,16 +20,13 @@ RecordCache.prototype.get = function (name, callback) {
   }
 }
 
-RecordCache.prototype.set = function (name, entry) {
-  if (this._filter && !this._filter(name, entry[0], entry[1])) {
+RecordCache.prototype.set = function (name, version, data) {
+  if (this._filter && !this._filter(name, version, data)) {
     return
   }
 
-  if (this._cache) {
-    this._cache.set(name, new WeakRef(entry))
-    this._finalizer.register(entry, name)
-  }
-
+  const entry = [version, data]
+  this._lru.set(name, entry)
   if (this._db && this._db.isOpen()) {
     if (!this._batch) {
       this._batch = this._db.batch()
