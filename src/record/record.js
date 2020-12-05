@@ -263,10 +263,7 @@ Record.prototype.ref = function () {
 }
 
 Record.prototype.unref = function () {
-  if (this._$usages === 0) {
-    this._client._$onError(C.TOPIC.RECORD, C.EVENT.REF_ERROR, 'cannot unref', [this.name])
-    return
-  }
+  invariant(this._$usages > 0, 'must have refs')
 
   this._$usages -= 1
   if (this._$usages === 0) {
