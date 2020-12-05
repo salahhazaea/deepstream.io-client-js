@@ -302,8 +302,6 @@ Record.prototype._onSubscriptionHasProvider = function (data) {
 }
 
 Record.prototype._onUpdate = function ([name, version, data]) {
-  invariant(this.connected, 'must be connected')
-
   try {
     if (!version) {
       throw new Error('missing version')
