@@ -54,9 +54,7 @@ const Record = function (name, handler) {
       this._staleData = data
     }
 
-    if (this.connected) {
-      this._read()
-    }
+    this._read()
   })
   this._stats.reads += 1
 }
@@ -69,13 +67,15 @@ Record.prototype._$destroy = function () {
   invariant(this._$usages === 0, 'must have no refs')
   invariant(this.version, 'must have version to destroy')
   invariant(this.isReady, 'must be ready to destroy')
+  invariant(!this._patchQueue, 'must not have patch queue')
 
   if (this._staleDirty) {
     this._cache.set(this.name, this._staleVersion, this._staleData)
   }
 
+  this._$readTimestamp = null
   this._provided = null
-  this._patchQueue = []
+  this._patchQueue = this._patchQueue || []
 
   // TODO (fix): Ensure unsubscribe is acked.
   this._connection.sendMsg1(C.TOPIC.RECORD, C.ACTIONS.UNSUBSCRIBE, this.name)
@@ -258,7 +258,7 @@ Record.prototype.ref = function () {
     this._$pruneTimestamp = null
     this._prune.delete(this)
 
-    // TODO: resubscribe?
+    this._read()
   }
 }
 
@@ -403,22 +403,28 @@ Record.prototype._sendUpdate = function () {
 }
 
 Record.prototype._read = function () {
+  if (!this.connected || this._$readTimestamp) {
+    return
+  }
+
+  // TODO (fix): Limit number of reads.
+
   if (this._staleVersion) {
     this._connection.sendMsg2(C.TOPIC.RECORD, C.ACTIONS.READ, this.name, this._staleVersion)
   } else {
     this._connection.sendMsg1(C.TOPIC.RECORD, C.ACTIONS.READ, this.name)
   }
+
   this._$readTimestamp = Date.now()
 }
 
 Record.prototype._$handleConnectionStateChange = function () {
-  this._provided = null
-
   if (this.connected) {
-    // TODO (fix): Limit number of reads.
     this._read()
-  } else if (!this._patchQueue) {
-    this._patchQueue = []
+  } else {
+    this._$readTimestamp = null
+    this._provided = null
+    this._patchQueue = this._patchQueue || []
   }
 
   this.emit('update', this)
