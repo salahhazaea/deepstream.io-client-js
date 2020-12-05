@@ -71,6 +71,7 @@ Record.prototype._$destroy = function () {
 
   if (this._staleDirty) {
     this._cache.set(this.name, this._staleVersion, this._staleData)
+    this._staleDirty = false
   }
 
   this._subscribed = false
@@ -319,12 +320,14 @@ Record.prototype._onUpdate = function ([name, version, data]) {
 
     if (this._staleVersion === version) {
       data = this._staleData
+      data = jsonPath.set(this.data, null, data, true)
     } else if (!data) {
       throw new Error('missing data')
     } else {
       if (typeof data === 'string') {
         data = JSON.parse(/^\{.*\}$/.test(data) ? data : lz.decompressFromUTF16(data))
       }
+      data = jsonPath.set(this.data, null, data, true)
 
       this._staleDirty = true
       this._staleVersion = version
@@ -334,7 +337,7 @@ Record.prototype._onUpdate = function ([name, version, data]) {
     const oldValue = this.data
 
     this.version = version
-    this.data = data = jsonPath.set(this.data, null, data, true)
+    this.data = data
 
     if (this._patchQueue) {
       if (!this.version.startsWith('INF')) {
