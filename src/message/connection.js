@@ -83,7 +83,8 @@ Connection.prototype.send = function (message) {
   const { maxPacketSize } = this._options
 
   if (message.length > maxPacketSize) {
-    this._onError(new Error(`Packet to big: ${message.length} > ${maxPacketSize}`))
+    const err = new Error(`Packet to big: ${message.length} > ${maxPacketSize}`)
+    this._client._$onError(C.TOPIC.CONNECTION, C.EVENT.CONNECTION_ERROR, err)
   }
 
   this._queuedMessages.push(message)
@@ -141,11 +142,13 @@ Connection.prototype._submit = function (message) {
   const { maxPacketSize } = this._options
 
   if (message.length > maxPacketSize) {
-    this._onError(new Error(`Packet to big: ${message.length} > ${maxPacketSize}`))
+    const err = new Error(`Packet to big: ${message.length} > ${maxPacketSize}`)
+    this._client._$onError(C.TOPIC.CONNECTION, C.EVENT.CONNECTION_ERROR, err)
   } else if (this._endpoint.readyState === this._endpoint.OPEN) {
     this._endpoint.send(message)
   } else {
-    this._onError(new Error('Tried to send message on a closed websocket connection'))
+    const err = new Error('Tried to send message on a closed websocket connection')
+    this._client._$onError(C.TOPIC.CONNECTION, C.EVENT.CONNECTION_ERROR, err)
   }
 }
 
