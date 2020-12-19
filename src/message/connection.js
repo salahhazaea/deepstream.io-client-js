@@ -54,7 +54,8 @@ Connection.prototype.authenticate = function (authParams, callback) {
   this._authCallback = callback
 
   if (this._tooManyAuthAttempts || this._challengeDenied || this._connectionAuthenticationTimeout) {
-    this._client._$onError(C.TOPIC.ERROR, C.EVENT.IS_CLOSED, 'this client\'s connection was closed')
+    const err = new Error('this client\'s connection was closed')
+    this._client._$onError(C.TOPIC.ERROR, C.EVENT.IS_CLOSED, err)
     return
   } else if (this._deliberateClose === true && this._state === C.CONNECTION_STATE.CLOSED) {
     this._createEndpoint()
@@ -164,10 +165,8 @@ Connection.prototype._checkHeartBeat = function () {
   if (Date.now() - this._lastHeartBeat > heartBeatTolerance) {
     clearInterval(this._heartbeatInterval)
     this._endpoint.close()
-    this._client._$onError(
-      C.TOPIC.CONNECTION,
-      C.EVENT.CONNECTION_ERROR,
-      `heartbeat not received in the last ${heartBeatTolerance} milliseconds`)
+    const err = new Error(`heartbeat not received in the last ${heartBeatTolerance} milliseconds`)
+    this._client._$onError(C.TOPIC.CONNECTION, C.EVENT.CONNECTION_ERROR, err)
   } else {
     this._submit(messageBuilder.getMsg(C.TOPIC.CONNECTION, C.ACTIONS.PING))
   }
@@ -195,16 +194,11 @@ Connection.prototype._onError = function (err) {
     err.message = 'socket error'
   }
 
-  // NOTE: If the implementation isn't listening on the error event this will throw
-  // an error. So let's defer it to allow the reconnection to kick in.
-  setTimeout(() => {
-    if (err.code === 'ECONNRESET' || err.code === 'ECONNREFUSED') {
-      const msg = 'Can\'t connect! Deepstream server unreachable on ' + this._originalUrl
-      this._client._$onError(C.TOPIC.CONNECTION, C.EVENT.CONNECTION_ERROR, msg)
-    } else {
-      this._client._$onError(C.TOPIC.CONNECTION, C.EVENT.CONNECTION_ERROR, err)
-    }
-  }, 1)
+  if (err.code === 'ECONNRESET' || err.code === 'ECONNREFUSED') {
+    err.message = 'Can\'t t! Deepstream server unreachable on ' + this._originalUrl
+  }
+
+  this._client._$onError(C.TOPIC.CONNECTION, C.EVENT.CONNECTION_ERROR, err)
 }
 
 Connection.prototype._onClose = function () {
