@@ -80,11 +80,14 @@ Connection.prototype.sendMsg2 = function (topic, action, p0, p1) {
 }
 
 Connection.prototype.send = function (message) {
+  const { maxPacketSize } = this._options
+
+  if (message.length > maxPacketSize) {
+    this._onError(new Error(`Packet to big: ${message.length} > ${maxPacketSize}`))
+  }
+
   this._queuedMessages.push(message)
-  if (this._queuedMessages.length > this._options.maxMessagesPerPacket) {
-    clearTimeout(this._messageSender)
-    this._sendQueuedMessages()
-  } else if (!this._messageSender) {
+  if (!this._messageSender) {
     this._messageSender = setTimeout(this._sendQueuedMessages, this._options.sendDelay)
   }
 }
@@ -192,13 +195,12 @@ Connection.prototype._onError = function (err) {
   // NOTE: If the implementation isn't listening on the error event this will throw
   // an error. So let's defer it to allow the reconnection to kick in.
   setTimeout(() => {
-    let msg
     if (err.code === 'ECONNRESET' || err.code === 'ECONNREFUSED') {
-      msg = 'Can\'t connect! Deepstream server unreachable on ' + this._originalUrl
+      const msg = 'Can\'t connect! Deepstream server unreachable on ' + this._originalUrl
+      this._client._$onError(C.TOPIC.CONNECTION, C.EVENT.CONNECTION_ERROR, msg)
     } else {
-      msg = err.message
+      this._client._$onError(C.TOPIC.CONNECTION, C.EVENT.CONNECTION_ERROR, err)
     }
-    this._client._$onError(C.TOPIC.CONNECTION, C.EVENT.CONNECTION_ERROR, msg)
   }, 1)
 }
 
