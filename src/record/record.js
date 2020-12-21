@@ -379,13 +379,7 @@ Record.prototype._sendUpdate = function () {
   const nextVersion = this._makeVersion(start + 1)
   const prevVersion = this.version || ''
 
-  let body
-  try {
-    body = JSON.stringify(this.data)
-  } catch (err) {
-    this._client._$onError(C.TOPIC.RECORD, C.EVENT.LZ_ERROR, err, [this.name, this.version, this.state, nextVersion])
-    return
-  }
+  const body = JSON.stringify(this.data)
 
   this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.UPDATE, [
     this.name,

@@ -102,13 +102,7 @@ class Listener {
           if (this._topic === C.TOPIC.EVENT) {
             this._handler.emit(provider.name, value)
           } else if (this._topic === C.TOPIC.RECORD) {
-            let body
-            try {
-              body = JSON.stringify(value)
-            } catch (err) {
-              this._client._$onError(this._topic, C.EVENT.LZ_ERROR, err, [this._pattern, provider.name, value])
-              return
-            }
+            const body = typeof value !== 'string' ? JSON.stringify(value) : value
 
             if (provider.body !== body || !/^INF-/.test(provider.version)) {
               provider.version = `INF-${xuid()}-${this._client.user || ''}`
