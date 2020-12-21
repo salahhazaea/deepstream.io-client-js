@@ -1,7 +1,6 @@
 const C = require('../constants/constants')
 const xuid = require('xuid')
 const { Observable } = require('rxjs')
-const lz = require('@nxtedition/lz-string')
 
 class Listener {
   constructor (topic, pattern, callback, handler, recursive) {
@@ -103,10 +102,9 @@ class Listener {
           if (this._topic === C.TOPIC.EVENT) {
             this._handler.emit(provider.name, value)
           } else if (this._topic === C.TOPIC.RECORD) {
-            // TODO (perf): Check for equality before compression.
             let body
             try {
-              body = lz.compressToUTF16(JSON.stringify(value))
+              body = JSON.stringify(value)
             } catch (err) {
               this._client._$onError(this._topic, C.EVENT.LZ_ERROR, err, [this._pattern, provider.name, value])
               return

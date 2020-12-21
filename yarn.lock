@@ -482,11 +482,6 @@
     "@types/yargs" "^15.0.0"
     chalk "^4.0.0"
 
-"@nxtedition/lz-string@^2.0.0":
-  version "2.0.0"
-  resolved "https://registry.yarnpkg.com/@nxtedition/lz-string/-/lz-string-2.0.0.tgz#2ca46e4b6c7e5f0d752abee85ed16bde40fb891b"
-  integrity sha512-vaIMvjkNXBueB+Qe3l2L/WHu3jWa8HyGqaMcgzmE1q+vI8ZgKeEW3/FFAUX07MW4bOZnqRz6dKYCYuLgOgmslQ==
-
 "@sinonjs/commons@^1.7.0":
   version "1.8.1"
   resolved "https://registry.yarnpkg.com/@sinonjs/commons/-/commons-1.8.1.tgz#e7df00f98a203324f6dc7cc606cad9d4a8ab2217"

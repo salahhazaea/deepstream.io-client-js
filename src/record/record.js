@@ -4,7 +4,6 @@ const EventEmitter = require('component-emitter2')
 const C = require('../constants/constants')
 const messageParser = require('../message/message-parser')
 const xuid = require('xuid')
-const lz = require('@nxtedition/lz-string')
 const invariant = require('invariant')
 
 const Record = function (name, handler) {
@@ -325,7 +324,7 @@ Record.prototype._onUpdate = function ([name, version, data]) {
       throw new Error('missing data')
     } else {
       if (typeof data === 'string') {
-        data = JSON.parse(/^\{.*\}$/.test(data) ? data : lz.decompressFromUTF16(data))
+        data = JSON.parse(data)
       }
       data = jsonPath.set(this.data, null, data, true)
 
@@ -382,7 +381,7 @@ Record.prototype._sendUpdate = function () {
 
   let body
   try {
-    body = lz.compressToUTF16(JSON.stringify(this.data))
+    body = JSON.stringify(this.data)
   } catch (err) {
     this._client._$onError(C.TOPIC.RECORD, C.EVENT.LZ_ERROR, err, [this.name, this.version, this.state, nextVersion])
     return
