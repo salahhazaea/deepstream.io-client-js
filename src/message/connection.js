@@ -196,8 +196,12 @@ Connection.prototype._onClose = function () {
   }
 }
 
-Connection.prototype._onMessage = function (message) {
-  this._messages.push(message.data)
+Connection.prototype._onMessage = function ({ data }) {
+  if (data.charCodeAt(data.length - 1) === 30) {
+    data = data.slice(0, -1)
+  }
+
+  this._messages.push(data)
   if (!this._processing) {
     this._processing = true
     setImmediate(this._processMessages)
