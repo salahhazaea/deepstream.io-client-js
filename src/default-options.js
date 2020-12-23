@@ -4,9 +4,6 @@ module.exports = {
   maxReconnectInterval: 6e3,
   maxReconnectAttempts: Infinity,
   maxPacketSize: 256 * 1024,
-  sendDelay: 5,
-  syncDelay: 5,
-  maxIdleTime: 500,
   cacheFilter: (name, version, data) => {
     return /^[^{]/.test(name) && /^[^0]/.test(version)
   },

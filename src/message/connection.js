@@ -33,13 +33,11 @@ const Connection = function (client, url, options) {
   this._lastHeartBeat = null
   this._heartbeatInterval = null
 
-  this._sendQueuedMessages = this._sendQueuedMessages.bind(this)
   this._processMessages = this._processMessages.bind(this)
   this._processing = false
 
   this._originalUrl = utils.parseUrl(url, this._options.path)
   this._url = this._originalUrl
-  this._idleTimeout = this._options.maxIdleTime
 
   this._state = C.CONNECTION_STATE.CLOSED
   this._createEndpoint()
@@ -86,20 +84,17 @@ Connection.prototype.send = function (message) {
   if (message.length > maxPacketSize) {
     const err = new Error(`Packet to big: ${message.length} > ${maxPacketSize}`)
     this._client._$onError(C.TOPIC.CONNECTION, C.EVENT.CONNECTION_ERROR, err)
+    return
   }
 
-  this._queuedMessages.push(message)
-  if (!this._messageSender) {
-    this._messageSender = setTimeout(this._sendQueuedMessages, this._options.sendDelay)
+  if (this._state !== C.CONNECTION_STATE.OPEN) {
+    this._queuedMessages.push(message)
+  } else {
+    this._submit(message)
   }
-}
-
-Connection.prototype.flush = function () {
-  this._sendQueuedMessages()
 }
 
 Connection.prototype.close = function () {
-  this._sendQueuedMessages()
   this._reset()
   this._deliberateClose = true
   this._endpoint.close()
@@ -119,24 +114,11 @@ Connection.prototype._sendQueuedMessages = function () {
     return
   }
 
-  const { maxPacketSize } = this._options
-
-  let pkt = ''
   for (const msg of this._queuedMessages) {
-    if (pkt.length + msg.length > maxPacketSize) {
-      this._submit(pkt)
-      pkt = ''
-    }
-    pkt += msg
-  }
-
-  if (pkt.length) {
-    this._submit(pkt)
-    pkt = ''
+    this._submit(msg)
   }
 
   this._queuedMessages.length = 0
-  this._messageSender = null
 }
 
 Connection.prototype._submit = function (message) {
@@ -215,7 +197,7 @@ Connection.prototype._onClose = function () {
 }
 
 Connection.prototype._onMessage = function (message) {
-  Array.prototype.push.apply(this._messages, message.data.split(C.MESSAGE_SEPERATOR))
+  this._messages.push(message.data)
   if (!this._processing) {
     this._processing = true
     setImmediate(this._processMessages)
