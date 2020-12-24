@@ -40,7 +40,7 @@ class Listener {
 
       const provider = {
         name,
-        value$: null,
+        value$: undefined,
         version: null,
         body: null,
         ready: false,
@@ -59,18 +59,16 @@ class Listener {
         this._providers.delete(provider.name)
       }
       provider.next = value$ => {
-        if (!value$) {
-          value$ = null
-        } else if (!value$.subscribe) {
+        if (value$ && !value$.subscribe) {
           // Compat for recursive with value
           value$ = Observable.of(value$)
         }
 
-        if (Boolean(value$) !== Boolean(provider.value$)) {
+        if (provider.value$ === undefined || Boolean(value$) !== Boolean(provider.value$)) {
           this._connection.sendMsg(this._topic, value$ ? C.ACTIONS.LISTEN_ACCEPT : C.ACTIONS.LISTEN_REJECT, [this._pattern, provider.name])
         }
 
-        provider.value$ = value$
+        provider.value$ = value$ || null
         if (provider.valueSubscription) {
           provider.valueSubscription.unsubscribe()
           provider.valueSubscription = value$ ? value$.subscribe(provider.observer) : null
