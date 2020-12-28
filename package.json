@@ -19,7 +19,7 @@
     "lru-cache": "^6.0.0",
     "utf-8-validate": "^5.0.3",
     "ws": "^7.4.1",
-    "xuid": "^3.2.0"
+    "xuid": "^4.0.3"
   },
   "peerDependencies": {
     "rxjs": ">=5.x"
