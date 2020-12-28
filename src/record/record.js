@@ -381,6 +381,8 @@ Record.prototype._sendUpdate = function () {
 
   const body = JSON.stringify(this.data)
 
+  // TODO (fix): This might never make it to server during e.g.
+  // a disconnect.
   this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.UPDATE, [
     this.name,
     nextVersion,
