@@ -3,7 +3,7 @@ const URL = require('url')
 const hasUrlProtocol = /^wss:|^ws:|^\/\//
 const unsupportedProtocol = /^http:|^https:/
 
-const NODE_ENV = process && process.env && process.env.NODE_ENV
+const NODE_ENV = typeof process !== 'undefined' && process.env && process.env.NODE_ENV
 const isNode = typeof process !== 'undefined' && process.toString() === '[object process]'
 const isProduction = NODE_ENV === 'production'
 
