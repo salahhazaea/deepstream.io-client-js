@@ -83,7 +83,7 @@ Connection.prototype.send = function (message) {
 
   if (message.length > maxPacketSize) {
     const err = new Error(`Packet to big: ${message.length} > ${maxPacketSize}`)
-    this._client._$onError(C.TOPIC.CONNECTION, C.EVENT.CONNECTION_ERROR, err)
+    this._client._$onError(C.TOPIC.CONNECTION, C.EVENT.CONNECTION_ERROR, err, [message.length, message.slice(0, 256)])
     return
   }
 
