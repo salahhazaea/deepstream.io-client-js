@@ -30,6 +30,11 @@ class Listener {
   }
 
   _$onMessage (message) {
+    if (!this.connected) {
+      this._client._$onError(C.TOPIC.RECORD, C.EVENT.NOT_CONNECTED, new Error('received message while not connected'), message)
+      return
+    }
+
     const name = message.data[1]
 
     if (message.action === C.ACTIONS.SUBSCRIPTION_FOR_PATTERN_FOUND) {

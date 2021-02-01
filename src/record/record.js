@@ -269,6 +269,11 @@ Record.prototype.unref = function () {
 }
 
 Record.prototype._$onMessage = function (message) {
+  if (!this.connected) {
+    this._client._$onError(C.TOPIC.RECORD, C.EVENT.NOT_CONNECTED, new Error('received message while not connected'), message)
+    return
+  }
+
   if (message.action === C.ACTIONS.UPDATE) {
     this._onUpdate(message.data)
   } else if (message.action === C.ACTIONS.SUBSCRIPTION_HAS_PROVIDER) {
