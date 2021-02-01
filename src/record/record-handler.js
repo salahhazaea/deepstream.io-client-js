@@ -252,23 +252,22 @@ RecordHandler.prototype.observe = function (name, pathOrState, stateOrNil) {
     return Observable.of(jsonPath.EMPTY)
   }
 
-  return Observable
-    .create(o => {
-      const onUpdate = record => {
-        if (!state || record.state >= state) {
-          o.next(record.get(path))
-        }
+  return new Observable(o => {
+    const onUpdate = record => {
+      if (!state || record.state >= state) {
+        o.next(record.get(path))
       }
-      const record = this.getRecord(name)
-      if (record.version) {
-        onUpdate(record)
-      }
-      record.on('update', onUpdate)
-      return () => {
-        record.off('update', onUpdate)
-        record.unref()
-      }
-    })
+    }
+    const record = this.getRecord(name)
+    if (record.version) {
+      onUpdate(record)
+    }
+    record.on('update', onUpdate)
+    return () => {
+      record.off('update', onUpdate)
+      record.unref()
+    }
+  })
     .distinctUntilChanged()
 }
 
@@ -281,23 +280,22 @@ RecordHandler.prototype.observe2 = function (name) {
     }))
   }
 
-  return Observable
-    .create(o => {
-      const onUpdate = ({ version, data, state }) => o.next({
-        version,
-        data,
-        state
-      })
-      const record = this.getRecord(name)
-      if (record.version) {
-        onUpdate(record)
-      }
-      record.on('update', onUpdate)
-      return () => {
-        record.off('update', onUpdate)
-        record.unref()
-      }
+  return new Observable(o => {
+    const onUpdate = ({ version, data, state }) => o.next({
+      version,
+      data,
+      state
     })
+    const record = this.getRecord(name)
+    if (record.version) {
+      onUpdate(record)
+    }
+    record.on('update', onUpdate)
+    return () => {
+      record.off('update', onUpdate)
+      record.unref()
+    }
+  })
 }
 
 RecordHandler.prototype._$handle = function (message) {
