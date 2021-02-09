@@ -17,7 +17,7 @@ const Connection = function (client, url, options) {
   this._tooManyAuthAttempts = false
   this._connectionAuthenticationTimeout = false
   this._challengeDenied = false
-  this._queuedMessages = []
+  this._sendQueue = []
   this._message = {
     raw: null,
     topic: null,
@@ -28,7 +28,6 @@ const Connection = function (client, url, options) {
   this._messagesIndex = 0
   this._reconnectTimeout = null
   this._reconnectionAttempt = 0
-  this._messageSender = null
   this._endpoint = null
   this._lastHeartBeat = null
   this._heartbeatInterval = null
@@ -88,7 +87,7 @@ Connection.prototype.send = function (message) {
   }
 
   if (this._state !== C.CONNECTION_STATE.OPEN) {
-    this._queuedMessages.push(message)
+    this._sendQueue.push(message)
   } else {
     this._submit(message)
   }
@@ -114,11 +113,11 @@ Connection.prototype._sendQueuedMessages = function () {
     return
   }
 
-  for (const msg of this._queuedMessages) {
+  for (const msg of this._sendQueue) {
     this._submit(msg)
   }
 
-  this._queuedMessages.length = 0
+  this._sendQueue.length = 0
 }
 
 Connection.prototype._submit = function (message) {
@@ -251,20 +250,13 @@ Connection.prototype._processMessages = function () {
 }
 
 Connection.prototype._reset = function () {
+  clearInterval(this._heartbeatInterval)
+  this._heartbeatInterval = null
+  this._lastHeartBeat = null
+
   this._messages = []
   this._messagesIndex = 0
-
-  if (this._heartbeatInterval) {
-    clearInterval(this._heartbeatInterval)
-    this._heartbeatInterval = null
-    this._lastHeartBeat = null
-  }
-
-  if (this._messageSender) {
-    clearTimeout(this._messageSender)
-    this._messageSender = null
-    this._queuedMessages.length = 0
-  }
+  this._sendQueue = []
 }
 
 Connection.prototype._handleConnectionResponse = function (message) {
