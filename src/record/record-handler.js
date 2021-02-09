@@ -313,13 +313,13 @@ RecordHandler.prototype._$handle = function (message) {
     return true
   }
 
-  const record = this._records.get(name)
-  if (record && record._$onMessage(message)) {
+  const listener = this._listeners.get(name)
+  if (listener && listener._$onMessage(message)) {
     return true
   }
 
-  const listener = this._listeners.get(name)
-  if (listener && listener._$onMessage(message)) {
+  const record = this._records.get(name)
+  if (record && record._$onMessage(message)) {
     return true
   }
 
@@ -327,12 +327,12 @@ RecordHandler.prototype._$handle = function (message) {
 }
 
 RecordHandler.prototype._handleConnectionStateChange = function (connected) {
-  for (const record of this._records.values()) {
-    record._$handleConnectionStateChange(connected)
-  }
-
   for (const listener of this._listeners.values()) {
     listener._$handleConnectionStateChange(connected)
+  }
+
+  for (const record of this._records.values()) {
+    record._$handleConnectionStateChange(connected)
   }
 
   if (connected) {
