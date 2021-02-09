@@ -38,11 +38,13 @@ const RecordHandler = function (options, connection, client) {
     }
   })
 
-  Observable
-    .fromEvent(this._client, 'connectionStateChanged')
-    .map(state => state === C.CONNECTION_STATE.OPEN)
-    .distinctUntilChanged()
-    .subscribe(connected => this._handleConnectionStateChange(connected))
+  this._client.on('connectionStateChanged', state => {
+    if (state === C.CONNECTION_STATE.OPEN) {
+      this._handleConnectionStateChange(true)
+    } else if (state === C.CONNECTION_STATE.RECONNECTING || state === C.CONNECTION_STATE.CLOSED) {
+      this._handleConnectionStateChange(false)
+    }
+  })
 
   const prune = () => {
     this._cache.flush(err => {

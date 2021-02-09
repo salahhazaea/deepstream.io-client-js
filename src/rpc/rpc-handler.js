@@ -12,9 +12,13 @@ const RpcHandler = function (options, connection, client) {
   this._providers = new Map()
   this._stats = {}
 
-  this._handleConnectionStateChange = this._handleConnectionStateChange.bind(this)
-
-  this._client.on('connectionStateChanged', this._handleConnectionStateChange)
+  this._client.on('connectionStateChanged', state => {
+    if (state === C.CONNECTION_STATE.OPEN) {
+      this._handleConnectionStateChange(true)
+    } else if (state === C.CONNECTION_STATE.RECONNECTING || state === C.CONNECTION_STATE.CLOSED) {
+      this._handleConnectionStateChange(false)
+    }
+  })
 }
 
 Object.defineProperty(RpcHandler.prototype, 'connected', {
@@ -157,12 +161,12 @@ RpcHandler.prototype._$handle = function (message) {
   }
 }
 
-RpcHandler.prototype._handleConnectionStateChange = function (state) {
-  if (state === C.CONNECTION_STATE.OPEN) {
+RpcHandler.prototype._handleConnectionStateChange = function (connected) {
+  if (connected) {
     for (const name of this._providers.keys()) {
       this._connection.sendMsg(C.TOPIC.RPC, C.ACTIONS.SUBSCRIBE, [name])
     }
-  } else if (state === C.CONNECTION_STATE.RECONNECTING || state === C.CONNECTION_STATE.CLOSED) {
+  } else {
     const err = new Error('socket hang up')
     err.code = 'ECONNRESET'
     for (const [, rpc] of this._rpcs) {
