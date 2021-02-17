@@ -91,20 +91,20 @@ class Listener {
       }
       provider.observer = {
         next: value => {
-          if (!value) {
+          if (value == null) {
             provider.next(null)
-            return
-          }
-
-          if (typeof value !== 'object') {
-            const err = new Error('invalid value')
-            this._client._$onError(this._topic, C.EVENT.USER_ERROR, err, [this._pattern, provider.name, value])
             return
           }
 
           if (this._topic === C.TOPIC.EVENT) {
             this._handler.emit(provider.name, value)
           } else if (this._topic === C.TOPIC.RECORD) {
+            if (typeof value !== 'object' && typeof value !== 'string') {
+              const err = new Error('invalid value')
+              this._client._$onError(this._topic, C.EVENT.USER_ERROR, err, [this._pattern, provider.name, value])
+              return
+            }
+
             const body = typeof value !== 'string' ? JSON.stringify(value) : value
 
             if (provider.body !== body || !/^INF-/.test(provider.version)) {
