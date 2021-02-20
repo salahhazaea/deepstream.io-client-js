@@ -296,7 +296,11 @@ Record.prototype._onSubscriptionHasProvider = function (data) {
   invariant(provided === null || typeof provided === 'string', 'provided must be null or string')
 
   this._provided = provided
-  this.emit('update', this)
+  try {
+    this.emit('update', this)
+  } catch (err) {
+    this._client._$onError(C.TOPIC.RECORD, C.EVENT.UPDATE_ERROR, 'cannot set', [this.name, this.version, this.state])
+  }
 }
 
 Record.prototype._onUpdate = function ([name, version, data]) {
