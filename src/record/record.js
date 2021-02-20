@@ -24,8 +24,7 @@ const Record = function (name, handler) {
   this._provided = null
   this._patchQueue = []
   this._staleDirty = false
-  this._staleVersion = null
-  this._staleData = null
+  this._staleEntry = null
 
   this.ref()
   this._cache.get(this.name, (err, entry) => {
@@ -39,10 +38,10 @@ const Record = function (name, handler) {
 
       const [version, data] = entry
 
-      // TODO (fix): What if version is newer than this._staleVersion?
-      if (!this._staleVersion) {
-        this._staleVersion = version
-        this._staleData = data
+      // TODO (fix): What if this.version is newer than version?
+
+      if (!this._staleEntry) {
+        this._staleEntry = entry
       }
 
       // TODO (fix): What if version is newer than this.version?
@@ -69,7 +68,7 @@ Record.prototype._$destroy = function () {
   invariant(!this._patchQueue, 'must not have patch queue')
 
   if (this._staleDirty) {
-    this._cache.set(this.name, this._staleVersion, this._staleData)
+    this._cache.set(this.name, this._staleEntry[0], this._staleEntry[1])
     this._staleDirty = false
   }
 
@@ -324,8 +323,8 @@ Record.prototype._onUpdate = function ([name, version, data]) {
       }
     }
 
-    if (this._staleVersion === version) {
-      data = this._staleData
+    if (this._staleEntry[0] === version) {
+      data = this._staleEntry[1]
       data = jsonPath.set(this.data, null, data, true)
     } else if (!data) {
       throw new Error('missing data')
@@ -336,8 +335,7 @@ Record.prototype._onUpdate = function ([name, version, data]) {
       data = jsonPath.set(this.data, null, data, true)
 
       this._staleDirty = true
-      this._staleVersion = version
-      this._staleData = data
+      this._staleEntry = [version, data]
     }
 
     const oldValue = this.data
@@ -407,8 +405,8 @@ Record.prototype._subscribe = function () {
 
   // TODO (fix): Limit number of reads.
 
-  if (this._staleVersion) {
-    this._connection.sendMsg2(C.TOPIC.RECORD, C.ACTIONS.READ, this.name, this._staleVersion)
+  if (this._staleEntry[0]) {
+    this._connection.sendMsg2(C.TOPIC.RECORD, C.ACTIONS.READ, this.name, this._staleEntry[0])
   } else {
     this._connection.sendMsg1(C.TOPIC.RECORD, C.ACTIONS.READ, this.name)
   }
