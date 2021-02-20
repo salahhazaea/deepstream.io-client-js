@@ -69,7 +69,7 @@ Record.prototype._$destroy = function () {
   invariant(this.isReady, 'must be ready to destroy')
   invariant(!this._patchQueue, 'must not have patch queue')
 
-  if (this._staleDirty) {
+  if (this._staleDirty && this._staleEntry) {
     this._cache.set(this.name, this._staleEntry[0], this._staleEntry[1])
     this._staleDirty = false
   }
@@ -325,7 +325,7 @@ Record.prototype._onUpdate = function ([name, version, data]) {
       }
     }
 
-    if (this._staleEntry[0] === version) {
+    if (this._staleEntry && this._staleEntry[0] === version) {
       data = this._staleEntry[1]
       data = jsonPath.set(this.data, null, data, true)
     } else if (!data) {
