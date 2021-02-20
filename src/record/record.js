@@ -340,6 +340,8 @@ Record.prototype._onSubscriptionHasProvider = function (data) {
 }
 
 Record.prototype._onUpdate = function ([name, version, data]) {
+  invariant(this.connected, 'must be connected')
+
   try {
     if (!version) {
       throw new Error('missing version')
@@ -422,6 +424,8 @@ Record.prototype._onUpdate = function ([name, version, data]) {
 }
 
 Record.prototype._sendUpdate = function () {
+  invariant(this.connected, 'must be connected')
+
   let [start] = this.version ? this.version.split('-') : ['0']
 
   if (start === 'INF' || this._provided) {
@@ -436,8 +440,7 @@ Record.prototype._sendUpdate = function () {
 
   const body = JSON.stringify(this.data)
 
-  // TODO (fix): This might never make it to server during e.g.
-  // a disconnect.
+  // TODO (fix): This might never make it to server?
   this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.UPDATE, [
     this.name,
     nextVersion,
