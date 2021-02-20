@@ -33,19 +33,25 @@ const RecordHandler = function (options, connection, client) {
 
   this._schedule = options.schedule
 
-  const cacheFactory = typeof options.cache === 'function'
-    ? options.cache
-    : options => new RecordCache(options, err => {
+  if (options.cache) {
+    this._cache = options.cache.on('error', err => {
+      this._client._$onError(C.TOPIC.RECORD, C.EVENT.CACHE_ERROR, err)
+    })
+  } else {
+    // Legacy
+    this._cache = new RecordCache(options, err => {
       if (err) {
         this._client._$onError(C.TOPIC.RECORD, C.EVENT.CACHE_ERROR, err)
       }
     })
-
-  this._cache = cacheFactory(options, err => {
-    if (err) {
-      this._client._$onError(C.TOPIC.RECORD, C.EVENT.CACHE_ERROR, err)
-    }
-  })
+    setInterval(() => {
+      this._cache.flush(err => {
+        if (err) {
+          this._client._$onError(C.TOPIC.RECORD, C.EVENT.CACHE_ERROR, err)
+        }
+      })
+    }, 1e3)
+  }
 
   this._client.on('connectionStateChanged', state => {
     if (state === C.CONNECTION_STATE.OPEN) {
@@ -56,12 +62,6 @@ const RecordHandler = function (options, connection, client) {
   })
 
   const prune = () => {
-    this._cache.flush(err => {
-      if (err) {
-        this._client._$onError(C.TOPIC.RECORD, C.EVENT.CACHE_ERROR, err)
-      }
-    })
-
     if (this.connected) {
       const now = Date.now()
 
@@ -85,7 +85,7 @@ const RecordHandler = function (options, connection, client) {
       }
     }
 
-    setTimeout(() => this._schedule ? this._schedule(prune) : prune(), 1000)
+    setTimeout(() => this._schedule ? this._schedule(prune) : prune(), 1e3)
   }
 
   prune()
