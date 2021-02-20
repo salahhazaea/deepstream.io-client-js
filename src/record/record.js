@@ -38,20 +38,17 @@ const Record = function (name, handler) {
 
       this._stats.hits += 1
 
-      const [version, data] = entry
-
-      // TODO (fix): What if this.version is newer than version?
-
-      if (!this._staleEntry) {
-        this._staleEntry = entry
+      if (this.version) {
+        // TODO (fix): What if this.version is newer than version?
+        return
       }
 
-      // TODO (fix): What if version is newer than this.version?
-      if (!this.version) {
-        this.version = version
-        this.data = utils.deepFreeze(Object.keys(data).length === 0 ? jsonPath.EMPTY : data)
-        this.emit('update', this)
-      }
+      invariant(!this._staleEntry, 'no version no entry')
+
+      this._staleEntry = entry
+      this.version = entry[0]
+      this.data = utils.deepFreeze(Object.keys(entry[1]).length === 0 ? jsonPath.EMPTY : entry[1])
+      this.emit('update', this)
     }
 
     this._subscribe()
