@@ -34,6 +34,8 @@ const Record = function (name, handler) {
       this._stats.misses += 1
       this._client._$onError(C.TOPIC.RECORD, C.EVENT.CACHE_ERROR, err, [this.name, this.version, this.state])
     } else if (entry) {
+      invariant(typeof entry[0] === 'string' && entry[1] && typeof entry[1] === 'object', 'entry must be [string, object]')
+
       this._stats.hits += 1
 
       const [version, data] = entry
