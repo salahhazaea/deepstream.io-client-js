@@ -50,7 +50,7 @@ const RecordHandler = function (options, connection, client) {
           this._client._$onError(C.TOPIC.RECORD, C.EVENT.CACHE_ERROR, err)
         }
       })
-    }, 1e3)
+    }, 1e3).unref()
   }
 
   this._client.on('connectionStateChanged', state => {
@@ -85,7 +85,7 @@ const RecordHandler = function (options, connection, client) {
       }
     }
 
-    setTimeout(() => this._schedule ? this._schedule(prune) : prune(), 1e3)
+    setTimeout(() => this._schedule ? this._schedule(prune) : prune(), 1e3).unref()
   }
 
   prune()
