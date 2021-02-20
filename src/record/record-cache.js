@@ -2,10 +2,29 @@ const LRU = require('lru-cache')
 const levelup = require('levelup')
 const encodingdown = require('encoding-down')
 
+function defaultFilter (name, version, data) {
+  return /^[^{]/.test(name) && /^[^0]/.test(version)
+}
+
 const RecordCache = function (options, callback) {
-  this._lru = new LRU({ max: options.cacheSize || 1024 })
-  this._db = options.cacheDb ? levelup(encodingdown(options.cacheDb, { valueEncoding: 'json' }), callback) : null
-  this._filter = options.cacheFilter
+  if (options.cache && typeof cache === 'object') {
+    options = options.cache
+  } else {
+    options = {
+      size: options.cacheSize,
+      db: options.cacheDb,
+      filter: options.cacheFilter,
+      ...options
+    }
+  }
+
+  const size = options.size || 1024
+  const db = options.db || null
+  const filter = options.filter || defaultFilter
+
+  this._lru = new LRU({ max: size })
+  this._db = db ? levelup(encodingdown(db, { valueEncoding: 'json' }), callback) : null
+  this._filter = filter
   this._batch = null
 }
 
