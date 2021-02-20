@@ -32,7 +32,16 @@ const RecordHandler = function (options, connection, client) {
   }
 
   this._schedule = options.schedule
-  this._cache = new RecordCache(options, err => {
+
+  const cacheFactory = typeof options.cache === 'function'
+    ? options.cache
+    : options => new RecordCache(options, err => {
+      if (err) {
+        this._client._$onError(C.TOPIC.RECORD, C.EVENT.CACHE_ERROR, err)
+      }
+    })
+
+  this._cache = cacheFactory(options, err => {
     if (err) {
       this._client._$onError(C.TOPIC.RECORD, C.EVENT.CACHE_ERROR, err)
     }
