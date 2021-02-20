@@ -426,7 +426,11 @@ Record.prototype._$handleConnectionStateChange = function () {
     this._patchQueue = this._patchQueue || []
   }
 
-  this.emit('update', this)
+  try {
+    this.emit('update', this)
+  } catch (err) {
+    this._client._$onError(C.TOPIC.RECORD, C.EVENT.UPDATE_ERROR, 'cannot set', [this.name, this.version, this.state])
+  }
 }
 
 Record.prototype._makeVersion = function (start) {
