@@ -21,9 +21,7 @@ module.exports.deepFreeze = function (o) {
 
   Object.freeze(o)
 
-  Object
-    .getOwnPropertyNames(o)
-    .forEach(prop => module.exports.deepFreeze(o[prop]))
+  Object.getOwnPropertyNames(o).forEach((prop) => module.exports.deepFreeze(o[prop]))
 
   return o
 }
@@ -100,7 +98,7 @@ module.exports.setInterval = function (callback, intervalDuration) {
   }
 }
 
-module.exports.compareRev = function compareRev (a, b) {
+module.exports.compareRev = function compareRev(a, b) {
   if (!a) {
     return b ? -1 : 0
   }
@@ -116,7 +114,7 @@ module.exports.compareRev = function compareRev (a, b) {
   const [av, ar] = module.exports.splitRev(a)
   const [bv, br] = module.exports.splitRev(b)
 
-  return av !== bv ? (av < bv ? -1 : 1) : (ar < br ? -1 : 1)
+  return av !== bv ? (av < bv ? -1 : 1) : ar < br ? -1 : 1
 }
 
 module.exports.parseUrl = function (url, defaultPath) {

@@ -28,24 +28,24 @@ const RecordHandler = function (options, connection, client) {
   this._stats = {
     reads: 0,
     hits: 0,
-    misses: 0
+    misses: 0,
   }
 
   this._schedule = options.schedule
 
   if (options.cache) {
-    this._cache = options.cache.on('error', err => {
+    this._cache = options.cache.on('error', (err) => {
       this._client._$onError(C.TOPIC.RECORD, C.EVENT.CACHE_ERROR, err)
     })
   } else {
     // Legacy
-    this._cache = new RecordCache(options, err => {
+    this._cache = new RecordCache(options, (err) => {
       if (err) {
         this._client._$onError(C.TOPIC.RECORD, C.EVENT.CACHE_ERROR, err)
       }
     })
     const interval = setInterval(() => {
-      this._cache.flush(err => {
+      this._cache.flush((err) => {
         if (err) {
           this._client._$onError(C.TOPIC.RECORD, C.EVENT.CACHE_ERROR, err)
         }
@@ -56,7 +56,7 @@ const RecordHandler = function (options, connection, client) {
     }
   }
 
-  this._client.on('connectionStateChanged', state => {
+  this._client.on('connectionStateChanged', (state) => {
     if (state === C.CONNECTION_STATE.OPEN) {
       this._handleConnectionStateChange(true)
     } else if (state === C.CONNECTION_STATE.RECONNECTING || state === C.CONNECTION_STATE.CLOSED) {
@@ -74,9 +74,7 @@ const RecordHandler = function (options, connection, client) {
         }
 
         // TODO (fix): This should move to userland.
-        const minAge = rec.version && rec.version.startsWith('I')
-          ? 1000
-          : 10000
+        const minAge = rec.version && rec.version.startsWith('I') ? 1000 : 10000
 
         if (now - timestamp <= minAge) {
           continue
@@ -88,7 +86,7 @@ const RecordHandler = function (options, connection, client) {
       }
     }
 
-    const timeout = setTimeout(() => this._schedule ? this._schedule(prune) : prune(), 1e3)
+    const timeout = setTimeout(() => (this._schedule ? this._schedule(prune) : prune()), 1e3)
     if (timeout.unref) {
       timeout.unref()
     }
@@ -98,28 +96,31 @@ const RecordHandler = function (options, connection, client) {
 }
 
 Object.defineProperty(RecordHandler.prototype, 'isAsync', {
-  get: function isAsync () {
+  get: function isAsync() {
     return this._syncCount === 0
-  }
+  },
 })
 
 Object.defineProperty(RecordHandler.prototype, 'connected', {
-  get: function connected () {
+  get: function connected() {
     return this._client.getConnectionState() === C.CONNECTION_STATE.OPEN
-  }
+  },
 })
 
 Object.defineProperty(RecordHandler.prototype, 'stats', {
-  get: function stats () {
+  get: function stats() {
     return Object.assign({}, this._stats, {
       listeners: this._listeners.size,
-      records: this._records.size
+      records: this._records.size,
     })
-  }
+  },
 })
 
 RecordHandler.prototype.getRecord = function (name) {
-  invariant(typeof name === 'string' && name.length > 0 && !name.includes('[object Object]'), `invalid name ${name}`)
+  invariant(
+    typeof name === 'string' && name.length > 0 && !name.includes('[object Object]'),
+    `invalid name ${name}`
+  )
 
   let record = this._records.get(name)
 
@@ -146,13 +147,7 @@ RecordHandler.prototype.provide = function (pattern, callback, recursive = false
     return
   }
 
-  const listener = new Listener(
-    C.TOPIC.RECORD,
-    pattern,
-    callback,
-    this,
-    recursive
-  )
+  const listener = new Listener(C.TOPIC.RECORD, pattern, callback, this, recursive)
 
   this._listeners.set(pattern, listener)
   return () => {
@@ -167,10 +162,10 @@ RecordHandler.prototype.sync = function () {
   const pending = []
   for (const rec of this._pending) {
     rec.ref()
-    pending.push(new Promise(resolve => rec.once('ready', resolve)))
+    pending.push(new Promise((resolve) => rec.once('ready', resolve)))
   }
 
-  return new Promise(resolve => {
+  return new Promise((resolve) => {
     let token
     let timeout
 
@@ -198,21 +193,19 @@ RecordHandler.prototype.sync = function () {
 
     timeout = setTimeout(onTimeout, 2 * 60e3)
 
-    return Promise
-      .all(pending)
-      .then(() => {
-        token = this._syncCounter.toString(16)
-        this._syncCounter = (this._syncCounter + 1) & 2147483647
+    return Promise.all(pending).then(() => {
+      token = this._syncCounter.toString(16)
+      this._syncCounter = (this._syncCounter + 1) & 2147483647
 
-        this._syncEmitter.once(token, () => {
-          clearTimeout(timeout)
-          resolve(true)
-        })
-
-        if (this.connected) {
-          this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.SYNC, [token])
-        }
+      this._syncEmitter.once(token, () => {
+        clearTimeout(timeout)
+        resolve(true)
       })
+
+      if (this.connected) {
+        this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.SYNC, [token])
+      }
+    })
   })
 }
 
@@ -224,8 +217,7 @@ RecordHandler.prototype.get = function (name, pathOrState, stateOrNil) {
   const path = pathOrState
   const state = stateOrNil == null ? 2 : stateOrNil
 
-  return this
-    .observe(name, path, state)
+  return this.observe(name, path, state)
     .first()
     .timeout(2 * 60e3)
     .toPromise()
@@ -234,9 +226,7 @@ RecordHandler.prototype.get = function (name, pathOrState, stateOrNil) {
 RecordHandler.prototype.set = function (name, pathOrData, dataOrNil) {
   const record = this.getRecord(name)
   try {
-    return arguments.length === 2
-      ? record.set(pathOrData)
-      : record.set(pathOrData, dataOrNil)
+    return arguments.length === 2 ? record.set(pathOrData) : record.set(pathOrData, dataOrNil)
   } finally {
     record.unref()
   }
@@ -269,8 +259,8 @@ RecordHandler.prototype.observe = function (name, pathOrState, stateOrNil) {
     return Observable.of(jsonPath.EMPTY)
   }
 
-  return new Observable(o => {
-    const onUpdate = record => {
+  return new Observable((o) => {
+    const onUpdate = (record) => {
       if (!state || record.state >= state) {
         o.next(record.get(path))
       }
@@ -284,25 +274,27 @@ RecordHandler.prototype.observe = function (name, pathOrState, stateOrNil) {
       record.off('update', onUpdate)
       record.unref()
     }
-  })
-    .distinctUntilChanged()
+  }).distinctUntilChanged()
 }
 
 RecordHandler.prototype.observe2 = function (name) {
   if (!name) {
-    return Observable.of(utils.deepFreeze({
-      version: '0-00000000000000',
-      data: jsonPath.EMPTY,
-      state: C.RECORD_STATE.SERVER
-    }))
+    return Observable.of(
+      utils.deepFreeze({
+        version: '0-00000000000000',
+        data: jsonPath.EMPTY,
+        state: C.RECORD_STATE.SERVER,
+      })
+    )
   }
 
-  return new Observable(o => {
-    const onUpdate = ({ version, data, state }) => o.next({
-      version,
-      data,
-      state
-    })
+  return new Observable((o) => {
+    const onUpdate = ({ version, data, state }) =>
+      o.next({
+        version,
+        data,
+        state,
+      })
     const record = this.getRecord(name)
     if (record.version) {
       onUpdate(record)

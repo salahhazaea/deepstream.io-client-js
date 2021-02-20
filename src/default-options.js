@@ -6,5 +6,5 @@ module.exports = {
   maxPacketSize: 256 * 1024,
   schedule: null,
   logger: null,
-  path: '/deepstream'
+  path: '/deepstream',
 }

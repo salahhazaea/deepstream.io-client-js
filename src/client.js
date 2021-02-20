@@ -30,13 +30,13 @@ const Client = function (url, options) {
 Emitter(Client.prototype)
 
 Object.defineProperty(Client.prototype, 'stats', {
-  get: function stats () {
+  get: function stats() {
     return {
       record: this.record.stats,
       rpc: this.rpc.stats,
-      event: this.event.stats
+      event: this.event.stats,
     }
-  }
+  },
 })
 
 Client.prototype.login = function (authParamsOrCallback, callback) {
@@ -114,7 +114,7 @@ Client.prototype._getOptions = function (options) {
   return mergedOptions
 }
 
-function createDeepstream (url, options) {
+function createDeepstream(url, options) {
   return new Client(url, options)
 }
 

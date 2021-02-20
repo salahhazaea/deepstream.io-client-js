@@ -1,15 +1,18 @@
-
 const jsonPath = require('../src/record/json-path')
 
 describe('equality', () => {
   it('deep equal', () => {
     const obj = { asd: 123 }
-    const res = jsonPath.set({
-      obj,
-      foo: 'true'
-    }, null, {
-      obj
-    })
+    const res = jsonPath.set(
+      {
+        obj,
+        foo: 'true',
+      },
+      null,
+      {
+        obj,
+      }
+    )
 
     expect(res.obj).toBe(obj)
     expect(res).toEqual({ obj })
@@ -17,10 +20,10 @@ describe('equality', () => {
 
   it('returns old value', () => {
     const obj = {
-      asd: true
+      asd: true,
     }
     const res = jsonPath.set(obj, undefined, {
-      asd: true
+      asd: true,
     })
 
     expect(res).toBe(obj)
@@ -43,17 +46,21 @@ describe('json clone', () => {
 
 describe('set', () => {
   it('set through null', () => {
-    const res = jsonPath.set({
-      asd: null
-    }, 'asd.foo.bar', true)
+    const res = jsonPath.set(
+      {
+        asd: null,
+      },
+      'asd.foo.bar',
+      true
+    )
     expect(res).toEqual({
-      asd: { foo: { bar: true } }
+      asd: { foo: { bar: true } },
     })
   })
 
   it('set empty', () => {
     const obj = {
-      asd: null
+      asd: null,
     }
     const res = jsonPath.set(obj, null, {})
     expect(res).toEqual({})
@@ -74,11 +81,11 @@ describe('order', () => {
   it('updates order', () => {
     const obj = {
       foo: 1,
-      bar: 1
+      bar: 1,
     }
     const res = jsonPath.set(obj, undefined, {
       bar: 1,
-      foo: 2
+      foo: 2,
     })
 
     expect(res).not.toBe(obj)
@@ -88,11 +95,11 @@ describe('order', () => {
   it('keeps order', () => {
     const obj = {
       foo: 1,
-      bar: 1
+      bar: 1,
     }
     const res = jsonPath.set(obj, undefined, {
       foo: 1,
-      bar: 1
+      bar: 1,
     })
 
     expect(res).toBe(obj)
@@ -105,14 +112,14 @@ describe('paths are tokenized and retrieved correctly', () => {
       firstname: 'Wolfram',
       lastname: 'Hempel',
       address: {
-        street: 'currentStreet'
+        street: 'currentStreet',
       },
       pastAddresses: [
         { street: 'firststreet', postCode: 1001 },
-        { street: 'secondstreet', postCode: 2002 }
+        { street: 'secondstreet', postCode: 2002 },
       ],
-      1234: 'integer index'
-    }
+      1234: 'integer index',
+    },
   }
 
   it('retrieves simple paths', () => {
@@ -124,11 +131,17 @@ describe('paths are tokenized and retrieved correctly', () => {
   })
 
   it('retrieves array entries', () => {
-    expect(jsonPath.get(testRecord._$data, 'pastAddresses[1]')).toEqual({ street: 'secondstreet', postCode: 2002 })
+    expect(jsonPath.get(testRecord._$data, 'pastAddresses[1]')).toEqual({
+      street: 'secondstreet',
+      postCode: 2002,
+    })
   })
 
   it('retrieves other array entries', () => {
-    expect(jsonPath.get(testRecord._$data, 'pastAddresses[0]')).toEqual({ street: 'firststreet', postCode: 1001 })
+    expect(jsonPath.get(testRecord._$data, 'pastAddresses[0]')).toEqual({
+      street: 'firststreet',
+      postCode: 1001,
+    })
   })
 
   it('retrieves values from objects within arrays', () => {
@@ -186,8 +199,8 @@ describe('objects are created from paths and their value is set correctly', () =
     expect(jsonPath.get(record._$data, 'adress.street')).toBe('someStreet')
     expect(record._$data).toEqual({
       adress: {
-        street: 'someStreet'
-      }
+        street: 'someStreet',
+      },
     })
   })
 
@@ -199,8 +212,9 @@ describe('objects are created from paths and their value is set correctly', () =
       pastAddresses: [
         undefined,
         {
-          street: 'someStreet'
-        }]
+          street: 'someStreet',
+        },
+      ],
     })
   })
 
@@ -208,15 +222,15 @@ describe('objects are created from paths and their value is set correctly', () =
     const record = {
       _$data: {
         job: null,
-        joinedAt: 1480020987915
-      }
+        joinedAt: 1480020987915,
+      },
     }
     const jobId = { id: 88 }
     record._$data = jsonPath.set(record._$data, 'job', jobId, true)
     expect(jsonPath.get(record._$data, 'job.id')).toBe(88)
     expect(record._$data).toEqual({
       job: { id: 88 },
-      joinedAt: 1480020987915
+      joinedAt: 1480020987915,
     })
   })
 
@@ -226,7 +240,7 @@ describe('objects are created from paths and their value is set correctly', () =
     expect(jsonPath.get(record._$data, 'lastname')).toBe('Hempel')
     expect(record._$data).toEqual({
       firstname: 'Wolfram',
-      lastname: 'Hempel'
+      lastname: 'Hempel',
     })
   })
 
@@ -244,14 +258,14 @@ describe('objects are created from paths and their value is set correctly', () =
     const record = {
       _$data: {
         firstname: 'Wolfram',
-        animals: ['Bear', 'Cow', 'Ostrich']
-      }
+        animals: ['Bear', 'Cow', 'Ostrich'],
+      },
     }
     record._$data = jsonPath.set(record._$data, 'animals[ 1 ]', 'Emu')
     expect(jsonPath.get(record._$data, 'animals[ 1 ]')).toBe('Emu')
     expect(record._$data).toEqual({
       firstname: 'Wolfram',
-      animals: ['Bear', 'Emu', 'Ostrich']
+      animals: ['Bear', 'Emu', 'Ostrich'],
     })
   })
 })
@@ -266,8 +280,8 @@ describe('plain JSON', () => {
       d: NaN,
       e: Infinity,
       g: {
-        a: time
-      }
+        a: time,
+      },
     }
     const res = jsonPath.set({ a: 1 }, null, x)
     expect(res).toEqual({
@@ -276,8 +290,8 @@ describe('plain JSON', () => {
       d: null,
       e: null,
       g: {
-        a: time.toISOString()
-      }
+        a: time.toISOString(),
+      },
     })
     expect(res.hasOwnProperty('b')).toEqual(false)
   })
@@ -285,7 +299,7 @@ describe('plain JSON', () => {
   it('undefined is removed from src', () => {
     const y = jsonPath.EMPTY
     const res = jsonPath.set(y, null, {
-      b: undefined
+      b: undefined,
     })
     expect(Object.keys(res).length).toEqual(0)
     expect(res).toBe(y)
@@ -293,10 +307,10 @@ describe('plain JSON', () => {
 
   it('empty is EMPTY', () => {
     const y = {
-      b: 1
+      b: 1,
     }
     const res = jsonPath.set(y, null, {
-      b: undefined
+      b: undefined,
     })
     expect(Object.keys(res).length).toEqual(0)
     expect(res).toBe(jsonPath.EMPTY)

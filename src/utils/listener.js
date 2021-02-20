@@ -3,7 +3,7 @@ const xuid = require('xuid')
 const { Observable } = require('rxjs')
 
 class Listener {
-  constructor (topic, pattern, callback, handler, recursive) {
+  constructor(topic, pattern, callback, handler, recursive) {
     this._topic = topic
     this._pattern = pattern
     this._callback = callback
@@ -17,11 +17,11 @@ class Listener {
     this._$handleConnectionStateChange()
   }
 
-  get connected () {
+  get connected() {
     return this._client.getConnectionState() === C.CONNECTION_STATE.OPEN
   }
 
-  _$destroy () {
+  _$destroy() {
     if (this.connected) {
       this._connection.sendMsg(this._topic, C.ACTIONS.UNLISTEN, [this._pattern])
     }
@@ -29,9 +29,14 @@ class Listener {
     this._reset()
   }
 
-  _$onMessage (message) {
+  _$onMessage(message) {
     if (!this.connected) {
-      this._client._$onError(C.TOPIC.RECORD, C.EVENT.NOT_CONNECTED, new Error('received message while not connected'), message)
+      this._client._$onError(
+        C.TOPIC.RECORD,
+        C.EVENT.NOT_CONNECTED,
+        new Error('received message while not connected'),
+        message
+      )
       return
     }
 
@@ -39,7 +44,10 @@ class Listener {
 
     if (message.action === C.ACTIONS.SUBSCRIPTION_FOR_PATTERN_FOUND) {
       if (this._providers.has(name)) {
-        this._client._$onError(this._topic, C.EVENT.LISTENER_ERROR, 'listener exists', [this._pattern, name])
+        this._client._$onError(this._topic, C.EVENT.LISTENER_ERROR, 'listener exists', [
+          this._pattern,
+          name,
+        ])
         return
       }
 
@@ -50,7 +58,7 @@ class Listener {
         body: null,
         ready: false,
         patternSubscription: null,
-        valueSubscription: null
+        valueSubscription: null,
       }
       provider.dispose = () => {
         if (provider.patternSubscription) {
@@ -63,14 +71,18 @@ class Listener {
         }
         this._providers.delete(provider.name)
       }
-      provider.next = value$ => {
+      provider.next = (value$) => {
         if (value$ && !value$.subscribe) {
           // Compat for recursive with value
           value$ = Observable.of(value$)
         }
 
         if (provider.value$ === undefined || Boolean(value$) !== Boolean(provider.value$)) {
-          this._connection.sendMsg(this._topic, value$ ? C.ACTIONS.LISTEN_ACCEPT : C.ACTIONS.LISTEN_REJECT, [this._pattern, provider.name])
+          this._connection.sendMsg(
+            this._topic,
+            value$ ? C.ACTIONS.LISTEN_ACCEPT : C.ACTIONS.LISTEN_REJECT,
+            [this._pattern, provider.name]
+          )
         }
 
         provider.value$ = value$ || null
@@ -79,18 +91,24 @@ class Listener {
           provider.valueSubscription = value$ ? value$.subscribe(provider.observer) : null
         }
       }
-      provider.error = err => {
-        this._client._$onError(this._topic, C.EVENT.LISTENER_ERROR, err, [this._pattern, provider.name])
+      provider.error = (err) => {
+        this._client._$onError(this._topic, C.EVENT.LISTENER_ERROR, err, [
+          this._pattern,
+          provider.name,
+        ])
 
         if (provider.value$) {
-          this._connection.sendMsg(this._topic, C.ACTIONS.LISTEN_REJECT, [this._pattern, provider.name])
+          this._connection.sendMsg(this._topic, C.ACTIONS.LISTEN_REJECT, [
+            this._pattern,
+            provider.name,
+          ])
           provider.value$ = null
         }
 
         provider.dispose()
       }
       provider.observer = {
-        next: value => {
+        next: (value) => {
           if (value == null) {
             provider.next(null)
             return
@@ -101,7 +119,11 @@ class Listener {
           } else if (this._topic === C.TOPIC.RECORD) {
             if (typeof value !== 'object' && typeof value !== 'string') {
               const err = new Error('invalid value')
-              this._client._$onError(this._topic, C.EVENT.USER_ERROR, err, [this._pattern, provider.name, value])
+              this._client._$onError(this._topic, C.EVENT.USER_ERROR, err, [
+                this._pattern,
+                provider.name,
+                value,
+              ])
               return
             }
 
@@ -111,11 +133,15 @@ class Listener {
               provider.version = `INF-${xuid()}-${this._client.user || ''}`
               provider.body = body
               provider.ready = true
-              this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.UPDATE, [provider.name, provider.version, provider.body])
+              this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.UPDATE, [
+                provider.name,
+                provider.version,
+                provider.body,
+              ])
 
               this._handler._$handle({
                 action: C.ACTIONS.UPDATE,
-                data: [provider.name, provider.version, body]
+                data: [provider.name, provider.version, body],
               })
 
               // TODO (perf): Let client handle its own has provider state instead of having the server
@@ -123,16 +149,20 @@ class Listener {
             } else if (!provider.ready) {
               provider.ready = true
               // TODO (perf): Sending body here should be unnecessary.
-              this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.UPDATE, [provider.name, provider.version, provider.body])
+              this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.UPDATE, [
+                provider.name,
+                provider.version,
+                provider.body,
+              ])
 
               this._handler._$handle({
                 action: C.ACTIONS.UPDATE,
-                data: [provider.name, provider.version, body]
+                data: [provider.name, provider.version, body],
               })
             }
           }
         },
-        error: provider.error
+        error: provider.error,
       }
 
       let provider$
@@ -151,7 +181,10 @@ class Listener {
       const provider = this._providers.get(name)
 
       if (provider && provider.valueSubscription) {
-        this._client._$onError(this._topic, C.EVENT.LISTENER_ERROR, 'listener started', [this._pattern, name])
+        this._client._$onError(this._topic, C.EVENT.LISTENER_ERROR, 'listener started', [
+          this._pattern,
+          name,
+        ])
       } else if (!provider || !provider.value$) {
         this._connection.sendMsg(this._topic, C.ACTIONS.LISTEN_REJECT, [this._pattern, name])
       } else {
@@ -165,7 +198,10 @@ class Listener {
       const provider = this._providers.get(name)
 
       if (!provider) {
-        this._client._$onError(this._topic, C.EVENT.LISTENER_ERROR, 'listener not found', [this._pattern, name])
+        this._client._$onError(this._topic, C.EVENT.LISTENER_ERROR, 'listener not found', [
+          this._pattern,
+          name,
+        ])
         return
       }
 
@@ -176,7 +212,7 @@ class Listener {
     return true
   }
 
-  _$handleConnectionStateChange () {
+  _$handleConnectionStateChange() {
     if (this.connected) {
       this._connection.sendMsg(this._topic, C.ACTIONS.LISTEN, [this._pattern])
     } else {
@@ -184,7 +220,7 @@ class Listener {
     }
   }
 
-  _reset () {
+  _reset() {
     for (const provider of this._providers.values()) {
       provider.dispose()
     }

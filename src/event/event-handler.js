@@ -12,10 +12,10 @@ const EventHandler = function (options, connection, client) {
   this._emitter = new EventEmitter()
   this._listeners = new Map()
   this._stats = {
-    emitted: 0
+    emitted: 0,
   }
 
-  this._client.on('connectionStateChanged', state => {
+  this._client.on('connectionStateChanged', (state) => {
     if (state === C.CONNECTION_STATE.OPEN) {
       this._handleConnectionStateChange(true)
     } else if (state === C.CONNECTION_STATE.RECONNECTING || state === C.CONNECTION_STATE.CLOSED) {
@@ -25,19 +25,19 @@ const EventHandler = function (options, connection, client) {
 }
 
 Object.defineProperty(EventHandler.prototype, 'connected', {
-  get: function connected () {
+  get: function connected() {
     return this._client.getConnectionState() === C.CONNECTION_STATE.OPEN
-  }
+  },
 })
 
 Object.defineProperty(EventHandler.prototype, 'stats', {
-  get: function stats () {
+  get: function stats() {
     return {
       ...this._stats,
       listeners: this._listeners.size,
-      events: this._emitter.eventNames().length
+      events: this._emitter.eventNames().length,
     }
-  }
+  },
 })
 
 EventHandler.prototype.subscribe = function (name, callback) {
@@ -71,14 +71,13 @@ EventHandler.prototype.unsubscribe = function (name, callback) {
 }
 
 EventHandler.prototype.observe = function (name) {
-  return Observable
-    .create(o => {
-      const onValue = value => o.next(value)
-      this.subscribe(name, onValue)
-      return () => {
-        this.unsubscribe(name, onValue)
-      }
-    })
+  return Observable.create((o) => {
+    const onValue = (value) => o.next(value)
+    this.subscribe(name, onValue)
+    return () => {
+      this.unsubscribe(name, onValue)
+    }
+  })
 }
 
 EventHandler.prototype.emit = function (name, data) {
@@ -122,9 +121,10 @@ EventHandler.prototype.provide = function (pattern, callback) {
 }
 
 EventHandler.prototype._$handle = function (message) {
-  const [name, data] = message.action !== C.ACTIONS.ERROR
-    ? message.data
-    : message.data.slice(1).concat(message.data.slice(0, 1))
+  const [name, data] =
+    message.action !== C.ACTIONS.ERROR
+      ? message.data
+      : message.data.slice(1).concat(message.data.slice(0, 1))
 
   if (message.action === C.ACTIONS.EVENT) {
     if (message.data && message.data.length === 2) {

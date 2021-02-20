@@ -14,11 +14,7 @@ RpcResponse.prototype.reject = function () {
   }
   this.completed = true
 
-  this._connection.sendMsg(
-    C.TOPIC.RPC,
-    C.ACTIONS.REJECTION,
-    [this._name, this._id]
-  )
+  this._connection.sendMsg(C.TOPIC.RPC, C.ACTIONS.REJECTION, [this._name, this._id])
 }
 
 RpcResponse.prototype.error = function (error) {
@@ -27,11 +23,12 @@ RpcResponse.prototype.error = function (error) {
   }
   this.completed = true
 
-  this._connection.sendMsg(
-    C.TOPIC.RPC,
-    C.ACTIONS.RESPONSE,
-    [this._name, this._id, error.message || error, true]
-  )
+  this._connection.sendMsg(C.TOPIC.RPC, C.ACTIONS.RESPONSE, [
+    this._name,
+    this._id,
+    error.message || error,
+    true,
+  ])
 }
 
 RpcResponse.prototype.send = function (data) {
@@ -40,11 +37,11 @@ RpcResponse.prototype.send = function (data) {
   }
   this.completed = true
 
-  this._connection.sendMsg(
-    C.TOPIC.RPC,
-    C.ACTIONS.RESPONSE,
-    [this._name, this._id, messageBuilder.typed(data)]
-  )
+  this._connection.sendMsg(C.TOPIC.RPC, C.ACTIONS.RESPONSE, [
+    this._name,
+    this._id,
+    messageBuilder.typed(data),
+  ])
 }
 
 module.exports = RpcResponse

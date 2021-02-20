@@ -32,9 +32,16 @@ const Record = function (name, handler) {
 
     if (err && !err.notFound) {
       this._stats.misses += 1
-      this._client._$onError(C.TOPIC.RECORD, C.EVENT.CACHE_ERROR, err, [this.name, this.version, this.state])
+      this._client._$onError(C.TOPIC.RECORD, C.EVENT.CACHE_ERROR, err, [
+        this.name,
+        this.version,
+        this.state,
+      ])
     } else if (entry) {
-      invariant(typeof entry[0] === 'string' && entry[1] && typeof entry[1] === 'object', 'entry must be [string, object]')
+      invariant(
+        typeof entry[0] === 'string' && entry[1] && typeof entry[1] === 'object',
+        'entry must be [string, object]'
+      )
 
       this._stats.hits += 1
 
@@ -85,7 +92,7 @@ Record.prototype._$destroy = function () {
 
 Object.defineProperty(Record.prototype, 'state', {
   enumerable: true,
-  get: function state () {
+  get: function state() {
     if (!this.version) {
       return Record.STATE.VOID
     }
@@ -101,7 +108,7 @@ Object.defineProperty(Record.prototype, 'state', {
     }
 
     return Record.STATE.SERVER
-  }
+  },
 })
 
 Record.prototype.get = function (path) {
@@ -114,17 +121,29 @@ Record.prototype.set = function (pathOrData, dataOrNil) {
   invariant(this._usages > 0, 'must have refs')
 
   if (this._usages === 0 || this._provided) {
-    this._client._$onError(C.TOPIC.RECORD, C.EVENT.UPDATE_ERROR, 'cannot set', [this.name, this.version, this.state])
+    this._client._$onError(C.TOPIC.RECORD, C.EVENT.UPDATE_ERROR, 'cannot set', [
+      this.name,
+      this.version,
+      this.state,
+    ])
     return Promise.resolve()
   }
 
   if (this.version && this.version.startsWith('INF')) {
-    this._client._$onError(C.TOPIC.RECORD, C.EVENT.UPDATE_ERROR, 'cannot set', [this.name, this.version, this.state])
+    this._client._$onError(C.TOPIC.RECORD, C.EVENT.UPDATE_ERROR, 'cannot set', [
+      this.name,
+      this.version,
+      this.state,
+    ])
     return Promise.resolve()
   }
 
   if (this.name.startsWith('_')) {
-    this._client._$onError(C.TOPIC.RECORD, C.EVENT.UPDATE_ERROR, 'cannot set', [this.name, this.version, this.state])
+    this._client._$onError(C.TOPIC.RECORD, C.EVENT.UPDATE_ERROR, 'cannot set', [
+      this.name,
+      this.version,
+      this.state,
+    ])
     return Promise.resolve()
   }
 
@@ -134,10 +153,13 @@ Record.prototype.set = function (pathOrData, dataOrNil) {
   if (path === undefined && !utils.isPlainObject(data)) {
     throw new Error('invalid argument: data')
   }
-  if (path === undefined && Object.keys(data).some(prop => prop.startsWith('_'))) {
+  if (path === undefined && Object.keys(data).some((prop) => prop.startsWith('_'))) {
     throw new Error('invalid argument: data')
   }
-  if (path !== undefined && (typeof path !== 'string' || path.length === 0 || path.startsWith('_'))) {
+  if (
+    path !== undefined &&
+    (typeof path !== 'string' || path.length === 0 || path.startsWith('_'))
+  ) {
     throw new Error('invalid argument: path')
   }
 
@@ -169,9 +191,7 @@ Record.prototype.set = function (pathOrData, dataOrNil) {
   this.emit('update', this)
   this._handler._syncCount -= 1
 
-  return this.isReady
-    ? Promise.resolve()
-    : new Promise(resolve => this.once('ready', resolve))
+  return this.isReady ? Promise.resolve() : new Promise((resolve) => this.once('ready', resolve))
 }
 
 Record.prototype.when = function (stateOrNull) {
@@ -218,12 +238,20 @@ Record.prototype.update = function (pathOrUpdater, updaterOrNil) {
   invariant(this._usages > 0, 'must have refs')
 
   if (this._usages === 0 || this._provided) {
-    this._client._$onError(C.TOPIC.RECORD, C.EVENT.UPDATE_ERROR, 'cannot update', [this.name, this.version, this.state])
+    this._client._$onError(C.TOPIC.RECORD, C.EVENT.UPDATE_ERROR, 'cannot update', [
+      this.name,
+      this.version,
+      this.state,
+    ])
     return Promise.resolve()
   }
 
   if (this.version && this.version.startsWith('INF')) {
-    this._client._$onError(C.TOPIC.RECORD, C.EVENT.UPDATE_ERROR, 'cannot update', [this.name, this.version, this.state])
+    this._client._$onError(C.TOPIC.RECORD, C.EVENT.UPDATE_ERROR, 'cannot update', [
+      this.name,
+      this.version,
+      this.state,
+    ])
     return Promise.resolve()
   }
 
@@ -239,8 +267,7 @@ Record.prototype.update = function (pathOrUpdater, updaterOrNil) {
   }
 
   this.ref()
-  return this
-    .when(Record.STATE.SERVER)
+  return this.when(Record.STATE.SERVER)
     .then(() => {
       const prev = this.get(path)
       const next = updater(prev, this.version)
@@ -270,7 +297,12 @@ Record.prototype.unref = function () {
 
 Record.prototype._$onMessage = function (message) {
   if (!this.connected) {
-    this._client._$onError(C.TOPIC.RECORD, C.EVENT.NOT_CONNECTED, new Error('received message while not connected'), message)
+    this._client._$onError(
+      C.TOPIC.RECORD,
+      C.EVENT.NOT_CONNECTED,
+      new Error('received message while not connected'),
+      message
+    )
     return
   }
 
@@ -299,7 +331,11 @@ Record.prototype._onSubscriptionHasProvider = function (data) {
   try {
     this.emit('update', this)
   } catch (err) {
-    this._client._$onError(C.TOPIC.RECORD, C.EVENT.UPDATE_ERROR, 'cannot set', [this.name, this.version, this.state])
+    this._client._$onError(C.TOPIC.RECORD, C.EVENT.UPDATE_ERROR, 'cannot set', [
+      this.name,
+      this.version,
+      this.state,
+    ])
   }
 }
 
@@ -349,7 +385,12 @@ Record.prototype._onUpdate = function ([name, version, data]) {
     if (this._patchQueue) {
       if (!this.version.startsWith('INF')) {
         for (let i = 0; i < this._patchQueue.length; i += 2) {
-          this.data = jsonPath.set(this.data, this._patchQueue[i + 0], this._patchQueue[i + 1], true)
+          this.data = jsonPath.set(
+            this.data,
+            this._patchQueue[i + 0],
+            this._patchQueue[i + 1],
+            true
+          )
         }
         if (this.data !== data) {
           this._sendUpdate()
@@ -370,7 +411,13 @@ Record.prototype._onUpdate = function ([name, version, data]) {
     }
     this.emit('update', this)
   } catch (err) {
-    this._client._$onError(C.TOPIC.RECORD, C.EVENT.UPDATE_ERROR, err, [this.name, this.version, this.state, version, data])
+    this._client._$onError(C.TOPIC.RECORD, C.EVENT.UPDATE_ERROR, err, [
+      this.name,
+      this.version,
+      this.state,
+      version,
+      data,
+    ])
   }
 }
 
@@ -395,7 +442,7 @@ Record.prototype._sendUpdate = function () {
     this.name,
     nextVersion,
     body,
-    prevVersion
+    prevVersion,
   ])
 
   this.version = nextVersion
@@ -429,7 +476,11 @@ Record.prototype._$handleConnectionStateChange = function () {
   try {
     this.emit('update', this)
   } catch (err) {
-    this._client._$onError(C.TOPIC.RECORD, C.EVENT.UPDATE_ERROR, 'cannot set', [this.name, this.version, this.state])
+    this._client._$onError(C.TOPIC.RECORD, C.EVENT.UPDATE_ERROR, 'cannot set', [
+      this.name,
+      this.version,
+      this.state,
+    ])
   }
 }
 
@@ -450,58 +501,58 @@ Record.prototype.destroy = Record.prototype.unref
 
 // TODO (fix): Remove
 Object.defineProperty(Record.prototype, 'connected', {
-  get: function connected () {
+  get: function connected() {
     return this._client.getConnectionState() === C.CONNECTION_STATE.OPEN
-  }
+  },
 })
 
 // TODO (fix): Remove
 Object.defineProperty(Record.prototype, 'empty', {
-  get: function empty () {
+  get: function empty() {
     return Object.keys(this.data).length === 0
-  }
+  },
 })
 
 // TODO (fix): Remove
 Object.defineProperty(Record.prototype, 'ready', {
-  get: function ready () {
+  get: function ready() {
     return !this._patchQueue
-  }
+  },
 })
 
 // TODO (fix): Remove
 Object.defineProperty(Record.prototype, 'provided', {
-  get: function provided () {
+  get: function provided() {
     return this._provided && utils.isSameOrNewer(this.version, this._provided)
-  }
+  },
 })
 
 // TODO (fix): Remove
 Object.defineProperty(Record.prototype, 'usages', {
-  get: function provided () {
+  get: function provided() {
     return this._usages
-  }
+  },
 })
 
 // TODO (fix): Remove
 Object.defineProperty(Record.prototype, 'stale', {
-  get: function ready () {
+  get: function ready() {
     return !this.version
-  }
+  },
 })
 
 // TODO (fix): Remove
 Object.defineProperty(Record.prototype, 'isReady', {
-  get: function isReady () {
+  get: function isReady() {
     return !this._patchQueue
-  }
+  },
 })
 
 // TODO (fix): Remove
 Object.defineProperty(Record.prototype, 'hasProvider', {
-  get: function hasProvider () {
+  get: function hasProvider() {
     return this.provided
-  }
+  },
 })
 
 module.exports = Record

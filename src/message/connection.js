@@ -22,7 +22,7 @@ const Connection = function (client, url, options) {
     raw: null,
     topic: null,
     action: null,
-    data: null
+    data: null,
   }
   this._messages = []
   this._messagesIndex = 0
@@ -51,7 +51,7 @@ Connection.prototype.authenticate = function (authParams, callback) {
   this._authCallback = callback
 
   if (this._tooManyAuthAttempts || this._challengeDenied || this._connectionAuthenticationTimeout) {
-    const err = new Error('this client\'s connection was closed')
+    const err = new Error("this client's connection was closed")
     this._client._$onError(C.TOPIC.ERROR, C.EVENT.IS_CLOSED, err)
     return
   } else if (this._deliberateClose === true && this._state === C.CONNECTION_STATE.CLOSED) {
@@ -82,7 +82,12 @@ Connection.prototype.send = function (message) {
 
   if (message.length > maxPacketSize) {
     const err = new Error(`Packet to big: ${message.length} > ${maxPacketSize}`)
-    this._client._$onError(C.TOPIC.CONNECTION, C.EVENT.CONNECTION_ERROR, err, message.split(C.MESSAGE_PART_SEPERATOR))
+    this._client._$onError(
+      C.TOPIC.CONNECTION,
+      C.EVENT.CONNECTION_ERROR,
+      err,
+      message.split(C.MESSAGE_PART_SEPERATOR)
+    )
     return
   }
 
@@ -109,7 +114,10 @@ Connection.prototype._createEndpoint = function () {
 }
 
 Connection.prototype._sendQueuedMessages = function () {
-  if (this._state !== C.CONNECTION_STATE.OPEN || this._endpoint.readyState !== this._endpoint.OPEN) {
+  if (
+    this._state !== C.CONNECTION_STATE.OPEN ||
+    this._endpoint.readyState !== this._endpoint.OPEN
+  ) {
     return
   }
 
@@ -136,7 +144,10 @@ Connection.prototype._submit = function (message) {
 
 Connection.prototype._sendAuthParams = function () {
   this._setState(C.CONNECTION_STATE.AUTHENTICATING)
-  const authMessage = messageBuilder.getMsg(C.TOPIC.AUTH, C.ACTIONS.REQUEST, [this._authParams, pkg.version])
+  const authMessage = messageBuilder.getMsg(C.TOPIC.AUTH, C.ACTIONS.REQUEST, [
+    this._authParams,
+    pkg.version,
+  ])
   this._submit(authMessage)
 }
 
@@ -156,7 +167,10 @@ Connection.prototype._checkHeartBeat = function () {
 Connection.prototype._onOpen = function () {
   this._clearReconnect()
   this._lastHeartBeat = Date.now()
-  this._heartbeatInterval = utils.setInterval(this._checkHeartBeat.bind(this), this._options.heartbeatInterval)
+  this._heartbeatInterval = utils.setInterval(
+    this._checkHeartBeat.bind(this),
+    this._options.heartbeatInterval
+  )
   this._setState(C.CONNECTION_STATE.AWAITING_CONNECTION)
 }
 
@@ -176,7 +190,7 @@ Connection.prototype._onError = function (err) {
   }
 
   if (err.code === 'ECONNRESET' || err.code === 'ECONNREFUSED') {
-    err.message = 'Can\'t t! Deepstream server unreachable on ' + this._originalUrl
+    err.message = "Can't t! Deepstream server unreachable on " + this._originalUrl
   }
 
   this._client._$onError(C.TOPIC.CONNECTION, C.EVENT.CONNECTION_ERROR, err)
@@ -272,7 +286,9 @@ Connection.prototype._handleConnectionResponse = function (message) {
     }
   } else if (message.action === C.ACTIONS.CHALLENGE) {
     this._setState(C.CONNECTION_STATE.CHALLENGING)
-    this._submit(messageBuilder.getMsg(C.TOPIC.CONNECTION, C.ACTIONS.CHALLENGE_RESPONSE, [this._originalUrl]))
+    this._submit(
+      messageBuilder.getMsg(C.TOPIC.CONNECTION, C.ACTIONS.CHALLENGE_RESPONSE, [this._originalUrl])
+    )
   } else if (message.action === C.ACTIONS.REJECTION) {
     this._challengeDenied = true
     this.close()

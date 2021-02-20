@@ -59,12 +59,20 @@ MessageParser.prototype.parseMessage = function (message, client, result) {
   const parts = message.split(C.MESSAGE_PART_SEPERATOR)
 
   if (parts.length < 2) {
-    client._$onError(C.TOPIC.ERROR, C.EVENT.MESSAGE_PARSE_ERROR, new Error('Insufficiant message parts'))
+    client._$onError(
+      C.TOPIC.ERROR,
+      C.EVENT.MESSAGE_PARSE_ERROR,
+      new Error('Insufficiant message parts')
+    )
     return null
   }
 
   if (this._actions[parts[1]] === undefined) {
-    client._$onError(C.TOPIC.ERROR, C.EVENT.MESSAGE_PARSE_ERROR, new Error(`Unknown action ${parts[1]}`))
+    client._$onError(
+      C.TOPIC.ERROR,
+      C.EVENT.MESSAGE_PARSE_ERROR,
+      new Error(`Unknown action ${parts[1]}`)
+    )
     return null
   }
 

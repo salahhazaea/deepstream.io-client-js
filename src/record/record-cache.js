@@ -2,7 +2,7 @@ const LRU = require('lru-cache')
 const levelup = require('levelup')
 const encodingdown = require('encoding-down')
 
-function defaultFilter (name, version, data) {
+function defaultFilter(name, version, data) {
   return /^[^{]/.test(name) && /^[^0]/.test(version)
 }
 
@@ -14,7 +14,7 @@ const RecordCache = function (options, callback) {
       size: options.cacheSize,
       db: options.cacheDb,
       filter: options.cacheFilter,
-      ...options
+      ...options,
     }
   }
 

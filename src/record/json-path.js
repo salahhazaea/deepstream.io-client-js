@@ -4,7 +4,7 @@ const PARTS_REG_EXP = /([^.[\]\s]+)/g
 const cache = new Map()
 const EMPTY = utils.deepFreeze({})
 
-function get (data, path) {
+function get(data, path) {
   const tokens = tokenize(path)
 
   data = data || EMPTY
@@ -19,7 +19,7 @@ function get (data, path) {
   return data
 }
 
-function set (data, path, value, isPlainJSON) {
+function set(data, path, value, isPlainJSON) {
   const tokens = tokenize(path)
 
   data = data || EMPTY
@@ -53,14 +53,14 @@ function set (data, path, value, isPlainJSON) {
   return result
 }
 
-function jsonClone (o) {
+function jsonClone(o) {
   if (o == null || typeof o === 'string') {
     return o
   }
   return JSON.parse(JSON.stringify(o))
 }
 
-function patch (oldValue, newValue, isPlainJSON) {
+function patch(oldValue, newValue, isPlainJSON) {
   if (oldValue === newValue) {
     return oldValue
   } else if (oldValue === null || newValue === null) {
@@ -85,9 +85,7 @@ function patch (oldValue, newValue, isPlainJSON) {
 
     return arr || oldValue
   } else if (utils.isPlainObject(oldValue) && utils.isPlainObject(newValue)) {
-    const newKeys = Object
-      .keys(newValue)
-      .filter(key => newValue[key] !== undefined)
+    const newKeys = Object.keys(newValue).filter((key) => newValue[key] !== undefined)
     const oldKeys = Object.keys(oldValue)
 
     if (newKeys.length === 0) {
@@ -117,7 +115,7 @@ function patch (oldValue, newValue, isPlainJSON) {
   }
 }
 
-function tokenize (path) {
+function tokenize(path) {
   if (!path) {
     return []
   }
@@ -143,5 +141,5 @@ module.exports = {
   EMPTY,
   get,
   set,
-  jsonClone
+  jsonClone,
 }

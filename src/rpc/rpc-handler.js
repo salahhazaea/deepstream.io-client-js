@@ -12,7 +12,7 @@ const RpcHandler = function (options, connection, client) {
   this._providers = new Map()
   this._stats = {}
 
-  this._client.on('connectionStateChanged', state => {
+  this._client.on('connectionStateChanged', (state) => {
     if (state === C.CONNECTION_STATE.OPEN) {
       this._handleConnectionStateChange(true)
     } else if (state === C.CONNECTION_STATE.RECONNECTING || state === C.CONNECTION_STATE.CLOSED) {
@@ -22,19 +22,19 @@ const RpcHandler = function (options, connection, client) {
 }
 
 Object.defineProperty(RpcHandler.prototype, 'connected', {
-  get: function connected () {
+  get: function connected() {
     return this._client.getConnectionState() === C.CONNECTION_STATE.OPEN
-  }
+  },
 })
 
 Object.defineProperty(RpcHandler.prototype, 'stats', {
-  get: function stats () {
+  get: function stats() {
     return {
       ...this._stats,
       listeners: this._providers.size,
-      rpcs: this._rpcs.size
+      rpcs: this._rpcs.size,
     }
-  }
+  },
 })
 
 RpcHandler.prototype.provide = function (name, callback) {
@@ -84,7 +84,7 @@ RpcHandler.prototype.make = function (name, data, callback) {
   let promise
   if (callback === undefined) {
     promise = new Promise((resolve, reject) => {
-      callback = (err, val) => err ? reject(err) : resolve(val)
+      callback = (err, val) => (err ? reject(err) : resolve(val))
     })
   }
 
@@ -97,7 +97,7 @@ RpcHandler.prototype.make = function (name, data, callback) {
     id,
     name,
     data,
-    callback
+    callback,
   })
   this._connection.sendMsg(C.TOPIC.RPC, C.ACTIONS.REQUEST, [name, id, messageBuilder.typed(data)])
 
@@ -120,12 +120,12 @@ RpcHandler.prototype._respond = function (message) {
 
     if (!response.completed) {
       promise
-        .then(val => {
+        .then((val) => {
           if (!response.completed) {
             response.send(val)
           }
         })
-        .catch(err => {
+        .catch((err) => {
           if (!response.completed) {
             response.error(err)
           }

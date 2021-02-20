@@ -4,9 +4,9 @@ services:
   - redis-server
 
 node_js:
-  - "7"
-  - "6"
-  - "4"
+  - '7'
+  - '6'
+  - '4'
 
 env:
   - DEFAULT_DELAY: 50
@@ -16,4 +16,4 @@ script:
   - npm run e2e
   - npm run specs
 
-after_script: "cat ./coverage/lcov.info | ./node_modules/coveralls/bin/coveralls.js"
+after_script: 'cat ./coverage/lcov.info | ./node_modules/coveralls/bin/coveralls.js'
