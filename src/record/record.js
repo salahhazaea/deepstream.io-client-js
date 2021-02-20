@@ -407,7 +407,7 @@ Record.prototype._subscribe = function () {
 
   // TODO (fix): Limit number of reads.
 
-  if (this._staleEntry[0]) {
+  if (this._staleEntry && this._staleEntry[0]) {
     this._connection.sendMsg2(C.TOPIC.RECORD, C.ACTIONS.READ, this.name, this._staleEntry[0])
   } else {
     this._connection.sendMsg1(C.TOPIC.RECORD, C.ACTIONS.READ, this.name)
