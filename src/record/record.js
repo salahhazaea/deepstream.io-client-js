@@ -39,7 +39,7 @@ const Record = function (name, handler) {
       this._stats.hits += 1
 
       if (this.version) {
-        // TODO (fix): What if this.version is newer than version?
+        // TODO (fix): What if this.version is older than version?
         return
       }
 
