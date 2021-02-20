@@ -44,13 +44,16 @@ const RecordHandler = function (options, connection, client) {
         this._client._$onError(C.TOPIC.RECORD, C.EVENT.CACHE_ERROR, err)
       }
     })
-    setInterval(() => {
+    const interval = setInterval(() => {
       this._cache.flush(err => {
         if (err) {
           this._client._$onError(C.TOPIC.RECORD, C.EVENT.CACHE_ERROR, err)
         }
       })
-    }, 1e3).unref()
+    }, 1e3)
+    if (interval.unref) {
+      interval.unref()
+    }
   }
 
   this._client.on('connectionStateChanged', state => {
@@ -85,7 +88,10 @@ const RecordHandler = function (options, connection, client) {
       }
     }
 
-    setTimeout(() => this._schedule ? this._schedule(prune) : prune(), 1e3).unref()
+    const timeout = setTimeout(() => this._schedule ? this._schedule(prune) : prune(), 1e3)
+    if (timeout.unref) {
+      timeout.unref()
+    }
   }
 
   prune()
