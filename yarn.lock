@@ -4715,10 +4715,10 @@ xtend@^4.0.2, xtend@~4.0.0:
   resolved "https://registry.yarnpkg.com/xtend/-/xtend-4.0.2.tgz#bb72779f5fa465186b1f438f674fa347fdb5db54"
   integrity sha512-LKYU1iAXJXUgAXn9URjiu+MWhyUXHsvfp7mcuYm9dSUKK0/CjtrUwFAxD82/mCWbtLsGjFIad0wIsod4zrTAEQ==
 
-xuid@^4.0.4:
-  version "4.0.4"
-  resolved "https://registry.yarnpkg.com/xuid/-/xuid-4.0.4.tgz#faf28264c0d95f76f81f6f55df3c7f5497d55a09"
-  integrity sha512-3rYx7EweKdzfECz7Yr1li+5WLCUsJl4CySM4ZD4u8CDahoaXX33f/OJieAXgKvCR7rMf99BjgiIn0SBhgNGP/Q==
+xuid@^4.0.5:
+  version "4.0.5"
+  resolved "https://registry.yarnpkg.com/xuid/-/xuid-4.0.5.tgz#cb496f1faa3e8afefd3b0ab49611c1fec2136d67"
+  integrity sha512-z1qKAUknwHdjw58T8T6SDmFQh3HU5UVIjtt1EHBipbwxCBlQTNZhIY3TV90nVLmm9TaQX5rcLXzUlT72oDtaPA==
   dependencies:
     randombytes "^2.1.0"
 
