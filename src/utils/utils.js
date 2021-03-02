@@ -34,7 +34,7 @@ module.exports.splitRev = function (s) {
   const i = s.indexOf('-')
   const ver = s.slice(0, i)
 
-  return [ver === 'INF' ? Infinity : parseInt(ver, 10), s.slice(i + 1)]
+  return [ver.charAt(0) === 'I' ? Infinity : parseInt(ver, 10), s.slice(i + 1)]
 }
 
 module.exports.isPlainObject = function (value) {

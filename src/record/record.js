@@ -103,7 +103,7 @@ Object.defineProperty(Record.prototype, 'state', {
 
     invariant(this.connected, 'must be connected when no patch queue')
 
-    if (this._provided && utils.isSameOrNewer(this.version, this._provided)) {
+    if (this._provided) {
       return Record.STATE.PROVIDER
     }
 
@@ -129,7 +129,7 @@ Record.prototype.set = function (pathOrData, dataOrNil) {
     return Promise.resolve()
   }
 
-  if (this.version && this.version.startsWith('INF')) {
+  if (this.version && this.version.charAt(0) === 'I') {
     this._client._$onError(C.TOPIC.RECORD, C.EVENT.UPDATE_ERROR, 'cannot set', [
       this.name,
       this.version,
@@ -246,7 +246,7 @@ Record.prototype.update = function (pathOrUpdater, updaterOrNil) {
     return Promise.resolve()
   }
 
-  if (this.version && this.version.startsWith('INF')) {
+  if (this.version && this.version.charAt(0) === 'I') {
     this._client._$onError(C.TOPIC.RECORD, C.EVENT.UPDATE_ERROR, 'cannot update', [
       this.name,
       this.version,
@@ -319,13 +319,11 @@ Record.prototype._$onMessage = function (message) {
 Record.prototype._onSubscriptionHasProvider = function (data) {
   invariant(this.connected, 'must be connected')
 
-  const provided = messageParser.convertTyped(data[1], this._client) || null
+  const provided = Boolean(messageParser.convertTyped(data[1], this._client))
 
   if (this._provided === provided) {
     return
   }
-
-  invariant(provided === null || typeof provided === 'string', 'provided must be null or string')
 
   this._provided = provided
   try {
@@ -347,14 +345,14 @@ Record.prototype._onUpdate = function ([name, version, data]) {
       throw new Error('missing version')
     }
 
-    if (utils.isSameOrNewer(this.version, version)) {
+    if (version.charAt(0) !== 'I' && utils.isSameOrNewer(this.version, version)) {
       // TODO (fix): What to do when client version is newer than server version?
 
       if (!this._patchQueue) {
         return
       }
 
-      if (this.version.startsWith('INF')) {
+      if (this.version.charAt(0) === 'I') {
         // TODO (fix): This is weird...
         this._patchQueue = null
         this._pending.delete(this)
@@ -385,7 +383,7 @@ Record.prototype._onUpdate = function ([name, version, data]) {
     this.data = data
 
     if (this._patchQueue) {
-      if (!this.version.startsWith('INF')) {
+      if (this.version.charAt(0) !== 'I') {
         for (let i = 0; i < this._patchQueue.length; i += 2) {
           this.data = jsonPath.set(
             this.data,
@@ -428,7 +426,7 @@ Record.prototype._sendUpdate = function () {
 
   let [start] = this.version ? this.version.split('-') : ['0']
 
-  if (start === 'INF' || this._provided) {
+  if (start.charAt(0) === 'I' || this._provided) {
     return
   }
 
@@ -526,7 +524,7 @@ Object.defineProperty(Record.prototype, 'ready', {
 // TODO (fix): Remove
 Object.defineProperty(Record.prototype, 'provided', {
   get: function provided() {
-    return this._provided && utils.isSameOrNewer(this.version, this._provided)
+    return Boolean(this._provided && utils.isSameOrNewer(this.version, this._provided))
   },
 })
 
