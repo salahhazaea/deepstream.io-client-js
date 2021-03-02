@@ -524,7 +524,7 @@ Object.defineProperty(Record.prototype, 'ready', {
 // TODO (fix): Remove
 Object.defineProperty(Record.prototype, 'provided', {
   get: function provided() {
-    return Boolean(this._provided && utils.isSameOrNewer(this.version, this._provided))
+    return Boolean(this._provided)
   },
 })
 
