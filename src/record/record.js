@@ -19,14 +19,13 @@ const Record = function (name, handler) {
   this.version = null
   this.data = jsonPath.EMPTY
 
-  this._usages = 0
   this._subscribed = false
   this._provided = null
   this._patchQueue = []
   this._staleDirty = false
   this._staleEntry = null
 
-  this.ref()
+  this._usages = 1 // Start with 1 for cache unref without subscribe.
   this._cache.get(this.name, (err, entry) => {
     this.unref()
 
