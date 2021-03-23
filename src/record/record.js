@@ -170,7 +170,11 @@ Record.prototype.set = function (pathOrData, dataOrNil) {
   if (this._patchQueue) {
     this._patchQueue = path ? this._patchQueue : []
     this._patchQueue.push(path, jsonData)
-    this._pending.add(this)
+
+    if (!this._pending.has(this)) {
+      this.ref()
+      this._pending.add(this)
+    }
   }
 
   if (newData === this.data) {
@@ -345,20 +349,10 @@ Record.prototype._onUpdate = function ([name, version, data]) {
     }
 
     if (version.charAt(0) !== 'I' && utils.isSameOrNewer(this.version, version)) {
-      // TODO (fix): What to do when client version is newer than server version?
+      // TODO (fix): What to do when client non provided version is newer than server version?
 
-      if (!this._patchQueue) {
-        return
-      }
-
-      if (this.version.charAt(0) === 'I') {
-        // TODO (fix): This is weird...
-        this._patchQueue = null
-        this._pending.delete(this)
-        this.emit('ready') // TODO: Deprecate
-        this.emit('update', this)
-        return
-      }
+      data = this.data
+      version = this.version
     }
 
     if (this._staleEntry && this._staleEntry[0] === version) {
@@ -403,8 +397,10 @@ Record.prototype._onUpdate = function ([name, version, data]) {
       }
 
       this._patchQueue = null
-      this._pending.delete(this)
-      this.emit('ready') // TODO: Deprecate
+      if (this._pending.delete(this)) {
+        this.unref()
+      }
+      this.emit('ready')
     } else if (this.data !== oldValue) {
       this.data = utils.deepFreeze(this.data)
     }
