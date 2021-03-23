@@ -139,11 +139,6 @@ class Listener {
                 provider.body,
               ])
 
-              this._handler._$handle({
-                action: C.ACTIONS.UPDATE,
-                data: [provider.name, provider.version, provider.body],
-              })
-
               // TODO (perf): Let client handle its own has provider state instead of having the server
               // send on/off messages.
             } else if (!provider.ready) {
@@ -155,11 +150,6 @@ class Listener {
                 provider.version,
                 provider.body,
               ])
-
-              this._handler._$handle({
-                action: C.ACTIONS.UPDATE,
-                data: [provider.name, provider.version, provider.body],
-              })
             }
           }
         },
