@@ -360,7 +360,10 @@ Record.prototype._onUpdate = function ([name, version, data]) {
       data = this._staleEntry[1]
       data = jsonPath.set(this.data, null, data, true)
     } else if (!data) {
-      throw new Error('missing data')
+      invariant(utils.isSameOrNewer(this.version, version), 'must be newer')
+
+      data = this.data
+      version = this.version
     } else {
       if (typeof data === 'string') {
         data = JSON.parse(data)
@@ -370,6 +373,9 @@ Record.prototype._onUpdate = function ([name, version, data]) {
       this._staleDirty = true
       this._staleEntry = [version, data]
     }
+
+    invariant(data, 'missing data')
+    invariant(version, 'missing version')
 
     const oldValue = this.data
 
@@ -411,6 +417,7 @@ Record.prototype._onUpdate = function ([name, version, data]) {
       this.name,
       this.version,
       this.state,
+      this._staleEntry,
       version,
       data,
     ])
