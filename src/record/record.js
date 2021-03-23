@@ -351,8 +351,9 @@ Record.prototype._onUpdate = function ([name, version, data]) {
     if (version.charAt(0) !== 'I' && utils.isSameOrNewer(this.version, version)) {
       // TODO (fix): What to do when client non provided version is newer than server version?
 
-      data = this.data
-      version = this.version
+      if (!this._patchQueue) {
+        return
+      }
     }
 
     if (this._staleEntry && this._staleEntry[0] === version) {
