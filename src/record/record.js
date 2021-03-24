@@ -348,20 +348,17 @@ Record.prototype._onUpdate = function ([name, version, data]) {
       throw new Error('missing version')
     }
 
-    // TODO (fix): What to do when client non provided version is newer than server version?
-
     if (version.charAt(0) !== 'I' && utils.isSameOrNewer(this.version, version)) {
       if (!this._patchQueue) {
         return
       }
+      // TODO (fix): What to do when client version is newer than server version?
     }
 
     if (this._staleEntry && this._staleEntry[0] === version) {
       data = this._staleEntry[1]
       data = jsonPath.set(this.data, null, data, true)
     } else if (!data) {
-      invariant(utils.isSameOrNewer(this.version, version), 'must be newer')
-
       data = this.data
       version = this.version
     } else {
