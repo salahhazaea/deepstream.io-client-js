@@ -348,9 +348,9 @@ Record.prototype._onUpdate = function ([name, version, data]) {
       throw new Error('missing version')
     }
 
-    if (version.charAt(0) !== 'I' && utils.isSameOrNewer(this.version, version)) {
-      // TODO (fix): What to do when client non provided version is newer than server version?
+    // TODO (fix): What to do when client non provided version is newer than server version?
 
+    if (version.charAt(0) !== 'I' && utils.isSameOrNewer(this.version, version)) {
       if (!this._patchQueue) {
         return
       }
