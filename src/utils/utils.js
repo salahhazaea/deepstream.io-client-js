@@ -130,5 +130,5 @@ module.exports.parseUrl = function (url, defaultPath) {
   }
   serverUrl.protocol = serverUrl.protocol ? serverUrl.protocol : 'ws:'
   serverUrl.pathname = serverUrl.pathname ? serverUrl.pathname : defaultPath
-  return URL.format(serverUrl)
+  return serverUrl.href
 }
