@@ -1,6 +1,6 @@
 {
   "name": "@nxtedition/deepstream.io-client-js",
-  "version": "14.2.9",
+  "version": "14.2.10",
   "description": "the javascript client for deepstream.io",
   "homepage": "http://deepstream.io",
   "bugs": {
@@ -19,7 +19,7 @@
     "worker_threads": false
   },
   "scripts": {
-    "_postinstall": "husky install",
+    "postinstall": "husky install",
     "prepublishOnly": "pinst --disable",
     "postpublish": "pinst --enable",
     "test": "jest --bail --watchAll"
