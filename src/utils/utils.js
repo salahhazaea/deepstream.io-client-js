@@ -1,5 +1,3 @@
-const URL = require('url')
-
 const hasUrlProtocol = /^wss:|^ws:|^\/\//
 const unsupportedProtocol = /^http:|^https:/
 
@@ -126,7 +124,7 @@ module.exports.parseUrl = function (url, defaultPath) {
   } else if (url.indexOf('//') === 0) {
     url = 'ws:' + url
   }
-  const serverUrl = URL.parse(url) // eslint-disable-line
+  const serverUrl = new URL(url) // eslint-disable-line
   if (!serverUrl.host) {
     throw new Error('invalid url, missing host')
   }

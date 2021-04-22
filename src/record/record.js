@@ -194,7 +194,7 @@ Record.prototype.set = function (pathOrData, dataOrNil) {
   this.emit('update', this)
   this._handler._syncCount -= 1
 
-  return this.isReady ? Promise.resolve() : new Promise((resolve) => this.once('ready', resolve))
+  return this.when()
 }
 
 Record.prototype.when = function (stateOrNull) {
