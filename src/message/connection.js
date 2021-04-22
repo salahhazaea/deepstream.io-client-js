@@ -35,8 +35,7 @@ const Connection = function (client, url, options) {
   this._processMessages = this._processMessages.bind(this)
   this._processing = false
 
-  this._originalUrl = utils.parseUrl(url, this._options.path)
-  this._url = this._originalUrl
+  this._url = new URL(url)
 
   this._state = C.CONNECTION_STATE.CLOSED
   this._createEndpoint()
@@ -190,7 +189,7 @@ Connection.prototype._onError = function (err) {
   }
 
   if (err.code === 'ECONNRESET' || err.code === 'ECONNREFUSED') {
-    err.message = "Can't t! Deepstream server unreachable on " + this._originalUrl
+    err.message = "Can't t! Deepstream server unreachable on " + this._url
   }
 
   this._client._$onError(C.TOPIC.CONNECTION, C.EVENT.CONNECTION_ERROR, err)
@@ -288,15 +287,11 @@ Connection.prototype._handleConnectionResponse = function (message) {
   } else if (message.action === C.ACTIONS.CHALLENGE) {
     this._setState(C.CONNECTION_STATE.CHALLENGING)
     this._submit(
-      messageBuilder.getMsg(C.TOPIC.CONNECTION, C.ACTIONS.CHALLENGE_RESPONSE, [this._originalUrl])
+      messageBuilder.getMsg(C.TOPIC.CONNECTION, C.ACTIONS.CHALLENGE_RESPONSE, [this._url])
     )
   } else if (message.action === C.ACTIONS.REJECTION) {
     this._challengeDenied = true
     this.close()
-  } else if (message.action === C.ACTIONS.REDIRECT) {
-    this._url = message.data[0]
-    this._redirecting = true
-    this._endpoint.close()
   } else if (message.action === C.ACTIONS.ERROR) {
     if (message.data[0] === C.EVENT.CONNECTION_AUTHENTICATION_TIMEOUT) {
       this._deliberateClose = true
@@ -368,9 +363,6 @@ Connection.prototype._tryReconnect = function () {
 }
 
 Connection.prototype._tryOpen = function () {
-  if (this._originalUrl !== this._url) {
-    this._url = this._originalUrl
-  }
   this._createEndpoint()
   this._reconnectTimeout = null
 }

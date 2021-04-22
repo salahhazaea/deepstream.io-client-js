@@ -1,6 +1,3 @@
-const hasUrlProtocol = /^wss:|^ws:|^\/\//
-const unsupportedProtocol = /^http:|^https:/
-
 const NODE_ENV = typeof process !== 'undefined' && process.env && process.env.NODE_ENV
 const isNode = typeof process !== 'undefined' && process.toString() === '[object process]'
 const isProduction = NODE_ENV === 'production'
@@ -113,22 +110,4 @@ module.exports.compareRev = function compareRev(a, b) {
   const [bv, br] = module.exports.splitRev(b)
 
   return av !== bv ? (av < bv ? -1 : 1) : ar < br ? -1 : 1
-}
-
-module.exports.parseUrl = function (url, defaultPath) {
-  if (unsupportedProtocol.test(url)) {
-    throw new Error('Only ws and wss are supported')
-  }
-  if (!hasUrlProtocol.test(url)) {
-    url = 'ws://' + url
-  } else if (url.indexOf('//') === 0) {
-    url = 'ws:' + url
-  }
-  const serverUrl = new URL(url) // eslint-disable-line
-  if (!serverUrl.host) {
-    throw new Error('invalid url, missing host')
-  }
-  serverUrl.protocol = serverUrl.protocol ? serverUrl.protocol : 'ws:'
-  serverUrl.pathname = serverUrl.pathname ? serverUrl.pathname : defaultPath
-  return serverUrl.href
 }
