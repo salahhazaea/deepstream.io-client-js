@@ -131,7 +131,12 @@ RecordHandler.prototype.getRecord = function (name) {
   return record
 }
 
-RecordHandler.prototype.provide = function (pattern, callback, recursive = false) {
+RecordHandler.prototype.provide = function (
+  pattern,
+  callback,
+  recursive = false,
+  stringify = null
+) {
   if (typeof pattern !== 'string' || pattern.length === 0) {
     throw new Error('invalid argument pattern')
   }
@@ -144,7 +149,7 @@ RecordHandler.prototype.provide = function (pattern, callback, recursive = false
     return
   }
 
-  const listener = new Listener(C.TOPIC.RECORD, pattern, callback, this, recursive)
+  const listener = new Listener(C.TOPIC.RECORD, pattern, callback, this, recursive, stringify)
 
   this._listeners.set(pattern, listener)
   return () => {

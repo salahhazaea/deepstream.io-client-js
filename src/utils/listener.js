@@ -3,7 +3,7 @@ const xuid = require('xuid')
 const { Observable } = require('rxjs')
 
 class Listener {
-  constructor(topic, pattern, callback, handler, recursive) {
+  constructor(topic, pattern, callback, handler, recursive, stringify) {
     this._topic = topic
     this._pattern = pattern
     this._callback = callback
@@ -13,6 +13,7 @@ class Listener {
     this._connection = this._handler._connection
     this._providers = new Map()
     this._recursive = recursive
+    this._stringify = stringify || JSON.stringify
 
     this._$handleConnectionStateChange()
   }
@@ -127,7 +128,7 @@ class Listener {
               return
             }
 
-            const body = typeof value !== 'string' ? JSON.stringify(value) : value
+            const body = typeof value !== 'string' ? this._stringify(value) : value
 
             if (provider.body !== body || !/^INF-/.test(provider.version)) {
               provider.version = `INF-${xuid()}-${this._client.user || ''}`
