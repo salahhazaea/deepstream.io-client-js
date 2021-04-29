@@ -73,10 +73,7 @@ const RecordHandler = function (options, connection, client) {
           continue
         }
 
-        // TODO (fix): This should move to userland.
-        const minAge = rec.version && rec.version.startsWith('I') ? 1000 : 10000
-
-        if (now - timestamp <= minAge) {
+        if (now - timestamp <= 1e3) {
           continue
         }
 
