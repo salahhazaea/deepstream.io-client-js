@@ -7,6 +7,7 @@ const EventEmitter = require('component-emitter2')
 const RecordCache = require('./record-cache')
 const jsonPath = require('./json-path')
 const utils = require('../utils/utils')
+const rx = require('rxjs/operators')
 
 const RecordHandler = function (options, connection, client) {
   this.STATE = C.RECORD_STATE
@@ -219,10 +220,7 @@ RecordHandler.prototype.get = function (name, pathOrState, stateOrNil) {
   const path = pathOrState
   const state = stateOrNil == null ? 2 : stateOrNil
 
-  return this.observe(name, path, state)
-    .first()
-    .timeout(2 * 60e3)
-    .toPromise()
+  return this.observe(name, path, state).pipe(rx.first(), rx.timeout(2 * 60e3), rx.toPromise())
 }
 
 RecordHandler.prototype.set = function (name, pathOrData, dataOrNil) {
@@ -276,7 +274,7 @@ RecordHandler.prototype.observe = function (name, pathOrState, stateOrNil) {
       record.off('update', onUpdate)
       record.unref()
     }
-  }).distinctUntilChanged()
+  }).pipe(rx.distinctUntilChanged())
 }
 
 RecordHandler.prototype.observe2 = function (name) {

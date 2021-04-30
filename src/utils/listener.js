@@ -174,7 +174,7 @@ class Listener {
           provider$ = Observable.of(provider$)
         }
       } catch (err) {
-        provider$ = Observable.throw(err)
+        provider$ = Observable.throwError(err)
       }
 
       this._providers.set(provider.name, provider)
