@@ -258,13 +258,27 @@ RecordHandler.prototype.observe = function (name, pathOrState, stateOrNil) {
   const state = stateOrNil == null ? 2 : stateOrNil
 
   if (!name) {
-    return Observable.of(jsonPath.EMPTY)
+    return new Observable((o) => {
+      o.next(jsonPath.EMPTY)
+      o.complete()
+    })
   }
 
   return new Observable((o) => {
+    let prevValue
+    let hasValue = false
+
     const onUpdate = (record) => {
       if (!state || record.state >= state) {
-        o.next(record.get(path))
+        const nextValue = record.get(path)
+        if (hasValue && nextValue === prevValue) {
+          return
+        }
+
+        prevValue = nextValue
+        hasValue = true
+
+        o.next(nextValue)
       }
     }
     const record = this.getRecord(name)
@@ -276,18 +290,21 @@ RecordHandler.prototype.observe = function (name, pathOrState, stateOrNil) {
       record.off('update', onUpdate)
       record.unref()
     }
-  }).distinctUntilChanged()
+  })
 }
 
 RecordHandler.prototype.observe2 = function (name) {
   if (!name) {
-    return Observable.of(
-      utils.deepFreeze({
-        version: '0-00000000000000',
-        data: jsonPath.EMPTY,
-        state: C.RECORD_STATE.SERVER,
-      })
-    )
+    return new Observable((o) => {
+      o.next(
+        utils.deepFreeze({
+          version: '0-00000000000000',
+          data: jsonPath.EMPTY,
+          state: C.RECORD_STATE.SERVER,
+        })
+      )
+      o.complete()
+    })
   }
 
   return new Observable((o) => {

@@ -71,7 +71,7 @@ EventHandler.prototype.unsubscribe = function (name, callback) {
 }
 
 EventHandler.prototype.observe = function (name) {
-  return Observable.create((o) => {
+  return new Observable((o) => {
     const onValue = (value) => o.next(value)
     this.subscribe(name, onValue)
     return () => {

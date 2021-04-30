@@ -75,7 +75,10 @@ class Listener {
       provider.next = (value$) => {
         if (value$ && !value$.subscribe) {
           // Compat for recursive with value
-          value$ = Observable.of(value$)
+          value$ = new Observable((o) => {
+            o.next(value$)
+            o.complete()
+          })
         }
 
         if (provider.value$ === undefined || Boolean(value$) !== Boolean(provider.value$)) {
@@ -171,10 +174,15 @@ class Listener {
       try {
         provider$ = this._callback(name)
         if (!this._recursive) {
-          provider$ = Observable.of(provider$)
+          provider$ = new Observable((o) => {
+            o.next(provider$)
+            o.complete()
+          })
         }
       } catch (err) {
-        provider$ = Observable.throw(err)
+        provider$ = new Observable((o) => {
+          o.error(err)
+        })
       }
 
       this._providers.set(provider.name, provider)
