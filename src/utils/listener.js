@@ -1,6 +1,6 @@
 const C = require('../constants/constants')
 const xuid = require('xuid')
-const { Observable } = require('rxjs')
+const rxjs = require('rxjs')
 
 class Listener {
   constructor(topic, pattern, callback, handler, recursive, stringify) {
@@ -75,7 +75,7 @@ class Listener {
       provider.next = (value$) => {
         if (value$ && !value$.subscribe) {
           // Compat for recursive with value
-          value$ = Observable.of(value$)
+          value$ = rxjs.of(value$)
         }
 
         if (provider.value$ === undefined || Boolean(value$) !== Boolean(provider.value$)) {
@@ -171,10 +171,10 @@ class Listener {
       try {
         provider$ = this._callback(name)
         if (!this._recursive) {
-          provider$ = Observable.of(provider$)
+          provider$ = rxjs.of(provider$)
         }
       } catch (err) {
-        provider$ = Observable.throwError(err)
+        provider$ = rxjs.throwError(err)
       }
 
       this._providers.set(provider.name, provider)

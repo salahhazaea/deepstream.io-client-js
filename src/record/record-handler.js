@@ -1,7 +1,7 @@
 const Record = require('./record')
 const Listener = require('../utils/listener')
 const C = require('../constants/constants')
-const { Observable } = require('rxjs')
+const rxjs = require('rxjs')
 const invariant = require('invariant')
 const EventEmitter = require('component-emitter2')
 const RecordCache = require('./record-cache')
@@ -256,10 +256,10 @@ RecordHandler.prototype.observe = function (name, pathOrState, stateOrNil) {
   const state = stateOrNil == null ? 2 : stateOrNil
 
   if (!name) {
-    return Observable.of(jsonPath.EMPTY)
+    return rxjs.of(jsonPath.EMPTY)
   }
 
-  return new Observable((o) => {
+  return new rxjs.Observable((o) => {
     const onUpdate = (record) => {
       if (!state || record.state >= state) {
         o.next(record.get(path))
@@ -279,7 +279,7 @@ RecordHandler.prototype.observe = function (name, pathOrState, stateOrNil) {
 
 RecordHandler.prototype.observe2 = function (name) {
   if (!name) {
-    return Observable.of(
+    return rxjs.of(
       utils.deepFreeze({
         version: '0-00000000000000',
         data: jsonPath.EMPTY,
@@ -288,7 +288,7 @@ RecordHandler.prototype.observe2 = function (name) {
     )
   }
 
-  return new Observable((o) => {
+  return new rxjs.Observable((o) => {
     const onUpdate = ({ version, data, state }) =>
       o.next({
         version,
