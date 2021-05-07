@@ -220,7 +220,9 @@ RecordHandler.prototype.get = function (name, pathOrState, stateOrNil) {
   const path = pathOrState
   const state = stateOrNil == null ? 2 : stateOrNil
 
-  return this.observe(name, path, state).pipe(rx.first(), rx.timeout(2 * 60e3), rx.toPromise())
+  return this.observe(name, path, state)
+    .pipe(rx.first(), rx.timeout(2 * 60e3))
+    .toPromise()
 }
 
 RecordHandler.prototype.set = function (name, pathOrData, dataOrNil) {
