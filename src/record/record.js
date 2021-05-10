@@ -102,7 +102,7 @@ Object.defineProperty(Record.prototype, 'state', {
 
     invariant(this.connected, 'must be connected when no patch queue')
 
-    if (this._provided) {
+    if (this._provided && utils.isSameOrNewer(this.version, this._provided)) {
       return Record.STATE.PROVIDER
     }
 
@@ -322,7 +322,9 @@ Record.prototype._$onMessage = function (message) {
 Record.prototype._onSubscriptionHasProvider = function (data) {
   invariant(this.connected, 'must be connected')
 
-  const provided = Boolean(messageParser.convertTyped(data[1], this._client))
+  const provided = messageParser.convertTyped(data[1], this._client)
+
+  invariant(typeof provided === 'string', 'provided must be a string')
 
   if (this._provided === provided) {
     return
@@ -524,13 +526,13 @@ Object.defineProperty(Record.prototype, 'ready', {
 // TODO (fix): Remove
 Object.defineProperty(Record.prototype, 'provided', {
   get: function provided() {
-    return Boolean(this._provided)
+    return this.state >= C.RECORD_STATE.PROVIDER
   },
 })
 
 // TODO (fix): Remove
 Object.defineProperty(Record.prototype, 'usages', {
-  get: function provided() {
+  get: function usages() {
     return this._usages
   },
 })
@@ -552,7 +554,7 @@ Object.defineProperty(Record.prototype, 'isReady', {
 // TODO (fix): Remove
 Object.defineProperty(Record.prototype, 'hasProvider', {
   get: function hasProvider() {
-    return this.provided
+    return this.state >= C.RECORD_STATE.PROVIDER
   },
 })
 
