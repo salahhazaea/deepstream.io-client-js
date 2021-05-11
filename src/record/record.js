@@ -217,7 +217,7 @@ Record.prototype.when = function (stateOrNull) {
         return
       }
 
-      clearTimeout(timeout)
+      // clearTimeout(timeout)
 
       this.off('update', onUpdate)
       this.unref()
@@ -225,12 +225,12 @@ Record.prototype.when = function (stateOrNull) {
       resolve()
     }
 
-    const timeout = setTimeout(() => {
-      this.off('update', onUpdate)
-      this.unref()
+    // const timeout = setTimeout(() => {
+    //   this.off('update', onUpdate)
+    //   this.unref()
 
-      reject(new Error('when timeout'))
-    }, 2 * 60e3)
+    //   reject(new Error('when timeout'))
+    // }, 2 * 60e3)
 
     this.ref()
     this.on('update', onUpdate)
