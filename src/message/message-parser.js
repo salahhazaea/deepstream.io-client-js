@@ -67,11 +67,17 @@ MessageParser.prototype.parseMessage = function (message, client, result) {
     return null
   }
 
+  if (parts[0] === C.TOPIC.ERROR) {
+    client._$onError(C.TOPIC.ERROR, parts[1], new Error('Message error'), message)
+    return null
+  }
+
   if (this._actions[parts[1]] === undefined) {
     client._$onError(
       C.TOPIC.ERROR,
       C.EVENT.MESSAGE_PARSE_ERROR,
-      new Error(`Unknown action ${parts[1]}`)
+      new Error('Unknown action'),
+      message
     )
     return null
   }
