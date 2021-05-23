@@ -109,7 +109,9 @@ Connection.prototype._createEndpoint = function () {
   this._endpoint.onopen = this._onOpen.bind(this)
   this._endpoint.onerror = this._onError.bind(this)
   this._endpoint.onclose = this._onClose.bind(this)
-  this._endpoint.onmessage = this._onMessage.bind(this)
+  this._endpoint.onmessage = BrowserWebSocket
+    ? ({ data }) => this._onMessage(typeof data === 'string' ? data : Buffer.from(data).toString())
+    : ({ data }) => this._onMessage(typeof data === 'string' ? data : data.toString())
 }
 
 Connection.prototype._sendQueuedMessages = function () {
@@ -209,9 +211,7 @@ Connection.prototype._onClose = function () {
   }
 }
 
-Connection.prototype._onMessage = function ({ data }) {
-  data = typeof data === 'string' ? data : data.toString()
-
+Connection.prototype._onMessage = function (data) {
   // Remove MESSAGE_SEPERATOR if exists.
   if (data.charCodeAt(data.length - 1) === 30) {
     data = data.slice(0, -1)
