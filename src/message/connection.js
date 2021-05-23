@@ -146,6 +146,7 @@ Connection.prototype._sendAuthParams = function () {
   const authMessage = messageBuilder.getMsg(C.TOPIC.AUTH, C.ACTIONS.REQUEST, [
     this._authParams,
     pkg.version,
+    utils.isNode ? `Node/${process.version}` : global.navigator?.userAgent,
   ])
   this._submit(authMessage)
 }
@@ -209,6 +210,8 @@ Connection.prototype._onClose = function () {
 }
 
 Connection.prototype._onMessage = function ({ data }) {
+  data = typeof data === 'string' ? data : data.toString()
+
   // Remove MESSAGE_SEPERATOR if exists.
   if (data.charCodeAt(data.length - 1) === 30) {
     data = data.slice(0, -1)
