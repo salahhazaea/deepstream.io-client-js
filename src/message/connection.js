@@ -148,7 +148,7 @@ Connection.prototype._sendAuthParams = function () {
   const authMessage = messageBuilder.getMsg(C.TOPIC.AUTH, C.ACTIONS.REQUEST, [
     this._authParams,
     pkg.version,
-    utils.isNode ? `Node/${process.version}` : global.navigator?.userAgent,
+    utils.isNode ? `Node/${process.version}` : global.navigator && global.navigator.userAgent,
   ])
   this._submit(authMessage)
 }
