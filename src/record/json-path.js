@@ -5,9 +5,13 @@ const cache = new Map()
 const EMPTY = utils.deepFreeze({})
 
 function get(data, path) {
-  const tokens = tokenize(path)
-
   data = data || EMPTY
+
+  if (!path) {
+    return data
+  }
+
+  const tokens = tokenize(path)
 
   for (let i = 0; i < tokens.length; i++) {
     if (data == null || typeof data !== 'object') {
@@ -20,11 +24,9 @@ function get(data, path) {
 }
 
 function set(data, path, value, isPlainJSON) {
-  const tokens = tokenize(path)
-
   data = data || EMPTY
 
-  if (tokens.length === 0) {
+  if (!path) {
     return patch(data, value, isPlainJSON)
   }
 
@@ -36,6 +38,8 @@ function set(data, path, value, isPlainJSON) {
   }
 
   const result = data ? utils.shallowCopy(data) : {}
+
+  const tokens = tokenize(path)
 
   let node = result
   for (let i = 0; i < tokens.length; i++) {

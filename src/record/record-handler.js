@@ -11,6 +11,7 @@ const rx = require('rxjs/operators')
 
 const RecordHandler = function (options, connection, client) {
   this.STATE = C.RECORD_STATE
+  this.JSON = jsonPath
 
   Object.assign(this, C.RECORD_STATE)
 
@@ -279,24 +280,35 @@ RecordHandler.prototype.observe = function (name, pathOrState, stateOrNil) {
   }).pipe(rx.distinctUntilChanged())
 }
 
-RecordHandler.prototype.observe2 = function (name) {
+RecordHandler.prototype.observe2 = function (name, pathOrState, stateOrNil) {
+  if (arguments.length === 2 && typeof pathOrState === 'number') {
+    stateOrNil = pathOrState
+    pathOrState = undefined
+  }
+
+  const path = pathOrState
+  const state = stateOrNil == null ? 2 : stateOrNil
+
   if (!name) {
     return rxjs.of(
       utils.deepFreeze({
         version: '0-00000000000000',
-        data: jsonPath.EMPTY,
-        state: C.RECORD_STATE.SERVER,
+        data: path ? undefined : jsonPath.EMPTY,
+        state: state ?? C.RECORD_STATE.SERVER,
       })
     )
   }
 
   return new rxjs.Observable((o) => {
-    const onUpdate = ({ version, data, state }) =>
-      o.next({
-        version,
-        data,
-        state,
-      })
+    const onUpdate = (record) => {
+      if (!state || record.state >= state) {
+        o.next({
+          version: record.version,
+          data: record.get(path),
+          state: record.state,
+        })
+      }
+    }
     const record = this.getRecord(name)
     if (record.version) {
       onUpdate(record)
