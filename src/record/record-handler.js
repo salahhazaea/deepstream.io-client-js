@@ -218,6 +218,7 @@ RecordHandler.prototype.get = function (name, ...args) {
   let state = 2
   let signal
   let timeout = 2 * 60e3
+  let first
 
   let idx = 0
 
@@ -245,16 +246,20 @@ RecordHandler.prototype.get = function (name, ...args) {
     if (options.state != null) {
       state = options.state
     }
+
+    if (options.first != null) {
+      first = options.first
+    }
   }
 
-  let x$ = this.observe(name, path, state)
+  let x$ = this.observe2(name, path, state)
 
   if (signal != null) {
     x$ = signal.aborted ? rxjs.EMPTY : x$.pipe(rx.takeUntil(rxjs.fromEvent('abort', signal)))
     x$ = x$.pipe(rx.throwIfEmpty(() => new utils.AbortError()))
   }
 
-  return x$.pipe(rx.first(), rx.timeout(timeout)).toPromise()
+  return x$.pipe(rx.first(first), rx.pluck('data'), rx.timeout(timeout)).toPromise()
 }
 
 RecordHandler.prototype.set = function (name, pathOrData, dataOrNil) {
