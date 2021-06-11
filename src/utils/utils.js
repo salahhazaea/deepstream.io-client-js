@@ -111,3 +111,11 @@ module.exports.compareRev = function compareRev(a, b) {
 
   return av !== bv ? (av < bv ? -1 : 1) : ar < br ? -1 : 1
 }
+
+module.exports.AbortError = class AbortError extends Error {
+  constructor() {
+    super('The operation was aborted')
+    this.code = 'ABORT_ERR'
+    this.name = 'AbortError'
+  }
+}

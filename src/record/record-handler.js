@@ -213,17 +213,40 @@ RecordHandler.prototype.sync = function () {
   })
 }
 
-RecordHandler.prototype.get = function (name, pathOrState, stateOrNil) {
-  if (arguments.length === 2 && typeof pathOrState === 'number') {
-    stateOrNil = pathOrState
-    pathOrState = undefined
-  }
-  const path = pathOrState
-  const state = stateOrNil == null ? 2 : stateOrNil
+RecordHandler.prototype.get = function (name, ...args) {
+  let path
+  let state = 2
+  let signal
+  let timeout = 2 * 60e3
 
-  return this.observe(name, path, state)
-    .pipe(rx.first(), rx.timeout(2 * 60e3))
-    .toPromise()
+  let idx = 0
+
+  if (idx < args.length && (args[idx] == null || typeof args[idx] === 'string')) {
+    path = args[idx++]
+  }
+
+  if (idx < args.length && (args[idx] == null || typeof args[idx] === 'number')) {
+    state = args[idx++]
+  }
+
+  if (idx < args.length && (args[idx] == null || typeof args[idx] === 'object')) {
+    const options = args[idx++] || {}
+
+    signal = options.signal
+
+    if (options.timeout != null) {
+      timeout = options.timeout
+    }
+  }
+
+  let x$ = this.observe(name, path, state)
+
+  if (signal != null) {
+    x$ = signal.aborted ? rxjs.EMPTY : x$.pipe(rxjs.fromEvent('abort', signal))
+    x$ = x$.pipe(rx.throwIfEmpty(() => new utils.AbortError()))
+  }
+
+  return x$.pipe(rx.first(), rx.timeout(timeout)).toPromise()
 }
 
 RecordHandler.prototype.set = function (name, pathOrData, dataOrNil) {
