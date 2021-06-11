@@ -242,7 +242,7 @@ RecordHandler.prototype.get = function (name, ...args) {
   let x$ = this.observe(name, path, state)
 
   if (signal != null) {
-    x$ = signal.aborted ? rxjs.EMPTY : x$.pipe(rxjs.fromEvent('abort', signal))
+    x$ = signal.aborted ? rxjs.EMPTY : x$.pipe(rx.takeUntil(rxjs.fromEvent('abort', signal)))
     x$ = x$.pipe(rx.throwIfEmpty(() => new utils.AbortError()))
   }
 
