@@ -237,6 +237,14 @@ RecordHandler.prototype.get = function (name, ...args) {
     if (options.timeout != null) {
       timeout = options.timeout
     }
+
+    if (options.path != null) {
+      path = options.path
+    }
+
+    if (options.state != null) {
+      state = options.state
+    }
   }
 
   let x$ = this.observe(name, path, state)
