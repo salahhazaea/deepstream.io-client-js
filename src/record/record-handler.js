@@ -330,7 +330,7 @@ RecordHandler.prototype.observe2 = function (name, pathOrState, stateOrNil) {
       utils.deepFreeze({
         version: '0-00000000000000',
         data: path ? undefined : jsonPath.EMPTY,
-        state: state ?? C.RECORD_STATE.SERVER,
+        state: Number.isFinite(state) ? state : C.RECORD_STATE.SERVER,
       })
     )
   }
