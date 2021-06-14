@@ -10,7 +10,7 @@ const Record = function (name, handler) {
   this._handler = handler
   this._stats = handler._stats
   this._prune = handler._prune
-  this._pending = handler._pending
+  this._pendingWrite = handler._pendingWrite
   this._cache = handler._cache
   this._client = handler._client
   this._connection = handler._connection
@@ -171,9 +171,9 @@ Record.prototype.set = function (pathOrData, dataOrNil) {
     this._patchQueue = path ? this._patchQueue : []
     this._patchQueue.push(path, jsonData)
 
-    if (!this._pending.has(this)) {
+    if (!this._pendingWrite.has(this)) {
       this.ref()
-      this._pending.add(this)
+      this._pendingWrite.add(this)
     }
   }
 
@@ -403,7 +403,7 @@ Record.prototype._onUpdate = function ([name, version, data]) {
       }
 
       this._patchQueue = null
-      if (this._pending.delete(this)) {
+      if (this._pendingWrite.delete(this)) {
         this.unref()
       }
       this.emit('ready')

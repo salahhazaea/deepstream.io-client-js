@@ -22,7 +22,7 @@ const RecordHandler = function (options, connection, client) {
   this._records = new Map()
   this._listeners = new Map()
   this._prune = new Map()
-  this._pending = new Set()
+  this._pendingWrite = new Set()
 
   this._syncEmitter = new EventEmitter()
   this._syncCounter = 0
@@ -164,7 +164,7 @@ RecordHandler.prototype.sync = function () {
   // TODO (perf): Optimize
 
   const pending = []
-  for (const rec of this._pending) {
+  for (const rec of this._pendingWrite) {
     rec.ref()
     pending.push(new Promise((resolve) => rec.once('ready', resolve)))
   }
