@@ -3,7 +3,7 @@ module.exports = {
   reconnectIntervalIncrement: 1e3,
   maxReconnectInterval: 6e3,
   maxReconnectAttempts: Infinity,
-  maxPacketSize: 512 * 1024,
+  maxPacketSize: 256 * 1024,
   schedule: null,
   logger: null,
 }
