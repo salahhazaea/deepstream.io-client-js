@@ -328,6 +328,7 @@ RecordHandler.prototype.observe2 = function (name, pathOrState, stateOrNil) {
   if (!name) {
     return rxjs.of(
       utils.deepFreeze({
+        name,
         version: '0-00000000000000',
         data: path ? undefined : jsonPath.EMPTY,
         state: Number.isFinite(state) ? state : C.RECORD_STATE.SERVER,
@@ -339,6 +340,7 @@ RecordHandler.prototype.observe2 = function (name, pathOrState, stateOrNil) {
     const onUpdate = (record) => {
       if (!state || record.state >= state) {
         o.next({
+          name,
           version: record.version,
           data: record.get(path),
           state: record.state,
