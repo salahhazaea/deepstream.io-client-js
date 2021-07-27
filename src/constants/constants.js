@@ -11,9 +11,10 @@ module.exports.CONNECTION_STATE.RECONNECTING = 'RECONNECTING'
 
 module.exports.RECORD_STATE = {}
 module.exports.RECORD_STATE.VOID = 0
-module.exports.RECORD_STATE.CLIENT = 1
-module.exports.RECORD_STATE.SERVER = 2
-module.exports.RECORD_STATE.PROVIDER = 3
+module.exports.RECORD_STATE.EMPTY = 1
+module.exports.RECORD_STATE.CLIENT = 2
+module.exports.RECORD_STATE.SERVER = 3
+module.exports.RECORD_STATE.PROVIDER = 4
 
 module.exports.MESSAGE_SEPERATOR = String.fromCharCode(30) // ASCII Record Seperator 1E
 module.exports.MESSAGE_PART_SEPERATOR = String.fromCharCode(31) // ASCII Unit Separator 1F

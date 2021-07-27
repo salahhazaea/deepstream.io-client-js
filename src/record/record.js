@@ -96,6 +96,10 @@ Object.defineProperty(Record.prototype, 'state', {
       return Record.STATE.VOID
     }
 
+    if (this.version.startsWith('0-')) {
+      return Record.STATE.EMPTY
+    }
+
     if (this._patchQueue) {
       return Record.STATE.CLIENT
     }
