@@ -271,13 +271,11 @@ RecordHandler.prototype.set = function (name, pathOrData, dataOrNil) {
   }
 }
 
-RecordHandler.prototype.update = function (name, pathOrUpdater, updaterOrNil) {
+RecordHandler.prototype.update = function (name, ...args) {
   try {
     const record = this.getRecord(name)
     try {
-      return arguments.length === 2
-        ? record.update(pathOrUpdater)
-        : record.update(pathOrUpdater, updaterOrNil)
+      return record.update(...args)
     } finally {
       record.unref()
     }
