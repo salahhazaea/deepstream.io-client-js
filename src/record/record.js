@@ -96,12 +96,8 @@ Object.defineProperty(Record.prototype, 'state', {
       return Record.STATE.VOID
     }
 
-    if (this.version.startsWith('0-')) {
-      return Record.STATE.EMPTY
-    }
-
     if (this._patchQueue) {
-      return Record.STATE.CLIENT
+      return this.version.startsWith('0-') ? Record.STATE.EMPTY : Record.STATE.CLIENT
     }
 
     invariant(this.connected, 'must be connected when no patch queue')
