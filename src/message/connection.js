@@ -212,6 +212,8 @@ Connection.prototype._onClose = function () {
 }
 
 Connection.prototype._onMessage = function (data) {
+  data = data.toString()
+
   // Remove MESSAGE_SEPERATOR if exists.
   if (data.charCodeAt(data.length - 1) === 30) {
     data = data.slice(0, -1)
