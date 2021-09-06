@@ -166,7 +166,7 @@ RecordHandler.prototype.sync = function () {
   const pending = []
   for (const rec of this._pendingWrite) {
     rec.ref()
-    pending.push(new Promise((resolve) => rec.once('ready', resolve)))
+    pending.push(rec.when())
   }
 
   return new Promise((resolve) => {
