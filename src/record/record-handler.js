@@ -164,9 +164,11 @@ RecordHandler.prototype.sync = function () {
   // TODO (perf): Optimize
 
   const pending = []
+  const records = []
   for (const rec of this._pendingWrite) {
     rec.ref()
     pending.push(rec.when())
+    records.push(rec)
   }
 
   return new Promise((resolve) => {
@@ -179,7 +181,7 @@ RecordHandler.prototype.sync = function () {
         return
       }
 
-      for (const rec of pending) {
+      for (const rec of records) {
         if (!rec.isReady) {
           this._client._$onError(C.TOPIC.RECORD, C.EVENT.TIMEOUT, 'record timeout', [rec.name])
         }
