@@ -323,7 +323,7 @@ RecordHandler.prototype.observe2 = function (name, pathOrState, stateOrNil) {
   }
 
   const path = pathOrState
-  const state = stateOrNil == null ? 2 : stateOrNil
+  const state = stateOrNil == null ? C.RECORD_STATE.CLIENT : stateOrNil
 
   if (!name) {
     return rxjs.of(
