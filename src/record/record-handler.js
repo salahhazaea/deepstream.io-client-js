@@ -217,7 +217,7 @@ RecordHandler.prototype.sync = function () {
 
 RecordHandler.prototype.get = function (name, ...args) {
   let path
-  let state = 2
+  let state = C.RECORD_STATE.SERVER
   let signal
   let timeout = 2 * 60e3
   let first
@@ -292,7 +292,7 @@ RecordHandler.prototype.observe = function (name, pathOrState, stateOrNil) {
     pathOrState = undefined
   }
   const path = pathOrState
-  const state = stateOrNil == null ? 2 : stateOrNil
+  const state = stateOrNil == null ? C.RECORD_STATE.SERVER : stateOrNil
 
   if (!name) {
     return rxjs.of(jsonPath.EMPTY)
