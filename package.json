@@ -61,28 +61,28 @@
     "/__tests__"
   ],
   "dependencies": {
-    "bufferutil": "^4.0.3",
+    "bufferutil": "^4.0.5",
     "component-emitter2": "^1.3.5",
-    "encoding-down": "^7.0.0",
+    "encoding-down": "^7.1.0",
     "invariant": "^2.2.4",
-    "levelup": "^5.0.1",
+    "levelup": "^5.1.1",
     "lru-cache": "^6.0.0",
-    "utf-8-validate": "^5.0.4",
-    "ws": "^8.2.1",
-    "xuid": "^4.0.6"
+    "utf-8-validate": "^5.0.7",
+    "ws": "^8.3.0",
+    "xuid": "^4.0.10"
   },
   "devDependencies": {
-    "eslint": "^7.31.0",
+    "eslint": "^8.3.0",
     "eslint-config-prettier": "^8.1.0",
     "eslint-config-standard": "^16.0.2",
-    "eslint-plugin-import": "^2.23.4",
+    "eslint-plugin-import": "^2.25.3",
     "eslint-plugin-node": "^11.1.0",
-    "eslint-plugin-promise": "^5.1.0",
-    "husky": "^7.0.1",
-    "jest": "^27.0.6",
-    "lint-staged": "^11.0.1",
+    "eslint-plugin-promise": "^5.1.1",
+    "husky": "^7.0.4",
+    "jest": "^27.3.1",
+    "lint-staged": "^12.1.2",
     "pinst": "^2.1.6",
-    "prettier": "^2.3.2"
+    "prettier": "^2.4.1"
   },
   "peerDependencies": {
     "rxjs": ">=6.x"
