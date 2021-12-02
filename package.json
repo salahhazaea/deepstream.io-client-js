@@ -77,12 +77,12 @@
     "eslint-config-standard": "^16.0.2",
     "eslint-plugin-import": "^2.25.3",
     "eslint-plugin-node": "^11.1.0",
-    "eslint-plugin-promise": "^5.1.1",
+    "eslint-plugin-promise": "^5.2.0",
     "husky": "^7.0.4",
-    "jest": "^27.3.1",
+    "jest": "^27.4.3",
     "lint-staged": "^12.1.2",
     "pinst": "^2.1.6",
-    "prettier": "^2.4.1"
+    "prettier": "^2.5.0"
   },
   "peerDependencies": {
     "rxjs": ">=6.x"
