@@ -23,11 +23,11 @@ class Listener {
   }
 
   _$destroy() {
+    this._reset()
+
     if (this.connected) {
       this._connection.sendMsg(this._topic, C.ACTIONS.UNLISTEN, [this._pattern])
     }
-
-    this._reset()
   }
 
   _$onMessage(message) {
