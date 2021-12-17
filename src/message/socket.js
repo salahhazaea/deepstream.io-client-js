@@ -13,28 +13,34 @@ class Socket {
       .on('error', (err) => {
         this.onerror?.(err)
       })
+      .on('exit', () => {
+        this.readyState = this.CLOSED
+      })
       .on('message', ({ event, data }) => {
         if (event === 'open') {
           this.readyState = this.OPEN
           this.onopen?.()
         } else if (event === 'error') {
-          this.readyState = null
+          this.readyState = this.CLOSING
           this.onerror?.(data)
         } else if (event === 'close') {
-          this.readyState = null
+          this.readyState = this.CLOSED
           this.onclose?.()
         } else if (event === 'data') {
           this.onmessage?.({ data: Buffer.from(data) })
         }
       })
 
+    this.CONNECTING = 'CONNECTING'
     this.OPEN = 'OPEN'
+    this.CLOSING = 'CLOSING'
+    this.CLOSED = 'CLOSED'
 
     this.onopen = null
     this.onerror = null
     this.onclose = null
     this.onmessage = null
-    this.readyState = null
+    this.readyState = this.CONNECTING
   }
 
   send(data) {
@@ -43,6 +49,7 @@ class Socket {
   }
 
   close() {
+    this.readyState = this.CLOSING
     this._worker.terminate()
   }
 }
