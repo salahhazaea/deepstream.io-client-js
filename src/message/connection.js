@@ -1,5 +1,5 @@
 const BrowserWebSocket = global.WebSocket || global.MozWebSocket
-const NodeWebSocket = require('@nxtedition/ws')
+const NodeWebSocket = require('ws')
 const messageParser = require('./message-parser')
 const messageBuilder = require('./message-builder')
 const utils = require('../utils/utils')
