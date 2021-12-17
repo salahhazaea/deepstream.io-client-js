@@ -1,22 +1,20 @@
 'use strict'
 
-const { workerData } = require('worker_threads')
+const { parentPort, workerData } = require('worker_threads')
 const NodeWebSocket = require('ws')
 
-const { port, url } = workerData
+const { url } = workerData
 
-const endpoint = new NodeWebSocket(url)
+const endpoint = new NodeWebSocket(new URL(url))
 
-endpoint.onopen = () => port.postMessage({ event: 'open' })
-endpoint.onerror = (err) => port.postMessage({ event: 'error', data: err })
-endpoint.onclose = () => port.postMessage({ event: 'close' })
+endpoint.onopen = () => parentPort.postMessage({ event: 'open' })
+endpoint.onerror = (err) => parentPort.postMessage({ event: 'error', data: err })
+endpoint.onclose = () => parentPort.postMessage({ event: 'close' })
 endpoint.onmessage = ({ data }) => {
-  if (typeof data === 'string') {
-    data = Buffer.from(data)
-  }
-  port.postMessage({ event: 'data', data }, [data.buffer])
+  // TODO (perf): Transfer Buffer?
+  parentPort.postMessage({ event: 'data', data: typeof data === 'string' ? data : data.toString() })
 }
 
-port.on('message', (message) => {
+parentPort.on('message', (message) => {
   endpoint.send(message)
 })

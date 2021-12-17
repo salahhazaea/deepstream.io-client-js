@@ -7,7 +7,7 @@ class Socket {
   constructor(url) {
     this._worker = new Worker(path.join(__dirname, 'socket-worker.js'), {
       workerData: {
-        url,
+        url: url.href,
       },
     })
       .on('error', (err) => {
@@ -18,11 +18,13 @@ class Socket {
           this.readyState = this.OPEN
           this.onopen?.()
         } else if (event === 'error') {
+          this.readyState = null
           this.onerror?.(data)
         } else if (event === 'close') {
+          this.readyState = null
           this.onclose?.()
         } else if (event === 'data') {
-          this.onmessage?.(Buffer.from(data))
+          this.onmessage?.({ data: Buffer.from(data) })
         }
       })
 
@@ -36,10 +38,8 @@ class Socket {
   }
 
   send(data) {
-    if (typeof data === 'string') {
-      data = Buffer.from(data)
-    }
-    this._worker.postMessage(data, [data.buffer])
+    // TODO (perf): Transfer Buffer?
+    this._worker.postMessage(data)
   }
 
   close() {
