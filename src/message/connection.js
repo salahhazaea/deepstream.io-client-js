@@ -136,7 +136,7 @@ Connection.prototype._submit = function (message) {
     const err = new Error(`Packet to big: ${message.length} > ${maxPacketSize}`)
     this._client._$onError(C.TOPIC.CONNECTION, C.EVENT.CONNECTION_ERROR, err)
   } else if (this._endpoint.readyState === this._endpoint.OPEN) {
-    this._endpoint.send(message, { mask: false })
+    this._endpoint.send(message)
   } else {
     const err = new Error('Tried to send message on a closed websocket connection')
     this._client._$onError(C.TOPIC.CONNECTION, C.EVENT.CONNECTION_ERROR, err)
