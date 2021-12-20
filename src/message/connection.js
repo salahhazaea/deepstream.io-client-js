@@ -6,8 +6,6 @@ const utils = require('../utils/utils')
 const C = require('../constants/constants')
 const pkg = require('../../package.json')
 
-const MASK = Buffer.alloc(4)
-
 const Connection = function (client, url, options) {
   this._client = client
   this._options = options
@@ -109,8 +107,11 @@ Connection.prototype._createEndpoint = function () {
   this._endpoint = BrowserWebSocket
     ? new BrowserWebSocket(this._url)
     : new NodeWebSocket(this._url, {
-        generateMask() {
-          return MASK
+        generateMask(mask) {
+          mask[0] = 0
+          mask[1] = 0
+          mask[2] = 0
+          mask[3] = 0
         },
       })
 
