@@ -1,10 +1,12 @@
 const BrowserWebSocket = global.WebSocket || global.MozWebSocket
-const NodeWebSocket = require('@nxtedition/ws')
+const NodeWebSocket = require('ws')
 const messageParser = require('./message-parser')
 const messageBuilder = require('./message-builder')
 const utils = require('../utils/utils')
 const C = require('../constants/constants')
 const pkg = require('../../package.json')
+
+const MASK = Buffer.alloc(4)
 
 const Connection = function (client, url, options) {
   this._client = client
@@ -104,7 +106,13 @@ Connection.prototype.close = function () {
 }
 
 Connection.prototype._createEndpoint = function () {
-  this._endpoint = BrowserWebSocket ? new BrowserWebSocket(this._url) : new NodeWebSocket(this._url)
+  this._endpoint = BrowserWebSocket
+    ? new BrowserWebSocket(this._url)
+    : new NodeWebSocket(this._url, {
+        generateMask() {
+          return MASK
+        },
+      })
 
   this._endpoint.onopen = this._onOpen.bind(this)
   this._endpoint.onerror = this._onError.bind(this)
