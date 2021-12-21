@@ -61,7 +61,6 @@
     "/__tests__"
   ],
   "dependencies": {
-    "@nxtedition/ws": "^8.3.7",
     "bufferutil": "^4.0.5",
     "component-emitter2": "^1.3.5",
     "encoding-down": "^7.1.0",
@@ -69,6 +68,7 @@
     "levelup": "^5.1.1",
     "lru-cache": "^6.0.0",
     "utf-8-validate": "^5.0.7",
+    "ws": "^8.4.0",
     "xuid": "^4.0.10"
   },
   "devDependencies": {

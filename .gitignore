@@ -32,3 +32,5 @@ test-page-webpack/dist
 *.iml
 .idea
 .vscode
+package-lock.json
+yarn.lock

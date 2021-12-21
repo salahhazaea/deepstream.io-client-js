@@ -1,5 +1,5 @@
 const BrowserWebSocket = global.WebSocket || global.MozWebSocket
-const NodeWebSocket = require('@nxtedition/ws')
+const NodeWebSocket = require('ws')
 const messageParser = require('./message-parser')
 const messageBuilder = require('./message-builder')
 const utils = require('../utils/utils')
@@ -107,12 +107,7 @@ Connection.prototype._createEndpoint = function () {
   this._endpoint = BrowserWebSocket
     ? new BrowserWebSocket(this._url)
     : new NodeWebSocket(this._url, {
-        generateMask(mask) {
-          mask[0] = 0
-          mask[1] = 0
-          mask[2] = 0
-          mask[3] = 0
-        },
+        generateMask() {},
       })
 
   this._endpoint.onopen = this._onOpen.bind(this)
