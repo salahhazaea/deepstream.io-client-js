@@ -157,7 +157,8 @@ Record.prototype.set = function (pathOrData, dataOrNil) {
   }
   if (
     path !== undefined &&
-    (typeof path !== 'string' || path.length === 0 || path.startsWith('_'))
+    (typeof path !== 'string' || path.length === 0 || path.startsWith('_')) &&
+    (!Array.isArray(path) || path.length === 0 || path[0].startsWith('_'))
   ) {
     throw new Error('invalid argument: path')
   }
@@ -265,7 +266,11 @@ Record.prototype.update = function (pathOrUpdater, updaterOrNil) {
     throw new Error('invalid argument: updater')
   }
 
-  if (path !== undefined && (typeof path !== 'string' || path.length === 0)) {
+  if (
+    path !== undefined &&
+    (typeof path !== 'string' || path.length === 0 || path.startsWith('_')) &&
+    (!Array.isArray(path) || path.length === 0 || path[0].startsWith('_'))
+  ) {
     throw new Error('invalid argument: path')
   }
 

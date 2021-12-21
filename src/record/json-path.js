@@ -124,6 +124,10 @@ function tokenize(path) {
     return []
   }
 
+  if (Array.isArray(path)) {
+    return path
+  }
+
   let parts = cache.get(path)
 
   if (parts) {
