@@ -6,6 +6,9 @@ const utils = require('../utils/utils')
 const C = require('../constants/constants')
 const pkg = require('../../package.json')
 
+const kCorking = Symbol('kCorking')
+const kUncork = Symbol('kUncork')
+
 const Connection = function (client, url, options) {
   this._client = client
   this._options = options
@@ -140,6 +143,22 @@ Connection.prototype._submit = function (message) {
     const err = new Error(`Packet to big: ${message.length} > ${maxPacketSize}`)
     this._client._$onError(C.TOPIC.CONNECTION, C.EVENT.CONNECTION_ERROR, err)
   } else if (this._endpoint.readyState === this._endpoint.OPEN) {
+    // HACK: Cork socket to avoid some overhead.
+    const socket = this._endpoint._socket
+    if (!socket[kCorking]) {
+      socket[kCorking] = true
+
+      if (!socket[kUncork]) {
+        socket[kUncork] = () => {
+          socket.uncork()
+          socket[kCorking] = false
+        }
+      }
+
+      setImmediate(socket[kUncork])
+      socket.cork()
+    }
+
     this._endpoint.send(message)
   } else {
     const err = new Error('Tried to send message on a closed websocket connection')
