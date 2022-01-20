@@ -129,18 +129,25 @@ class Listener {
 
             const body = typeof value !== 'string' ? this._stringify(value) : value
             const hash = this._connection.hasher.h64ToString(body)
+            const version = `INF-z${hash}`
 
-            if (provider.hash !== hash) {
-              provider.version = `INF-${hash}-${this._client.user || ''}`
-              const data = [provider.name, provider.version, provider.body]
-              this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.UPDATE, data)
-              this._handler._$handle({ action: C.ACTIONS.UPDATE, data })
-            } else if (!provider.version) {
-              provider.version = `INF-${hash}-${this._client.user || ''}`
-              const data = [provider.name, provider.version]
-              this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.UPDATE, data)
+            if (provider.version !== version) {
+              provider.ready = true
+              provider.version = version
+              this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.UPDATE, [
+                provider.name,
+                version,
+                body,
+              ])
+              this._handler._$handle({
+                action: C.ACTIONS.UPDATE,
+                data: [provider.name, version, body],
+              })
+            } else if (!provider.ready) {
+              provider.ready = true
+              provider.version = version
+              this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.UPDATE, [provider.name, version])
             }
-
           }
         },
         error: provider.error,
@@ -169,8 +176,8 @@ class Listener {
       } else if (!provider || !provider.value$) {
         this._connection.sendMsg(this._topic, C.ACTIONS.LISTEN_REJECT, [this._pattern, name])
       } else {
-        provider.version = null
-        provider.hash = message.data[1]?.split('-')[1] ?? null
+        provider.ready = false
+        provider.version = message.data[2]
         provider.valueSubscription = provider.value$.subscribe(provider.observer)
       }
     } else if (message.action === C.ACTIONS.SUBSCRIPTION_FOR_PATTERN_REMOVED) {
