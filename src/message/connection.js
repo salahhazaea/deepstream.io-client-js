@@ -25,7 +25,6 @@ const Connection = function (client, url, options) {
     data: null,
   }
   this._messages = []
-  this._messagesIndex = 0
   this._reconnectTimeout = null
   this._reconnectionAttempt = 0
   this._endpoint = null
@@ -230,25 +229,22 @@ Connection.prototype._onMessage = function (data) {
 
 Connection.prototype._processMessages = function () {
   const started = Date.now()
-  while (true) {
+
+  for (let n = 0; true; ++n) {
+    if (n === this._messages.length) {
+      this._messages.length = 0
+      return
+    }
+
     // TODO: Date.now is slow...
-    if (Date.now() - started > 100) {
+    if (n % 128 === 0 && Date.now() - started > 100) {
+      this._messages.splice(0, n)
       setImmediate(this._processMessages)
       return
     }
 
-    if (this._messagesIndex > 1024 || this._messagesIndex === this._messages.length) {
-      this._messages.splice(0, this._messagesIndex)
-      this._messagesIndex = 0
-    }
-
-    if (this._messagesIndex === this._messages.length) {
-      this._processing = false
-      return
-    }
-
-    const message = this._messages[this._messagesIndex]
-    this._messages[this._messagesIndex++] = null
+    const message = this._messages[n]
+    this._messages[n] = null
 
     if (message.length <= 2) {
       continue
