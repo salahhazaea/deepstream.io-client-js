@@ -239,7 +239,6 @@ Connection.prototype._recvMessages = function () {
 
     // TODO: Date.now is slow...
     if (n % 128 === 0 && Date.now() - started > 100) {
-      this._processing = false
       this._recvQueue.splice(0, n)
       setImmediate(this._recvMessages)
       return
