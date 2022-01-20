@@ -5,6 +5,7 @@ const messageBuilder = require('./message-builder')
 const utils = require('../utils/utils')
 const C = require('../constants/constants')
 const pkg = require('../../package.json')
+const xxhash = require('xxhash-wasm')
 
 const Connection = function (client, url, options) {
   this._client = client
@@ -37,7 +38,12 @@ const Connection = function (client, url, options) {
   this._url = new URL(url)
 
   this._state = C.CONNECTION_STATE.CLOSED
-  this._createEndpoint()
+
+  this.hasher = null
+  xxhash((hasher) => {
+    this.hasher = hasher
+    this._createEndpoint()
+  })
 }
 
 Connection.prototype.getState = function () {

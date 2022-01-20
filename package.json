@@ -69,7 +69,8 @@
     "lru-cache": "^6.0.0",
     "utf-8-validate": "^5.0.7",
     "ws": "^8.4.0",
-    "xuid": "^4.0.10"
+    "xuid": "^4.0.10",
+    "xxhash-wasm": "^1.0.1"
   },
   "devDependencies": {
     "eslint": "^8.3.0",
