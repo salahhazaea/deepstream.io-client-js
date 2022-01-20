@@ -232,12 +232,14 @@ Connection.prototype._recvMessages = function () {
 
   for (let n = 0; true; ++n) {
     if (n === this._recvQueue.length) {
+      this._processing = false
       this._recvQueue.splice(0, n)
       return
     }
 
     // TODO: Date.now is slow...
     if (n % 128 === 0 && Date.now() - started > 100) {
+      this._processing = false
       this._recvQueue.splice(0, n)
       setImmediate(this._recvMessages)
       return
