@@ -24,14 +24,14 @@ const Connection = function (client, url, options) {
     action: null,
     data: null,
   }
-  this._messages = []
+  this._recvQueue = []
   this._reconnectTimeout = null
   this._reconnectionAttempt = 0
   this._endpoint = null
   this._lastHeartBeat = null
   this._heartbeatInterval = null
 
-  this._processMessages = this._processMessages.bind(this)
+  this._recvMessages = this._recvMessages.bind(this)
   this._processing = false
 
   this._url = new URL(url)
@@ -220,31 +220,31 @@ Connection.prototype._onMessage = function (data) {
     data = data.slice(0, -1)
   }
 
-  this._messages.push(data)
+  this._recvQueue.push(data)
   if (!this._processing) {
     this._processing = true
-    setImmediate(this._processMessages)
+    setImmediate(this._recvMessages)
   }
 }
 
-Connection.prototype._processMessages = function () {
+Connection.prototype._recvMessages = function () {
   const started = Date.now()
 
   for (let n = 0; true; ++n) {
-    if (n === this._messages.length) {
-      this._messages.length = 0
+    if (n === this._recvQueue.length) {
+      this._recvQueue.splice(0, n)
       return
     }
 
     // TODO: Date.now is slow...
     if (n % 128 === 0 && Date.now() - started > 100) {
-      this._messages.splice(0, n)
-      setImmediate(this._processMessages)
+      this._recvQueue.splice(0, n)
+      setImmediate(this._recvMessages)
       return
     }
 
-    const message = this._messages[n]
-    this._messages[n] = null
+    const message = this._recvQueue[n]
+    this._recvQueue[n] = null
 
     if (message.length <= 2) {
       continue
@@ -271,8 +271,7 @@ Connection.prototype._reset = function () {
   this._heartbeatInterval = null
   this._lastHeartBeat = null
 
-  this._messages = []
-  this._messagesIndex = 0
+  this._recvQueue = []
   this._sendQueue = []
 }
 
