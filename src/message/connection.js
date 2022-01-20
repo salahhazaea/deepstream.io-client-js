@@ -40,7 +40,7 @@ const Connection = function (client, url, options) {
   this._state = C.CONNECTION_STATE.CLOSED
 
   this.hasher = null
-  xxhash((hasher) => {
+  xxhash().then((hasher) => {
     this.hasher = hasher
     this._createEndpoint()
   })
