@@ -102,7 +102,7 @@ Object.defineProperty(Record.prototype, 'state', {
 
     invariant(this.connected, 'must be connected when no patch queue')
 
-    if (this._provided && utils.isSameOrNewer(this.version, this._provided)) {
+    if (this._provided) {
       return Record.STATE.PROVIDER
     }
 
