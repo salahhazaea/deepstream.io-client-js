@@ -56,6 +56,7 @@ class Listener {
         value$: undefined,
         version: null,
         body: null,
+        accepted: false,
         ready: false,
         patternSubscription: null,
         valueSubscription: null,
@@ -77,10 +78,12 @@ class Listener {
           value$ = rxjs.of(value$)
         }
 
-        if (provider.value$ === undefined || Boolean(value$) !== Boolean(provider.value$)) {
+        const accepted = Boolean(value$)
+        if (provider.accepted !== accepted) {
+          provider.accepted = accepted
           this._connection.sendMsg(
             this._topic,
-            value$ ? C.ACTIONS.LISTEN_ACCEPT : C.ACTIONS.LISTEN_REJECT,
+            accepted ? C.ACTIONS.LISTEN_ACCEPT : C.ACTIONS.LISTEN_REJECT,
             [this._pattern, provider.name]
           )
         }
@@ -97,7 +100,8 @@ class Listener {
           provider.name,
         ])
 
-        if (provider.value$) {
+        if (provider.accepted) {
+          provider.accepted = false
           this._connection.sendMsg(this._topic, C.ACTIONS.LISTEN_REJECT, [
             this._pattern,
             provider.name,
@@ -184,7 +188,10 @@ class Listener {
           name,
         ])
       } else if (!provider || !provider.value$) {
-        this._connection.sendMsg(this._topic, C.ACTIONS.LISTEN_REJECT, [this._pattern, name])
+        if (provider.accepted) {
+          provider.accepted = false
+          this._connection.sendMsg(this._topic, C.ACTIONS.LISTEN_REJECT, [this._pattern, name])
+        }
       } else {
         provider.ready = false
         provider.version = message.data[2]
