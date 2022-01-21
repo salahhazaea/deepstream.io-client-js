@@ -327,9 +327,7 @@ Record.prototype._$onMessage = function (message) {
 Record.prototype._onSubscriptionHasProvider = function (data) {
   invariant(this.connected, 'must be connected')
 
-  const provided = messageParser.convertTyped(data[1], this._client)
-
-  invariant(typeof provided === 'string', 'provided must be a string')
+  const provided = Boolean(messageParser.convertTyped(data[1], this._client))
 
   if (this._provided === provided) {
     return
