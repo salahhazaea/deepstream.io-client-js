@@ -156,18 +156,25 @@ class Listener {
         error: provider.error,
       }
 
-      let provider$
       try {
-        provider$ = this._callback(name)
-        if (!this._recursive) {
-          provider$ = rxjs.of(provider$)
+        let provider$
+        try {
+          provider$ = this._callback(name)
+          if (!this._recursive) {
+            provider$ = rxjs.of(provider$)
+          }
+        } catch (err) {
+          provider$ = rxjs.throwError(err)
         }
-      } catch (err) {
-        provider$ = rxjs.throwError(err)
-      }
 
-      this._providers.set(provider.name, provider)
-      provider.patternSubscription = provider$.subscribe(provider)
+        provider.patternSubscription = provider$.subscribe(provider)
+        this._providers.set(provider.name, provider)
+      } catch (err) {
+        this._client._$onError(this._topic, C.EVENT.USER_ERROR, 'bad provider', [
+          this._pattern,
+          name,
+        ])
+      }
     } else if (message.action === C.ACTIONS.LISTEN_ACCEPT) {
       const provider = this._providers.get(name)
 
