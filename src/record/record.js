@@ -97,13 +97,13 @@ Object.defineProperty(Record.prototype, 'state', {
     }
 
     if (this._patchQueue) {
-      return this.version.startsWith('0-') ? Record.STATE.EMPTY : Record.STATE.CLIENT
+      return this.version[0] === '0' ? Record.STATE.EMPTY : Record.STATE.CLIENT
     }
 
     invariant(this.connected, 'must be connected when no patch queue')
 
     if (this._provided) {
-      return Record.STATE.PROVIDER
+      return this.version[0] === 'I' ? Record.STATE.PROVIDER : Record.STATE.SERVER
     }
 
     return Record.STATE.SERVER
