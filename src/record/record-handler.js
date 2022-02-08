@@ -292,7 +292,11 @@ RecordHandler.prototype.observe = function (name, pathOrState, stateOrNil) {
     pathOrState = undefined
   }
   const path = pathOrState
-  const state = stateOrNil == null ? C.RECORD_STATE.SERVER : stateOrNil
+  let state = stateOrNil == null ? C.RECORD_STATE.SERVER : stateOrNil
+
+  if (typeof state === 'string') {
+    state = C.RECORD_STATE[state.toUpperCase()]
+  }
 
   if (!name) {
     return rxjs.of(jsonPath.EMPTY)
@@ -323,7 +327,11 @@ RecordHandler.prototype.observe2 = function (name, pathOrState, stateOrNil) {
   }
 
   const path = pathOrState
-  const state = stateOrNil
+  let state = stateOrNil
+
+  if (typeof state === 'string') {
+    state = C.RECORD_STATE[state.toUpperCase()]
+  }
 
   if (!name) {
     return rxjs.of(
