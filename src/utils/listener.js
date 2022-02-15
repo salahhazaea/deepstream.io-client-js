@@ -150,10 +150,7 @@ class Listener {
             } else if (!provider.ready) {
               provider.ready = true
               provider.version = version
-              this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.SUBSCRIPTION_HAS_PROVIDER, [
-                provider.name,
-                version,
-              ])
+              this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.UPDATE, [provider.name, version])
             }
           }
         },
