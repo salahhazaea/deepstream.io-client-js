@@ -171,10 +171,7 @@ class Listener {
         provider.patternSubscription = provider$.subscribe(provider)
         this._providers.set(provider.name, provider)
       } catch (err) {
-        this._client._$onError(this._topic, C.EVENT.USER_ERROR, 'bad provider', [
-          this._pattern,
-          name,
-        ])
+        this._client._$onError(this._topic, C.EVENT.USER_ERROR, err, [this._pattern, name])
       }
     } else if (message.action === C.ACTIONS.LISTEN_ACCEPT) {
       const provider = this._providers.get(name)
