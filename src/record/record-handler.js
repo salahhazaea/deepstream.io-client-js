@@ -8,6 +8,7 @@ const RecordCache = require('./record-cache')
 const jsonPath = require('./json-path')
 const utils = require('../utils/utils')
 const rx = require('rxjs/operators')
+const fastJson = require('fast-json-stringify')
 
 const RecordHandler = function (options, connection, client) {
   this.STATE = C.RECORD_STATE
@@ -133,18 +134,15 @@ RecordHandler.prototype.getRecord = function (name) {
   return record
 }
 
-RecordHandler.prototype.provide = function (
-  pattern,
-  callback,
-  recursive = false,
-  stringify = null
-) {
+RecordHandler.prototype.provide = function (pattern, callback, recursive = false, schema = null) {
   if (typeof pattern !== 'string' || pattern.length === 0) {
     throw new Error('invalid argument pattern')
   }
   if (typeof callback !== 'function') {
     throw new Error('invalid argument callback')
   }
+
+  const stringify = schema ? fastJson(schema) : null
 
   if (this._listeners.has(pattern)) {
     this._client._$onError(C.TOPIC.RECORD, C.EVENT.LISTENER_EXISTS, new Error(pattern))

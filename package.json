@@ -64,6 +64,7 @@
     "bufferutil": "^4.0.5",
     "component-emitter2": "^1.3.5",
     "encoding-down": "^7.1.0",
+    "fast-json-stringify": "^3.0.3",
     "invariant": "^2.2.4",
     "levelup": "^5.1.1",
     "lru-cache": "^6.0.0",
