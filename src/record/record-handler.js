@@ -142,14 +142,32 @@ RecordHandler.prototype.provide = function (pattern, callback, recursive = false
     throw new Error('invalid argument callback')
   }
 
-  const stringify = schema ? fastJson(schema) : null
+  let options
+
+  if (recursive && typeof recursive === 'object') {
+    options = recursive
+  } else {
+    options = {
+      recursive,
+      schema,
+    }
+  }
+
+  const stringify = options.schema ? fastJson(options.schema) : null
 
   if (this._listeners.has(pattern)) {
     this._client._$onError(C.TOPIC.RECORD, C.EVENT.LISTENER_EXISTS, new Error(pattern))
     return
   }
 
-  const listener = new Listener(C.TOPIC.RECORD, pattern, callback, this, recursive, stringify)
+  const listener = new Listener(
+    C.TOPIC.RECORD,
+    pattern,
+    callback,
+    this,
+    options.recursive,
+    stringify
+  )
 
   this._listeners.set(pattern, listener)
   return () => {
