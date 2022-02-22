@@ -133,7 +133,7 @@ class Listener {
 
             const body = typeof value !== 'string' ? this._stringify(value) : value
             const hash = this._connection.hasher.h64ToString(body)
-            const version = `INF-z${hash}`
+            const version = `INF-${hash}`
 
             if (provider.version !== version) {
               provider.ready = true
