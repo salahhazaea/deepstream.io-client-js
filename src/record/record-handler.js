@@ -78,7 +78,12 @@ const RecordHandler = function (options, connection, client) {
           continue
         }
 
-        if (this._now - timestamp <= 1e3) {
+        const ttl = (
+          Object.keys(rec.data).length === 0 ||
+          rec.state >= C.RECORD_STATE.PROVIDER
+         ) ? 1e3 : 10e3
+
+        if (this._now - timestamp <= ttl) {
           continue
         }
 
