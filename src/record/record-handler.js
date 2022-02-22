@@ -24,6 +24,7 @@ const RecordHandler = function (options, connection, client) {
   this._listeners = new Map()
   this._prune = new Map()
   this._pendingWrite = new Set()
+  this._now = Date.now()
 
   this._syncEmitter = new EventEmitter()
   this._syncCounter = 0
@@ -68,15 +69,15 @@ const RecordHandler = function (options, connection, client) {
   })
 
   const prune = () => {
-    if (this.connected) {
-      const now = Date.now()
+    this._now = Date.now()
 
+    if (this.connected) {
       for (const [rec, timestamp] of this._prune) {
         if (!rec.isReady) {
           continue
         }
 
-        if (now - timestamp <= 1e3) {
+        if (this._now - timestamp <= 1e3) {
           continue
         }
 

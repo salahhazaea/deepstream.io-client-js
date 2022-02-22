@@ -299,7 +299,7 @@ Record.prototype.unref = function () {
 
   this._usages -= 1
   if (this._usages === 0) {
-    this._prune.set(this, Date.now())
+    this._prune.set(this, this._handler._now)
   }
 }
 
