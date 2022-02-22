@@ -64,6 +64,7 @@ Client.prototype.getConnectionState = function () {
 }
 
 Client.prototype._$onMessage = function (message) {
+  this.emit('trace', message)
   if (this._messageCallbacks[message.topic]) {
     this._messageCallbacks[message.topic](message)
   } else {
