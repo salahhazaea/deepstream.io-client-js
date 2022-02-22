@@ -72,6 +72,7 @@ const RecordHandler = function (options, connection, client) {
     this._now = Date.now()
 
     if (this.connected) {
+      let n = 0
       for (const [rec, timestamp] of this._prune) {
         if (!rec.isReady) {
           continue
@@ -79,6 +80,10 @@ const RecordHandler = function (options, connection, client) {
 
         if (this._now - timestamp <= 1e3) {
           continue
+        }
+
+        if (n++ > 4096) {
+          break
         }
 
         this._records.delete(rec.name)
