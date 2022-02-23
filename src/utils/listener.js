@@ -138,6 +138,7 @@ class Listener {
             if (provider.version !== version) {
               provider.ready = true
               provider.version = version
+
               this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.UPDATE, [
                 provider.name,
                 version,
@@ -150,7 +151,12 @@ class Listener {
             } else if (!provider.ready) {
               provider.ready = true
               provider.version = version
+
               this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.UPDATE, [provider.name, version])
+              this._handler._$handle({
+                action: C.ACTIONS.UPDATE,
+                data: [provider.name, version, body],
+              })
             }
           }
         },
