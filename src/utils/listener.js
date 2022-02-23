@@ -77,6 +77,8 @@ class Listener {
         if (value$ && typeof value$.subscribe !== 'function') {
           // Compat for recursive with value
           value$ = rxjs.of(value$)
+        } else if (!value$) {
+          value$ = null
         }
 
         const accepted = Boolean(value$)
@@ -89,8 +91,7 @@ class Listener {
           )
         }
 
-        provider.value$ = value$ || null
-
+        provider.value$ = value$
         if (provider.valueSubscription) {
           provider.valueSubscription.unsubscribe()
           provider.valueSubscription = value$ ? value$.subscribe(provider.observer) : null
