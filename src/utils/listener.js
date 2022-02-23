@@ -44,10 +44,12 @@ class Listener {
 
     if (message.action === C.ACTIONS.SUBSCRIPTION_FOR_PATTERN_FOUND) {
       if (this._providers.has(name)) {
-        this._client._$onError(this._topic, C.EVENT.LISTENER_ERROR, 'invalid add: listener exists', [
-          this._pattern,
-          name,
-        ])
+        this._client._$onError(
+          this._topic,
+          C.EVENT.LISTENER_ERROR,
+          'invalid add: listener exists',
+          [this._pattern, name]
+        )
         return
       }
 
@@ -151,21 +153,17 @@ class Listener {
       }
 
       try {
-        try {
-          const provider$ = this._callback(name)
-          if (!this._recursive) {
-            provider.next(provider$)
-          } else {
-            provider.patternSubscription = provider$.subscribe(provider)
-          }
-        } catch (err) {
-          provider.error(err)
+        const provider$ = this._callback(name)
+        if (!this._recursive) {
+          provider.next(provider$)
+        } else {
+          provider.patternSubscription = provider$.subscribe(provider)
         }
-
-        this._providers.set(provider.name, provider)
       } catch (err) {
-        this._client._$onError(this._topic, C.EVENT.USER_ERROR, err, [this._pattern, name])
+        provider.error(err)
       }
+
+      this._providers.set(provider.name, provider)
     } else if (message.action === C.ACTIONS.LISTEN_ACCEPT) {
       const provider = this._providers.get(name)
 
