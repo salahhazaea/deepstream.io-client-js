@@ -57,7 +57,6 @@ class Listener {
         version: null,
         body: null,
         accepted: false,
-        ready: false,
         patternSubscription: null,
         valueSubscription: null,
       }
@@ -136,21 +135,10 @@ class Listener {
             const version = `INF-${hash}`
 
             if (provider.version !== version) {
-              provider.ready = true
               provider.version = version
-
               const data = [provider.name, version, body]
               this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.UPDATE, data)
               this._handler._$handle({ action: C.ACTIONS.UPDATE, data })
-            } else if (!provider.ready) {
-              provider.ready = true
-              provider.version = version
-
-              this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.UPDATE, [provider.name, version])
-              this._handler._$handle({
-                action: C.ACTIONS.UPDATE,
-                data: [provider.name, version, body],
-              })
             }
           }
         },
@@ -187,8 +175,7 @@ class Listener {
           this._connection.sendMsg(this._topic, C.ACTIONS.LISTEN_REJECT, [this._pattern, name])
         }
       } else {
-        provider.ready = false
-        provider.version = message.data[2]
+        // TODO (fix): provider.version = message.data[2]
         provider.valueSubscription = provider.value$.subscribe(provider.observer)
       }
     } else if (message.action === C.ACTIONS.SUBSCRIPTION_FOR_PATTERN_REMOVED) {
