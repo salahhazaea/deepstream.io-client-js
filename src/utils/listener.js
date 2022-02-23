@@ -158,11 +158,10 @@ class Listener {
 
       try {
         const provider$ = this._callback(name)
-        // TODO (fix): Do we even need this option? Just check for provider$.subscribe?
-        if (!this._recursive) {
-          provider.next(provider$)
-        } else {
+        if (this._recursive) {
           provider.patternSubscription = provider$.subscribe(provider)
+        } else {
+          provider.next(provider$)
         }
       } catch (err) {
         provider.error(err)
