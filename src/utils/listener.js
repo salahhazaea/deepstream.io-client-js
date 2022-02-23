@@ -116,7 +116,7 @@ class Listener {
       provider.observer = {
         next: (value) => {
           if (value == null) {
-            provider.next(null) // TODO (fix) : This is weird...
+            provider.next(null) // TODO (fix): This is weird...
             return
           }
 
@@ -158,6 +158,7 @@ class Listener {
 
       try {
         const provider$ = this._callback(name)
+        // TODO (fix): Do we even need this option? Just check for provider$.subscribe?
         if (!this._recursive) {
           provider.next(provider$)
         } else {
