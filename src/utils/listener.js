@@ -101,17 +101,7 @@ class Listener {
           this._pattern,
           provider.name,
         ])
-
-        if (provider.accepted) {
-          provider.accepted = false
-          this._connection.sendMsg(this._topic, C.ACTIONS.LISTEN_REJECT, [
-            this._pattern,
-            provider.name,
-          ])
-          provider.value$ = null
-        }
-
-        provider.dispose()
+        provider.next(null)
       }
       provider.observer = {
         next: (value) => {
@@ -147,13 +137,7 @@ class Listener {
             }
           }
         },
-        error: (err) => {
-          this._client._$onError(this._topic, C.EVENT.LISTENER_ERROR, err, [
-            this._pattern,
-            provider.name,
-          ])
-          provider.next(null) // TODO (fix) : This is weird...
-        },
+        error: provider.error,
       }
 
       try {
