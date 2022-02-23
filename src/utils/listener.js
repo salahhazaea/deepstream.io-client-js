@@ -116,8 +116,7 @@ class Listener {
       provider.observer = {
         next: (value) => {
           if (value == null) {
-            // TODO (fix) : This is weird...
-            provider.next(null)
+            provider.next(null) // TODO (fix) : This is weird...
             return
           }
 
@@ -148,8 +147,13 @@ class Listener {
             }
           }
         },
-        // TODO (fix) : This is weird...
-        error: provider.error,
+        error: (err) => {
+          this._client._$onError(this._topic, C.EVENT.LISTENER_ERROR, err, [
+            this._pattern,
+            provider.name,
+          ])
+          provider.next(null) // TODO (fix) : This is weird...
+        },
       }
 
       try {
