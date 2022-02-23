@@ -136,9 +136,11 @@ class Listener {
 
             if (provider.version !== version) {
               provider.version = version
-              const data = [provider.name, version, body]
-              this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.UPDATE, data)
-              this._handler._$handle({ action: C.ACTIONS.UPDATE, data })
+              this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.UPDATE, [
+                provider.name,
+                version,
+                body,
+              ])
             }
           }
         },
