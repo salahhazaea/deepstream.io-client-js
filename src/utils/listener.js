@@ -44,19 +44,19 @@ class Listener {
 
     if (message.action === C.ACTIONS.SUBSCRIPTION_FOR_PATTERN_FOUND) {
       if (this._providers.has(name)) {
-        this._client._$onError(this._topic, C.EVENT.LISTENER_ERROR, 'listener exists', [
+        this._client._$onError(this._topic, C.EVENT.LISTENER_ERROR, 'invalid add: listener exists', [
           this._pattern,
           name,
         ])
         return
       }
 
+      // TODO (refactor): Move to class
       const provider = {
         name,
-        value$: undefined,
+        value$: null,
         version: null,
-        body: null,
-        accepted: false,
+        accepted: null,
         patternSubscription: null,
         valueSubscription: null,
       }
@@ -72,7 +72,7 @@ class Listener {
         this._providers.delete(provider.name)
       }
       provider.next = (value$) => {
-        if (value$ && !value$.subscribe) {
+        if (value$ && typeof value$.subscribe !== 'function') {
           // Compat for recursive with value
           value$ = rxjs.of(value$)
         }
@@ -88,6 +88,7 @@ class Listener {
         }
 
         provider.value$ = value$ || null
+
         if (provider.valueSubscription) {
           provider.valueSubscription.unsubscribe()
           provider.valueSubscription = value$ ? value$.subscribe(provider.observer) : null
@@ -113,6 +114,7 @@ class Listener {
       provider.observer = {
         next: (value) => {
           if (value == null) {
+            // TODO (fix) : This is weird...
             provider.next(null)
             return
           }
@@ -144,21 +146,22 @@ class Listener {
             }
           }
         },
+        // TODO (fix) : This is weird...
         error: provider.error,
       }
 
       try {
-        let provider$
         try {
-          provider$ = this._callback(name)
+          const provider$ = this._callback(name)
           if (!this._recursive) {
-            provider$ = rxjs.of(provider$)
+            provider.next(provider$)
+          } else {
+            provider.patternSubscription = provider$.subscribe(provider)
           }
         } catch (err) {
-          provider$ = rxjs.throwError(err)
+          provider.error(err)
         }
 
-        provider.patternSubscription = provider$.subscribe(provider)
         this._providers.set(provider.name, provider)
       } catch (err) {
         this._client._$onError(this._topic, C.EVENT.USER_ERROR, err, [this._pattern, name])
@@ -166,16 +169,22 @@ class Listener {
     } else if (message.action === C.ACTIONS.LISTEN_ACCEPT) {
       const provider = this._providers.get(name)
 
-      if (provider && provider.valueSubscription) {
-        this._client._$onError(this._topic, C.EVENT.LISTENER_ERROR, 'listener started', [
-          this._pattern,
-          name,
-        ])
-      } else if (!provider || !provider.value$) {
-        if (provider.accepted) {
-          provider.accepted = false
-          this._connection.sendMsg(this._topic, C.ACTIONS.LISTEN_REJECT, [this._pattern, name])
-        }
+      if (!provider || !provider.value$) {
+        this._client._$onError(
+          this._topic,
+          C.EVENT.LISTENER_ERROR,
+          'invalid accept: listener missing',
+          [this._pattern, name]
+        )
+      } else if (provider.valueSubscription) {
+        this._client._$onError(
+          this._topic,
+          C.EVENT.LISTENER_ERROR,
+          'invalid accept: listener started',
+          [this._pattern, name]
+        )
+      } else if (!provider.accepted) {
+        this._connection.sendMsg(this._topic, C.ACTIONS.LISTEN_REJECT, [this._pattern, name])
       } else {
         // TODO (fix): provider.version = message.data[2]
         provider.valueSubscription = provider.value$.subscribe(provider.observer)
@@ -184,10 +193,12 @@ class Listener {
       const provider = this._providers.get(name)
 
       if (!provider) {
-        this._client._$onError(this._topic, C.EVENT.LISTENER_ERROR, 'listener not found', [
-          this._pattern,
-          name,
-        ])
+        this._client._$onError(
+          this._topic,
+          C.EVENT.LISTENER_ERROR,
+          'invalid remove: listener missing',
+          [this._pattern, name]
+        )
         return
       }
 
