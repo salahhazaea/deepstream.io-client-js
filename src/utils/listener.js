@@ -71,7 +71,6 @@ class Listener {
           provider.valueSubscription.unsubscribe()
           provider.valueSubscription = null
         }
-        this._providers.delete(provider.name)
       }
       provider.next = (value$) => {
         if (value$ && typeof value$.subscribe !== 'function') {
@@ -190,6 +189,7 @@ class Listener {
       }
 
       provider.dispose()
+      this._providers.delete(provider.name)
     } else {
       return false
     }
