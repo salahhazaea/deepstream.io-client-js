@@ -30,7 +30,6 @@ const Record = function (name, handler) {
     this.unref()
 
     if (err && !err.notFound) {
-      this._stats.misses += 1
       this._client._$onError(C.TOPIC.RECORD, C.EVENT.CACHE_ERROR, err, [
         this.name,
         this.version,
@@ -55,6 +54,8 @@ const Record = function (name, handler) {
       this.version = entry[0]
       this.data = utils.deepFreeze(Object.keys(entry[1]).length === 0 ? jsonPath.EMPTY : entry[1])
       this.emit('update', this)
+    } else {
+      this._stats.misses += 1
     }
 
     this._subscribe()
