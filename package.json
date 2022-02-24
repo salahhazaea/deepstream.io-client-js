@@ -1,6 +1,6 @@
 {
   "name": "@nxtedition/deepstream.io-client-js",
-  "version": "18.0.19",
+  "version": "18.0.20",
   "description": "the javascript client for deepstream.io",
   "homepage": "http://deepstream.io",
   "bugs": {
