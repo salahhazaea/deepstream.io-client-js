@@ -174,8 +174,10 @@ RecordHandler.prototype.provide = function (pattern, callback, recursive = false
   }
 }
 
-RecordHandler.prototype.sync = function () {
+RecordHandler.prototype.sync = function (options) {
   // TODO (perf): Optimize
+
+  const signal = options && options.signal
 
   const pending = []
   const records = []
@@ -188,6 +190,26 @@ RecordHandler.prototype.sync = function () {
   return new Promise((resolve) => {
     let token
     let timeout
+
+    function onDone(val) {
+      clearTimeout(timeout)
+
+      if (signal) {
+        signal.removeEventListener('abort', onAbort)
+      }
+
+      this._syncEmitter.off(token, onToken)
+
+      resolve(val)
+    }
+
+    function onToken() {
+      onDone(true)
+    }
+
+    function onAbort() {
+      onDone(Promise.reject(new utils.AbortError()))
+    }
 
     const onTimeout = () => {
       if (!this.connected) {
@@ -208,19 +230,20 @@ RecordHandler.prototype.sync = function () {
 
       this._client._$onError(C.TOPIC.RECORD, C.EVENT.TIMEOUT, 'sync timeout', [token])
 
-      resolve(false)
+      onDone(false)
     }
 
     timeout = setTimeout(onTimeout, 2 * 60e3)
+
+    if (signal) {
+      signal.addEventListener('abort', onAbort)
+    }
 
     return Promise.all(pending).then(() => {
       token = this._syncCounter.toString(16)
       this._syncCounter = (this._syncCounter + 1) & 2147483647
 
-      this._syncEmitter.once(token, () => {
-        clearTimeout(timeout)
-        resolve(true)
-      })
+      this._syncEmitter.once(token, onToken)
 
       if (this.connected) {
         this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.SYNC, [token])
