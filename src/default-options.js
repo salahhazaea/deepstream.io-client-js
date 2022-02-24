@@ -6,4 +6,5 @@ module.exports = {
   maxPacketSize: 512 * 1024,
   schedule: null,
   logger: null,
+  cache: null,
 }
