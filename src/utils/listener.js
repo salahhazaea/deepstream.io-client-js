@@ -44,12 +44,7 @@ class Listener {
 
     if (message.action === C.ACTIONS.SUBSCRIPTION_FOR_PATTERN_FOUND) {
       if (this._providers.has(name)) {
-        this._client._$onError(
-          this._topic,
-          C.EVENT.LISTENER_ERROR,
-          'invalid add: listener exists',
-          [this._pattern, name]
-        )
+        this._error(name, 'invalid add: listener exists')
         return
       }
 
@@ -97,10 +92,7 @@ class Listener {
         }
       }
       provider.error = (err) => {
-        this._client._$onError(this._topic, C.EVENT.LISTENER_ERROR, err, [
-          this._pattern,
-          provider.name,
-        ])
+        this._error(provider.name, err)
         provider.next(null)
       }
       provider.observer = {
@@ -114,12 +106,7 @@ class Listener {
             this._handler.emit(provider.name, value)
           } else if (this._topic === C.TOPIC.RECORD) {
             if (typeof value !== 'object' && typeof value !== 'string') {
-              const err = new Error('invalid value')
-              this._client._$onError(this._topic, C.EVENT.USER_ERROR, err, [
-                this._pattern,
-                provider.name,
-                value,
-              ])
+              this._error(provider.name, 'invalid value')
               return
             }
 
@@ -156,19 +143,9 @@ class Listener {
       const provider = this._providers.get(name)
 
       if (!provider || !provider.value$) {
-        this._client._$onError(
-          this._topic,
-          C.EVENT.LISTENER_ERROR,
-          'invalid accept: listener missing',
-          [this._pattern, name]
-        )
+        this._error(name, 'invalid accept: listener missing')
       } else if (provider.valueSubscription) {
-        this._client._$onError(
-          this._topic,
-          C.EVENT.LISTENER_ERROR,
-          'invalid accept: listener started',
-          [this._pattern, name]
-        )
+        this._error(name, 'invalid accept: listener started')
       } else if (!provider.accepted) {
         this._connection.sendMsg(this._topic, C.ACTIONS.LISTEN_REJECT, [this._pattern, name])
       } else {
@@ -179,17 +156,11 @@ class Listener {
       const provider = this._providers.get(name)
 
       if (!provider) {
-        this._client._$onError(
-          this._topic,
-          C.EVENT.LISTENER_ERROR,
-          'invalid remove: listener missing',
-          [this._pattern, name]
-        )
-        return
+        this._error(name, 'invalid remove: listener missing')
+      } else {
+        provider.dispose()
+        this._providers.delete(provider.name)
       }
-
-      provider.dispose()
-      this._providers.delete(provider.name)
     } else {
       return false
     }
@@ -202,6 +173,10 @@ class Listener {
     } else {
       this._reset()
     }
+  }
+
+  _error(name, msg) {
+    this._client._$onError(this._topic, C.EVENT.LISTENER_ERROR, msg, [this._pattern, name])
   }
 
   _reset() {
