@@ -93,12 +93,7 @@ class Listener {
         provider.value$ = value$
         if (provider.valueSubscription) {
           provider.valueSubscription.unsubscribe()
-          provider.valueSubscription = value$
-            ? value$.subscribe({
-                next: provider.innerNext,
-                error: provider.error,
-              })
-            : null
+          provider.valueSubscription = value$ ? value$.subscribe(provider.observer) : null
         }
       }
       provider.error = (err) => {
@@ -108,38 +103,41 @@ class Listener {
         ])
         provider.next(null)
       }
-      provider.innerNext = (value) => {
-        if (value == null) {
-          provider.next(null) // TODO (fix): This is weird...
-          return
-        }
-
-        if (this._topic === C.TOPIC.EVENT) {
-          this._handler.emit(provider.name, value)
-        } else if (this._topic === C.TOPIC.RECORD) {
-          if (typeof value !== 'object' && typeof value !== 'string') {
-            const err = new Error('invalid value')
-            this._client._$onError(this._topic, C.EVENT.USER_ERROR, err, [
-              this._pattern,
-              provider.name,
-              value,
-            ])
+      provider.observer = {
+        next: (value) => {
+          if (value == null) {
+            provider.next(null) // TODO (fix): This is weird...
             return
           }
 
-          const body = typeof value !== 'string' ? this._stringify(value) : value
-          const hash = this._connection.hasher.h64ToString(body)
-          const version = `INF-${hash}`
+          if (this._topic === C.TOPIC.EVENT) {
+            this._handler.emit(provider.name, value)
+          } else if (this._topic === C.TOPIC.RECORD) {
+            if (typeof value !== 'object' && typeof value !== 'string') {
+              const err = new Error('invalid value')
+              this._client._$onError(this._topic, C.EVENT.USER_ERROR, err, [
+                this._pattern,
+                provider.name,
+                value,
+              ])
+              return
+            }
 
-          if (provider.version !== version) {
-            provider.version = version
-            this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.UPDATE, [
-              provider.name,
-              version,
-              body,
-            ])
+            const body = typeof value !== 'string' ? this._stringify(value) : value
+            const hash = this._connection.hasher.h64ToString(body)
+            const version = `INF-${hash}`
+
+            if (provider.version !== version) {
+              provider.version = version
+              this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.UPDATE, [
+                provider.name,
+                version,
+                body,
+              ])
+            }
           }
-        }
+        },
+        error: provider.error,
       }
 
       try {
