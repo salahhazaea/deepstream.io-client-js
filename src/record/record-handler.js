@@ -78,10 +78,8 @@ const RecordHandler = function (options, connection, client) {
           continue
         }
 
-        const ttl = (
-          Object.keys(rec.data).length === 0 ||
-          rec.state >= C.RECORD_STATE.PROVIDER
-         ) ? 1e3 : 10e3
+        const ttl =
+          Object.keys(rec.data).length === 0 || rec.state >= C.RECORD_STATE.PROVIDER ? 1e3 : 10e3
 
         if (this._now - timestamp <= ttl) {
           continue
@@ -243,52 +241,14 @@ RecordHandler.prototype.sync = function () {
 }
 
 RecordHandler.prototype.get = function (name, ...args) {
-  let path
-  let state = C.RECORD_STATE.SERVER
-  let signal
-  let timeout = 2 * 60e3
-  let first
-
-  let idx = 0
-
-  if (idx < args.length && (args[idx] == null || typeof args[idx] === 'string')) {
-    path = args[idx++]
-  }
-
-  if (idx < args.length && (args[idx] == null || typeof args[idx] === 'number')) {
-    state = args[idx++]
-  }
-
-  if (idx < args.length && (args[idx] == null || typeof args[idx] === 'object')) {
-    const options = args[idx++] || {}
-
-    signal = options.signal
-
-    if (options.timeout != null) {
-      timeout = options.timeout
-    }
-
-    if (options.path != null) {
-      path = options.path
-    }
-
-    if (options.state != null) {
-      state = options.state
-    }
-
-    if (options.first != null) {
-      first = options.first
-    }
-  }
-
-  let x$ = this.observe2(name, path, state)
-
-  if (signal != null) {
-    x$ = signal.aborted ? rxjs.EMPTY : x$.pipe(rx.takeUntil(rxjs.fromEvent(signal, 'abort')))
-    x$ = x$.pipe(rx.throwIfEmpty(() => new utils.AbortError()))
-  }
-
-  return x$.pipe(rx.first(first), rx.pluck('data'), rx.timeout(timeout)).toPromise()
+  return new Promise((resolve, reject) => {
+    this.observe(name, ...args)
+      .pipe(rx.first())
+      .subscribe({
+        next: resolve,
+        error: reject,
+      })
+  })
 }
 
 RecordHandler.prototype.set = function (name, pathOrData, dataOrNil) {
@@ -313,48 +273,47 @@ RecordHandler.prototype.update = function (name, ...args) {
   }
 }
 
-RecordHandler.prototype.observe = function (name, pathOrState, stateOrNil) {
-  if (arguments.length === 2 && typeof pathOrState === 'number') {
-    stateOrNil = pathOrState
-    pathOrState = undefined
-  }
-  const path = pathOrState
-  let state = stateOrNil == null ? C.RECORD_STATE.SERVER : stateOrNil
-
-  if (typeof state === 'string') {
-    state = C.RECORD_STATE[state.toUpperCase()]
-  }
-
-  if (!name) {
-    return rxjs.of(jsonPath.EMPTY)
-  }
-
-  return new rxjs.Observable((o) => {
-    const onUpdate = (record) => {
-      if (!state || record.state >= state) {
-        o.next(record.get(path))
-      }
-    }
-    const record = this.getRecord(name)
-    if (record.version) {
-      onUpdate(record)
-    }
-    record.on('update', onUpdate)
-    return () => {
-      record.off('update', onUpdate)
-      record.unref()
-    }
-  }).pipe(rx.distinctUntilChanged())
+RecordHandler.prototype.observe = function (name, ...args) {
+  return this.observe2(name, ...args).pipe(rx.pluck('data'), rx.distinctUntilChanged())
 }
 
-RecordHandler.prototype.observe2 = function (name, pathOrState, stateOrNil) {
-  if (arguments.length === 2 && typeof pathOrState === 'number') {
-    stateOrNil = pathOrState
-    pathOrState = undefined
+RecordHandler.prototype.observe2 = function (name, ...args) {
+  let path
+  let state = C.RECORD_STATE.SERVER
+  let signal
+  let timeout = 2 * 60e3
+
+  let idx = 0
+
+  if (idx < args.length && (args[idx] == null || typeof args[idx] === 'string')) {
+    path = args[idx++]
   }
 
-  const path = pathOrState
-  let state = stateOrNil
+  if (idx < args.length && (args[idx] == null || typeof args[idx] === 'number')) {
+    state = args[idx++]
+  }
+
+  if (idx < args.length && (args[idx] == null || typeof args[idx] === 'number')) {
+    timeout = args[idx++]
+  }
+
+  if (idx < args.length && (args[idx] == null || typeof args[idx] === 'object')) {
+    const options = args[idx++] || {}
+
+    signal = options.signal
+
+    if (options.timeout != null) {
+      timeout = options.timeout
+    }
+
+    if (options.path != null) {
+      path = options.path
+    }
+
+    if (options.state != null) {
+      state = options.state
+    }
+  }
 
   if (typeof state === 'string') {
     state = C.RECORD_STATE[state.toUpperCase()]
@@ -371,27 +330,56 @@ RecordHandler.prototype.observe2 = function (name, pathOrState, stateOrNil) {
     )
   }
 
-  return new rxjs.Observable((o) => {
-    const onUpdate = (record) => {
-      if (!state || record.state >= state) {
-        o.next({
-          name,
-          version: record.version,
-          data: record.get(path),
-          state: record.state,
-        })
-      }
+  let x$ = new rxjs.Observable((o) => {
+    let timeoutHandle
+
+    if (timeout) {
+      timeoutHandle = setTimeout(() => {
+        o.error(new Error(`${name}: state timeout`))
+      }, timeout)
     }
+
+    const onUpdate = (record) => {
+      if (state && record.state < state) {
+        return
+      }
+
+      if (timeoutHandle) {
+        clearTimeout(timeoutHandle)
+        timeoutHandle = null
+      }
+
+      o.next({
+        name,
+        version: record.version,
+        data: record.get(path),
+        state: record.state,
+      })
+    }
+
     const record = this.getRecord(name)
     if (record.version) {
       onUpdate(record)
     }
+
     record.on('update', onUpdate)
     return () => {
       record.off('update', onUpdate)
       record.unref()
+
+      if (timeoutHandle) {
+        clearTimeout(timeoutHandle)
+        timeoutHandle = null
+      }
     }
   })
+
+  if (signal) {
+    x$ = signal.aborted ? rxjs.EMPTY : x$.pipe(rx.takeUntil(rxjs.fromEvent(signal, 'abort')))
+    x$ = x$.pipe(rx.throwIfEmpty(() => new utils.AbortError()))
+  }
+
+  return x$
 }
 
 RecordHandler.prototype._$handle = function (message) {
