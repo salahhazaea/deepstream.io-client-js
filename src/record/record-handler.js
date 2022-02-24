@@ -4,7 +4,6 @@ const C = require('../constants/constants')
 const rxjs = require('rxjs')
 const invariant = require('invariant')
 const EventEmitter = require('component-emitter2')
-const RecordCache = require('./record-cache')
 const jsonPath = require('./json-path')
 const utils = require('../utils/utils')
 const rx = require('rxjs/operators')
@@ -42,21 +41,11 @@ const RecordHandler = function (options, connection, client) {
       this._client._$onError(C.TOPIC.RECORD, C.EVENT.CACHE_ERROR, err)
     })
   } else {
-    // Legacy
-    this._cache = new RecordCache(options, (err) => {
-      if (err) {
-        this._client._$onError(C.TOPIC.RECORD, C.EVENT.CACHE_ERROR, err)
-      }
-    })
-    const interval = setInterval(() => {
-      this._cache.flush((err) => {
-        if (err) {
-          this._client._$onError(C.TOPIC.RECORD, C.EVENT.CACHE_ERROR, err)
-        }
-      })
-    }, 1e3)
-    if (interval.unref) {
-      interval.unref()
+    this._cache = {
+      get(name, callback) {
+        callback(null)
+      },
+      set(name, version, body) {},
     }
   }
 
