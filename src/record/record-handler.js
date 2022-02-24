@@ -231,7 +231,13 @@ RecordHandler.prototype.sync = function () {
 
 RecordHandler.prototype.get = function (...args) {
   return new Promise((resolve, reject) => {
-    this.observe2(...args)
+    this._observe(
+      {
+        state: C.RECORD_STATE.SERVER,
+        timeout: 2 * 60e3,
+      },
+      ...args
+    )
       .pipe(rx.pluck('data'), rx.first())
       .subscribe({
         next: resolve,
@@ -263,14 +269,24 @@ RecordHandler.prototype.update = function (name, ...args) {
 }
 
 RecordHandler.prototype.observe = function (...args) {
-  return this.observe2(...args).pipe(rx.pluck('data'), rx.distinctUntilChanged())
+  return this._observe(
+    {
+      state: C.RECORD_STATE.SERVER,
+      timeout: 2 * 60e3,
+    },
+    ...args
+  ).pipe(rx.pluck('data'), rx.distinctUntilChanged())
 }
 
-RecordHandler.prototype.observe2 = function (name, ...args) {
+RecordHandler.prototype.observe2 = function (...args) {
+  return this._observe({}, ...args)
+}
+
+RecordHandler.prototype._observe = function (defaults, name, ...args) {
   let path
-  let state = C.RECORD_STATE.SERVER
+  let state = defaults.state
   let signal
-  let timeout = 2 * 60e3
+  let timeout = defaults.timeout
 
   let idx = 0
 
