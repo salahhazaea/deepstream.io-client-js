@@ -281,7 +281,7 @@ RecordHandler.prototype.observe2 = function (name, ...args) {
   let path
   let state = C.RECORD_STATE.SERVER
   let signal
-  let timeout = 2 * 60e3
+  let timeout = this._options.defaultReadTimeout
 
   let idx = 0
 
