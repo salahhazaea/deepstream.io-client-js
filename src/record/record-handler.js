@@ -243,7 +243,7 @@ RecordHandler.prototype.sync = function () {
 RecordHandler.prototype.get = function (...args) {
   return new Promise((resolve, reject) => {
     this.observe2(...args)
-      .pipe(rx.first())
+      .pipe(rx.pluck('data'), rx.first())
       .subscribe({
         next: resolve,
         error: reject,
