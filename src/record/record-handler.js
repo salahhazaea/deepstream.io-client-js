@@ -229,23 +229,6 @@ RecordHandler.prototype.sync = function () {
   })
 }
 
-RecordHandler.prototype.get = function (...args) {
-  return new Promise((resolve, reject) => {
-    this._observe(
-      {
-        state: C.RECORD_STATE.SERVER,
-        timeout: 2 * 60e3,
-      },
-      ...args
-    )
-      .pipe(rx.pluck('data'), rx.first())
-      .subscribe({
-        next: resolve,
-        error: reject,
-      })
-  })
-}
-
 RecordHandler.prototype.set = function (name, pathOrData, dataOrNil) {
   const record = this.getRecord(name)
   try {
@@ -266,6 +249,23 @@ RecordHandler.prototype.update = function (name, ...args) {
   } catch (err) {
     return Promise.reject(err)
   }
+}
+
+RecordHandler.prototype.get = function (...args) {
+  return new Promise((resolve, reject) => {
+    this._observe(
+      {
+        state: C.RECORD_STATE.SERVER,
+        timeout: 2 * 60e3,
+      },
+      ...args
+    )
+      .pipe(rx.pluck('data'), rx.first())
+      .subscribe({
+        next: resolve,
+        error: reject,
+      })
+  })
 }
 
 RecordHandler.prototype.observe = function (...args) {
