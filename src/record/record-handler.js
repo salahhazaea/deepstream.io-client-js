@@ -191,7 +191,7 @@ RecordHandler.prototype.sync = function (options) {
     let token
     let timeout
 
-    function onDone(val) {
+    const onDone = (val) => {
       clearTimeout(timeout)
 
       if (signal) {
@@ -205,11 +205,11 @@ RecordHandler.prototype.sync = function (options) {
       resolve(val)
     }
 
-    function onToken() {
+    const onToken = () => {
       onDone(true)
     }
 
-    function onAbort() {
+    const onAbort = () => {
       onDone(Promise.reject(new utils.AbortError()))
     }
 
