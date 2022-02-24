@@ -45,15 +45,14 @@ const Record = function (name, handler) {
 
       if (this.version) {
         // TODO (fix): What if this.version is older than version?
-        return
+      } else {
+        invariant(!this._staleEntry, 'no version no entry')
+
+        this._staleEntry = entry
+        this.version = entry[0]
+        this.data = utils.deepFreeze(Object.keys(entry[1]).length === 0 ? jsonPath.EMPTY : entry[1])
+        this.emit('update', this)
       }
-
-      invariant(!this._staleEntry, 'no version no entry')
-
-      this._staleEntry = entry
-      this.version = entry[0]
-      this.data = utils.deepFreeze(Object.keys(entry[1]).length === 0 ? jsonPath.EMPTY : entry[1])
-      this.emit('update', this)
     } else {
       this._stats.misses += 1
     }
