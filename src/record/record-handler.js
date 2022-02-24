@@ -198,7 +198,9 @@ RecordHandler.prototype.sync = function (options) {
         signal.removeEventListener('abort', onAbort)
       }
 
-      this._syncEmitter.off(token, onToken)
+      if (token) {
+        this._syncEmitter.off(token, onToken)
+      }
 
       resolve(val)
     }
@@ -222,10 +224,6 @@ RecordHandler.prototype.sync = function (options) {
           this._client._$onError(C.TOPIC.RECORD, C.EVENT.TIMEOUT, 'record timeout', [rec.name])
         }
         rec.unref()
-      }
-
-      if (token) {
-        this._syncEmitter.off(token)
       }
 
       this._client._$onError(C.TOPIC.RECORD, C.EVENT.TIMEOUT, 'sync timeout', [token])
