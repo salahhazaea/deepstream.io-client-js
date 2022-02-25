@@ -22,8 +22,8 @@ const Record = function (name, handler) {
   this._subscribed = false
   this._provided = null
   this._patchQueue = []
-  this._staleDirty = false
-  this._staleEntry = null
+  this._dirty = false
+  this._cached = null
 
   this._usages = 1 // Start with 1 for cache unref without subscribe.
   this._cache.get(this.name, (err, entry) => {
@@ -46,9 +46,9 @@ const Record = function (name, handler) {
       if (this.version) {
         // TODO (fix): What if this.version is older than version?
       } else {
-        invariant(!this._staleEntry, 'no version no entry')
+        invariant(!this._cached, 'no version no entry')
 
-        this._staleEntry = entry
+        this._cached = entry
         this.version = entry[0]
         this.data = utils.deepFreeze(Object.keys(entry[1]).length === 0 ? jsonPath.EMPTY : entry[1])
         this.emit('update', this)
@@ -72,17 +72,17 @@ Record.prototype._$destroy = function () {
   invariant(this.isReady, 'must be ready to destroy')
   invariant(!this._patchQueue, 'must not have patch queue')
 
-  if (this._staleDirty && this._staleEntry) {
-    this._cache.set(this.name, this._staleEntry[0], this._staleEntry[1])
-    this._staleDirty = false
+  if (this._dirty) {
+    this._cache.set(this.name, this.version, this.data)
+    this._dirty = false
   }
 
   if (this._subscribed) {
     // TODO (fix): Ensure unsubscribe is acked.
     this._connection.sendMsg1(C.TOPIC.RECORD, C.ACTIONS.UNSUBSCRIBE, this.name)
+    this._subscribed = false
   }
 
-  this._subscribed = false
   this._provided = null
   this._patchQueue = this._patchQueue || []
 
@@ -331,21 +331,16 @@ Record.prototype._onUpdate = function ([name, version, data]) {
       // TODO (fix): What to do when client version is newer than server version?
     }
 
-    if (this._staleEntry && this._staleEntry[0] === version) {
-      data = this._staleEntry[1]
-      data = jsonPath.set(this.data, null, data, true)
-    } else if (!data) {
+    if (this._cached && this._cached[0] === version) {
+      data = jsonPath.set(this.data, null, this._cached[1], true)
+    } else if (data) {
+      data = jsonPath.set(this.data, null, JSON.parse(data), true)
+      this._dirty = true
+    } else if (this.version === version) {
       data = this.data
-      version = this.version
-    } else {
-      if (typeof data === 'string') {
-        data = JSON.parse(data)
-      }
-      data = jsonPath.set(this.data, null, data, true)
-
-      this._staleDirty = true
-      this._staleEntry = [version, data]
     }
+
+    this._cached = null
 
     invariant(data, 'missing data')
     invariant(version, 'missing version')
@@ -380,23 +375,19 @@ Record.prototype._onUpdate = function ([name, version, data]) {
     this.data = utils.deepFreeze(this.data)
     this.emit('update', this)
   } catch (err) {
-    this._onError(C.EVENT.UPDATE_ERROR, err, [this._staleEntry, version, data])
+    this._onError(C.EVENT.UPDATE_ERROR, err, [this._cached, version, data])
   }
 }
 
 Record.prototype._sendUpdate = function () {
   invariant(this.connected, 'must be connected')
 
-  let [start] = this.version ? this.version.split('-') : ['0']
-
-  if (start.charAt(0) === 'I' || this._provided) {
+  if (this.version.charAt(0) === 'I' || this._provided) {
     // TODO (fix): Warn?
     return
   }
 
-  start = parseInt(start, 10)
-  start = start >= 0 ? start : 0
-
+  const start = this.version ? parseInt(this.version) : 0
   const nextVersion = this._makeVersion(start + 1)
   const prevVersion = this.version || ''
 
@@ -418,10 +409,10 @@ Record.prototype._subscribe = function () {
 
   // TODO (fix): Limit number of reads.
 
-  if (this._staleEntry && this._staleEntry[0]) {
-    this._connection.sendMsg2(C.TOPIC.RECORD, C.ACTIONS.SUBSCRIBE, this.name, this._staleEntry[0])
+  if (this._cached && this._cached[0]) {
+    this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.SUBSCRIBE, [this.name, this._cached[0]])
   } else {
-    this._connection.sendMsg1(C.TOPIC.RECORD, C.ACTIONS.SUBSCRIBE, this.name)
+    this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.SUBSCRIBE, [this.name])
   }
 
   this._subscribed = true
