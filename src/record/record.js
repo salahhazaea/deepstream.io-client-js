@@ -119,30 +119,13 @@ Record.prototype.get = function (path) {
 Record.prototype.set = function (pathOrData, dataOrNil) {
   invariant(this._usages > 0, 'must have refs')
 
-  if (this._usages === 0 || this._provided) {
-    this._client._$onError(C.TOPIC.RECORD, C.EVENT.UPDATE_ERROR, 'cannot set', [
-      this.name,
-      this.version,
-      this.state,
-    ])
-    return Promise.resolve()
-  }
-
-  if (this.version && this.version.charAt(0) === 'I') {
-    this._client._$onError(C.TOPIC.RECORD, C.EVENT.UPDATE_ERROR, 'cannot set', [
-      this.name,
-      this.version,
-      this.state,
-    ])
-    return Promise.resolve()
-  }
-
-  if (this.name.startsWith('_')) {
-    this._client._$onError(C.TOPIC.RECORD, C.EVENT.UPDATE_ERROR, 'cannot set', [
-      this.name,
-      this.version,
-      this.state,
-    ])
+  if (
+    this._usages === 0 ||
+    this._provided ||
+    (this.version && this.version.charAt(0) === 'I') ||
+    this.name.startsWith('_')
+  ) {
+    this._onError(C.EVENT.USER_ERROR, 'cannot set')
     return Promise.resolve()
   }
 
@@ -305,12 +288,7 @@ Record.prototype.unref = function () {
 
 Record.prototype._$onMessage = function (message) {
   if (!this.connected) {
-    this._client._$onError(
-      C.TOPIC.RECORD,
-      C.EVENT.NOT_CONNECTED,
-      new Error('received message while not connected'),
-      message
-    )
+    this._onError(C.EVENT.NOT_CONNECTED, 'received message while not connected')
     return
   }
 
@@ -321,6 +299,7 @@ Record.prototype._$onMessage = function (message) {
   } else {
     return false
   }
+
   return true
 }
 
@@ -334,15 +313,7 @@ Record.prototype._onSubscriptionHasProvider = function (data) {
   }
 
   this._provided = provided
-  try {
-    this.emit('update', this)
-  } catch (err) {
-    this._client._$onError(C.TOPIC.RECORD, C.EVENT.UPDATE_ERROR, 'cannot set', [
-      this.name,
-      this.version,
-      this.state,
-    ])
-  }
+  this.emit('update', this)
 }
 
 Record.prototype._onUpdate = function ([name, version, data]) {
@@ -409,14 +380,7 @@ Record.prototype._onUpdate = function ([name, version, data]) {
     this.data = utils.deepFreeze(this.data)
     this.emit('update', this)
   } catch (err) {
-    this._client._$onError(C.TOPIC.RECORD, C.EVENT.UPDATE_ERROR, err, [
-      this.name,
-      this.version,
-      this.state,
-      this._staleEntry,
-      version,
-      data,
-    ])
+    this._onError(C.EVENT.UPDATE_ERROR, err, [this._staleEntry, version, data])
   }
 }
 
@@ -426,6 +390,7 @@ Record.prototype._sendUpdate = function () {
   let [start] = this.version ? this.version.split('-') : ['0']
 
   if (start.charAt(0) === 'I' || this._provided) {
+    // TODO (fix): Warn?
     return
   }
 
@@ -435,13 +400,11 @@ Record.prototype._sendUpdate = function () {
   const nextVersion = this._makeVersion(start + 1)
   const prevVersion = this.version || ''
 
-  const body = JSON.stringify(this.data)
-
   // TODO (fix): This might never make it to server?
   this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.UPDATE, [
     this.name,
     nextVersion,
-    body,
+    JSON.stringify(this.data),
     prevVersion,
   ])
 
@@ -473,15 +436,16 @@ Record.prototype._$handleConnectionStateChange = function () {
     this._patchQueue = this._patchQueue || []
   }
 
-  try {
-    this.emit('update', this)
-  } catch (err) {
-    this._client._$onError(C.TOPIC.RECORD, C.EVENT.UPDATE_ERROR, 'cannot set', [
-      this.name,
-      this.version,
-      this.state,
-    ])
-  }
+  this.emit('update', this)
+}
+
+Record.prototype._onError = function (event, msgOrError, data) {
+  this._client._$onError(C.TOPIC.RECORD, event, msgOrError, [
+    ...(Array.isArray(data) ? data : []),
+    this.name,
+    this.version,
+    this.state,
+  ])
 }
 
 Record.prototype._makeVersion = function (start) {
