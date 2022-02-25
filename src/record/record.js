@@ -379,8 +379,6 @@ Record.prototype._onUpdate = function ([name, version, data]) {
     invariant(data, 'missing data')
     invariant(version, 'missing version')
 
-    const oldValue = this.data
-
     this.version = version
     this.data = data
 
@@ -401,18 +399,14 @@ Record.prototype._onUpdate = function ([name, version, data]) {
         // TODO (fix): Warning?
       }
 
-      if (this.data !== oldValue) {
-        this.data = utils.deepFreeze(this.data)
-      }
-
       this._patchQueue = null
       if (this._pendingWrite.delete(this)) {
         this.unref()
       }
       this.emit('ready')
-    } else if (this.data !== oldValue) {
-      this.data = utils.deepFreeze(this.data)
     }
+
+    this.data = utils.deepFreeze(this.data)
     this.emit('update', this)
   } catch (err) {
     this._client._$onError(C.TOPIC.RECORD, C.EVENT.UPDATE_ERROR, err, [
