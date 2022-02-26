@@ -29,7 +29,7 @@ const Record = function (name, handler) {
   this._cache.get(this.name, (err, entry) => {
     this.unref()
 
-    if (err && !err.notFound) {
+    if (err) {
       this._client._$onError(C.TOPIC.RECORD, C.EVENT.CACHE_ERROR, err, [
         this.name,
         this.version,
