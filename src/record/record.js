@@ -73,7 +73,7 @@ Record.prototype._$destroy = function () {
   invariant(!this._patchQueue, 'must not have patch queue')
 
   if (this._dirty) {
-    this._cache.set(this.name, this.version, this.data)
+    this._cache.set(this.name, [this.version, this.data])
     this._dirty = false
   }
 
