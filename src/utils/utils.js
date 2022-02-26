@@ -56,14 +56,6 @@ module.exports.isSameOrNewer = function (a, b) {
   return av > bv || (av === bv && ar >= br)
 }
 
-module.exports.nextTick = function (fn) {
-  if (module.exports.isNode) {
-    process.nextTick(fn)
-  } else {
-    setTimeout(fn, 0)
-  }
-}
-
 module.exports.shallowCopy = function (obj) {
   if (Array.isArray(obj)) {
     return obj.slice(0)
