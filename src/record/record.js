@@ -166,7 +166,6 @@ Record.prototype.set = function (pathOrData, dataOrNil) {
   }
 
   this.data = utils.deepFreeze(newData)
-  this._cached = null
 
   if (!this._patchQueue) {
     this._sendUpdate()
@@ -334,11 +333,11 @@ Record.prototype._onUpdate = function ([name, version, data]) {
 
     if (this._cached && this._cached[0] === version) {
       data = jsonPath.set(this.data, null, this._cached[1], true)
+    } else if (this.version === version) {
+      data = this.data
     } else if (data) {
       data = jsonPath.set(this.data, null, JSON.parse(data), true)
       this._dirty = true
-    } else if (this.version === version) {
-      data = this.data
     }
 
     invariant(data, 'missing data')
@@ -365,6 +364,8 @@ Record.prototype._onUpdate = function ([name, version, data]) {
       }
 
       this._patchQueue = null
+      this._cached = null
+
       if (this._pendingWrite.delete(this)) {
         this.unref()
       }
@@ -372,12 +373,9 @@ Record.prototype._onUpdate = function ([name, version, data]) {
     }
 
     this.data = utils.deepFreeze(this.data)
-    if (this._cached && this.data !== this._cached[1]) {
-      this._cached = null
-    }
     this.emit('update', this)
   } catch (err) {
-    this._onError(C.EVENT.UPDATE_ERROR, err, [this._cached, version, data])
+    this._onError(C.EVENT.UPDATE_ERROR, err, [this.name, version, data])
   }
 }
 
@@ -411,7 +409,9 @@ Record.prototype._subscribe = function () {
 
   // TODO (fix): Limit number of reads.
 
-  if (this._cached && this._cached[0]) {
+  if (!this._patchQueue) {
+    this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.SUBSCRIBE, [this.name, this.version])
+  } else if (this._cached && this._cached[0]) {
     this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.SUBSCRIBE, [this.name, this._cached[0]])
   } else {
     this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.SUBSCRIBE, [this.name])
