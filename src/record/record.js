@@ -336,11 +336,11 @@ Record.prototype._onUpdate = function ([name, version, data]) {
     } else if (data) {
       data = jsonPath.set(this.data, null, JSON.parse(data), true)
       this._dirty = true
+      this._cached = null
     } else if (this.version === version) {
       data = this.data
+      this._cached = null
     }
-
-    this._cached = null
 
     invariant(data, 'missing data')
     invariant(version, 'missing version')
