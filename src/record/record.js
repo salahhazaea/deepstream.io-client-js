@@ -166,6 +166,7 @@ Record.prototype.set = function (pathOrData, dataOrNil) {
   }
 
   this.data = utils.deepFreeze(newData)
+  this._cached = null
 
   if (!this._patchQueue) {
     this._sendUpdate()
@@ -336,10 +337,8 @@ Record.prototype._onUpdate = function ([name, version, data]) {
     } else if (data) {
       data = jsonPath.set(this.data, null, JSON.parse(data), true)
       this._dirty = true
-      this._cached = null
     } else if (this.version === version) {
       data = this.data
-      this._cached = null
     }
 
     invariant(data, 'missing data')
@@ -373,6 +372,9 @@ Record.prototype._onUpdate = function ([name, version, data]) {
     }
 
     this.data = utils.deepFreeze(this.data)
+    if (this._cached && this.data !== this._cached[1]) {
+      this._cached = null
+    }
     this.emit('update', this)
   } catch (err) {
     this._onError(C.EVENT.UPDATE_ERROR, err, [this._cached, version, data])
