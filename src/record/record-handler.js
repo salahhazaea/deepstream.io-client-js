@@ -37,9 +37,12 @@ const RecordHandler = function (options, connection, client) {
   this._schedule = options.schedule
 
   if (options.cache) {
-    this._cache = options.cache.on('error', (err) => {
-      this._client._$onError(C.TOPIC.RECORD, C.EVENT.CACHE_ERROR, err)
-    })
+    this._cache = options.cache
+    if (this._cache.on === 'function') {
+      this._.on('error', (err) => {
+        this._client._$onError(C.TOPIC.RECORD, C.EVENT.CACHE_ERROR, err)
+      })
+    }
   } else {
     this._cache = {
       get(name, callback) {
