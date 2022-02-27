@@ -43,9 +43,9 @@ const RecordHandler = function (options, connection, client) {
   } else {
     this._cache = {
       get(name, callback) {
-        callback(null)
+        callback(null, null)
       },
-      set(name, version, body) {},
+      set(name, value) {},
     }
   }
 
