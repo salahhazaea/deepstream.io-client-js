@@ -408,14 +408,17 @@ RecordHandler.prototype._observe = function (defaults, name, ...args) {
     }
 
     const record = this.getRecord(name)
-    if (record.version) {
-      onUpdate(record)
-    }
 
     if (timeout && state && record.state < state) {
       timeoutHandle = setTimeout(() => {
-        o.error(new Error(`timeout: ${name} [${state}]`))
+        const expected = C.RECORD_STATE_NAME[state]
+        const current = C.RECORD_STATE_NAME[record.state]
+        o.error(new Error(`timeout after ${timeout / 1e3}s: ${name} [${current}<${expected}]`))
       }, timeout)
+    }
+
+    if (record.version) {
+      onUpdate(record)
     }
 
     record.on('update', onUpdate)

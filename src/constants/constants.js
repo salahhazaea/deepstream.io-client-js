@@ -16,6 +16,11 @@ module.exports.RECORD_STATE.CLIENT = 2
 module.exports.RECORD_STATE.SERVER = 3
 module.exports.RECORD_STATE.PROVIDER = 4
 
+module.exports.RECORD_STATE_NAME = []
+for (const [key, val] of Object.entries(module.exports.RECORD_STATE)) {
+  module.exports.RECORD_STATE_NAME[val] = key
+}
+
 module.exports.MESSAGE_SEPERATOR = String.fromCharCode(30) // ASCII Record Seperator 1E
 module.exports.MESSAGE_PART_SEPERATOR = String.fromCharCode(31) // ASCII Unit Separator 1F
 
