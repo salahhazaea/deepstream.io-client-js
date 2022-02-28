@@ -327,6 +327,7 @@ RecordHandler.prototype.observe = function (...args) {
   return this._observe(
     {
       state: C.RECORD_STATE.SERVER,
+      timeout: 2 * 60e3,
     },
     ...args
   ).pipe(rx.pluck('data'), rx.distinctUntilChanged())
