@@ -103,7 +103,9 @@ const RecordHandler = function (options, connection, client) {
 
       if (batch) {
         batch.write((err) => {
-          this._client._$onError(C.TOPIC.RECORD, C.EVENT.CACHE_ERROR, err)
+          if (err) {
+            this._client._$onError(C.TOPIC.RECORD, C.EVENT.CACHE_ERROR, err)
+          }
         })
       }
     }
