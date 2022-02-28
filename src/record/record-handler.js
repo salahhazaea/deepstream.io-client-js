@@ -38,8 +38,8 @@ const RecordHandler = function (options, connection, client) {
 
   if (options.cache) {
     this._cache = options.cache
-    if (this._cache.on === 'function') {
-      this._.on('error', (err) => {
+    if (typeof this._cache.on === 'function') {
+      this._cache.on('error', (err) => {
         this._client._$onError(C.TOPIC.RECORD, C.EVENT.CACHE_ERROR, err)
       })
     }
@@ -48,7 +48,6 @@ const RecordHandler = function (options, connection, client) {
       get(name, callback) {
         callback(null, null)
       },
-      set(name, value) {},
     }
   }
 
@@ -63,7 +62,12 @@ const RecordHandler = function (options, connection, client) {
   const prune = () => {
     this._now = Date.now()
 
+    const batchSize = 1024
+
     if (this.connected) {
+      const batch =
+        this._cache && typeof this._cache.batch === 'function' ? this._cache.batch() : null
+
       let n = 0
       for (const [rec, timestamp] of this._prune) {
         if (!rec.isReady) {
@@ -77,19 +81,44 @@ const RecordHandler = function (options, connection, client) {
           continue
         }
 
-        if (n++ > 4096) {
+        if (n++ >= batchSize) {
           break
+        }
+
+        if (rec._dirty) {
+          const value = [rec.version, rec.data]
+          if (batch) {
+            batch.put(rec.name, value)
+          } else if (this._cache.put) {
+            this._cache.put(rec.name, value)
+          } else if (this._cache.set) {
+            this._cache.set(rec.name, value)
+          }
         }
 
         this._records.delete(rec.name)
         this._prune.delete(rec)
         rec._$destroy()
       }
+
+      if (batch) {
+        batch.write((err) => {
+          this._client._$onError(C.TOPIC.RECORD, C.EVENT.CACHE_ERROR, err)
+        })
+      }
     }
 
-    const timeout = setTimeout(() => (this._schedule ? this._schedule(prune) : prune()), 1e3)
-    if (timeout.unref) {
-      timeout.unref()
+    if (this._prune.size >= batchSize) {
+      if (this._schedule) {
+        this._schedule(prune)
+      } else {
+        setImmediate(prune)
+      }
+    } else {
+      const timeout = setTimeout(() => (this._schedule ? this._schedule(prune) : prune()), 1e3)
+      if (timeout.unref) {
+        timeout.unref()
+      }
     }
   }
 

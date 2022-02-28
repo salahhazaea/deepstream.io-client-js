@@ -21,9 +21,9 @@ const Record = function (name, handler) {
 
   this._subscribed = false
   this._provided = null
-  this._patchQueue = []
   this._dirty = false
   this._cached = null
+  this._patchQueue = []
 
   this._usages = 1 // Start with 1 for cache unref without subscribe.
   this._cache.get(this.name, (err, entry) => {
@@ -76,11 +76,6 @@ Record.prototype._$destroy = function () {
   invariant(this.version, 'must have version to destroy')
   invariant(this.isReady, 'must be ready to destroy')
   invariant(!this._patchQueue, 'must not have patch queue')
-
-  if (this._dirty) {
-    this._cache.set(this.name, [this.version, this.data])
-    this._dirty = false
-  }
 
   if (this._subscribed) {
     // TODO (fix): Ensure unsubscribe is acked.
