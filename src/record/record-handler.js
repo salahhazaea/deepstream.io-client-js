@@ -15,7 +15,6 @@ const RecordHandler = function (options, connection, client) {
 
   Object.assign(this, C.RECORD_STATE)
 
-  this._syncCount = 0
   this._options = options
   this._connection = connection
   this._client = client
@@ -126,12 +125,6 @@ const RecordHandler = function (options, connection, client) {
 
   prune()
 }
-
-Object.defineProperty(RecordHandler.prototype, 'isAsync', {
-  get: function isAsync() {
-    return this._syncCount === 0
-  },
-})
 
 Object.defineProperty(RecordHandler.prototype, 'connected', {
   get: function connected() {

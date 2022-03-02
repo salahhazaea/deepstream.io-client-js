@@ -174,9 +174,7 @@ Record.prototype.set = function (pathOrData, dataOrNil) {
     this.version = this._makeVersion(start)
   }
 
-  this._handler._syncCount += 1
   this.emit('update', this)
-  this._handler._syncCount -= 1
 
   return this.when()
 }
