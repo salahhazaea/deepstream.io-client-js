@@ -4,6 +4,9 @@ const PARTS_REG_EXP = /([^.[\]\s]+)/g
 const cache = new Map()
 const EMPTY = utils.deepFreeze({})
 
+const EMPTY_OBJ = EMPTY
+const EMPTY_ARR = []
+
 function get(data, path) {
   data = data || EMPTY
 
@@ -70,6 +73,10 @@ function patch(oldValue, newValue, isPlainJSON) {
   } else if (oldValue === null || newValue === null) {
     return isPlainJSON ? newValue : jsonClone(newValue)
   } else if (Array.isArray(oldValue) && Array.isArray(newValue)) {
+    if (newValue.length === 0) {
+      return EMPTY_ARR
+    }
+
     let arr = newValue.length === oldValue.length ? null : []
     for (let i = 0; i < newValue.length; i++) {
       const value = patch(oldValue[i], newValue[i], isPlainJSON)
@@ -147,6 +154,8 @@ function tokenize(path) {
 
 module.exports = {
   EMPTY,
+  EMPTY_OBJ,
+  EMPTY_ARR,
   get,
   set,
   jsonClone,
