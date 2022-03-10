@@ -134,7 +134,7 @@ Connection.prototype._sendMessages = function (deadline) {
   }
 
   // eslint-disable-next-line no-unmodified-loop-condition
-  while (!deadline || deadline.timeRemaining() > 1 || deadline.didTimeout) {
+  while (!deadline || deadline.timeRemaining() || deadline.didTimeout) {
     const message = this._sendQueue.shift()
 
     if (!message) {
@@ -246,7 +246,7 @@ Connection.prototype._onMessage = function (data) {
 
 Connection.prototype._recvMessages = function (deadline) {
   // eslint-disable-next-line no-unmodified-loop-condition
-  while (!deadline || deadline.timeRemaining() > 1 || deadline.didTimeout) {
+  while (!deadline || deadline.timeRemaining() || deadline.didTimeout) {
     const message = this._recvQueue.shift()
 
     if (!message) {
