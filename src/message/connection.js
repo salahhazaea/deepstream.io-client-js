@@ -282,8 +282,8 @@ Connection.prototype._reset = function () {
   this._heartbeatInterval = null
   this._lastHeartBeat = null
 
-  this._recvQueue = []
-  this._sendQueue = []
+  this._recvQueue = new FixedQueue()
+  this._sendQueue = new FixedQueue()
 }
 
 Connection.prototype._handleConnectionResponse = function (message) {
