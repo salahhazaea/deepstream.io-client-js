@@ -12,7 +12,7 @@ const Connection = function (client, url, options) {
   this._client = client
   this._options = options
   this._logger = options.logger
-  this._schedule = options._schedule ?? utils.schedule
+  this._schedule = options.schedule ?? utils.schedule
   this._authParams = null
   this._authCallback = null
   this._deliberateClose = false
@@ -133,7 +133,8 @@ Connection.prototype._sendMessages = function (deadline) {
     return
   }
 
-  while (deadline.timeRemaining() > 1 || deadline.didTimeout) {
+  // eslint-disable-next-line no-unmodified-loop-condition
+  while (!deadline || deadline.timeRemaining() > 1 || deadline.didTimeout) {
     const message = this._sendQueue.shift()
 
     if (!message) {
@@ -244,7 +245,8 @@ Connection.prototype._onMessage = function (data) {
 }
 
 Connection.prototype._recvMessages = function (deadline) {
-  while (deadline.timeRemaining() > 1 || deadline.didTimeout) {
+  // eslint-disable-next-line no-unmodified-loop-condition
+  while (!deadline || deadline.timeRemaining() > 1 || deadline.didTimeout) {
     const message = this._recvQueue.shift()
 
     if (!message) {

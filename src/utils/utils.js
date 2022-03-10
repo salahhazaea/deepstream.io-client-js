@@ -112,16 +112,4 @@ module.exports.AbortError = class AbortError extends Error {
   }
 }
 
-module.exports.schedule = isNode
-  ? function (run) {
-      const start = performance.now()
-      return setImmediate(function () {
-        run({
-          didTimeout: false,
-          timeRemaining: function () {
-            return Math.max(0, 10 - Math.floor(performance.now() - start))
-          },
-        })
-      })
-    }
-  : window.requestIdleCallback
+module.exports.schedule = isNode ? setImmediate : window.requestIdleCallback
