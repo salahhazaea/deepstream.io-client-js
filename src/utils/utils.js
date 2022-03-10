@@ -111,3 +111,17 @@ module.exports.AbortError = class AbortError extends Error {
     this.name = 'AbortError'
   }
 }
+
+module.exports.schedule = isNode
+  ? function (run) {
+      const start = performance.now()
+      return setImmediate(function () {
+        run({
+          didTimeout: false,
+          timeRemaining: function () {
+            return Math.max(0, 10 - Math.floor(performance.now() - start))
+          },
+        })
+      })
+    }
+  : window.requestIdleCallback

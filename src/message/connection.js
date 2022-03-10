@@ -6,11 +6,13 @@ const utils = require('../utils/utils')
 const C = require('../constants/constants')
 const pkg = require('../../package.json')
 const xxhash = require('xxhash-wasm')
+const FixedQueue = require('../utils/fixed-queue')
 
 const Connection = function (client, url, options) {
   this._client = client
   this._options = options
   this._logger = options.logger
+  this._schedule = options._schedule ?? utils.schedule
   this._authParams = null
   this._authCallback = null
   this._deliberateClose = false
@@ -18,14 +20,14 @@ const Connection = function (client, url, options) {
   this._tooManyAuthAttempts = false
   this._connectionAuthenticationTimeout = false
   this._challengeDenied = false
-  this._sendQueue = []
+  this._sendQueue = new FixedQueue()
   this._message = {
     raw: null,
     topic: null,
     action: null,
     data: null,
   }
-  this._recvQueue = []
+  this._recvQueue = new FixedQueue()
   this._reconnectTimeout = null
   this._reconnectionAttempt = 0
   this._endpoint = null
@@ -33,7 +35,7 @@ const Connection = function (client, url, options) {
   this._heartbeatInterval = null
 
   this._recvMessages = this._recvMessages.bind(this)
-  this._processing = false
+  this._sendMessages = this._sendMessages.bind(this)
 
   this._url = new URL(url)
 
@@ -95,10 +97,10 @@ Connection.prototype.send = function (message) {
     return
   }
 
-  if (this._state !== C.CONNECTION_STATE.OPEN) {
-    this._sendQueue.push(message)
-  } else {
-    this._submit(message)
+  const wasEmpty = this._sendQueue.isEmpty()
+  this._sendQueue.push(message)
+  if (wasEmpty) {
+    this._schedule(this._sendMessages)
   }
 }
 
@@ -123,7 +125,7 @@ Connection.prototype._createEndpoint = function () {
     : ({ data }) => this._onMessage(typeof data === 'string' ? data : data.toString())
 }
 
-Connection.prototype._sendQueuedMessages = function () {
+Connection.prototype._sendMessages = function (deadline) {
   if (
     this._state !== C.CONNECTION_STATE.OPEN ||
     this._endpoint.readyState !== this._endpoint.OPEN
@@ -131,11 +133,19 @@ Connection.prototype._sendQueuedMessages = function () {
     return
   }
 
-  for (const msg of this._sendQueue) {
-    this._submit(msg)
+  while (deadline.timeRemaining() > 1 || deadline.didTimeout) {
+    const message = this._sendQueue.shift()
+
+    if (!message) {
+      break
+    }
+
+    this._submit(message)
   }
 
-  this._sendQueue.length = 0
+  if (!this._sendQueue.isEmpty()) {
+    this._schedule(this._sendMessages)
+  }
 }
 
 Connection.prototype._submit = function (message) {
@@ -226,32 +236,20 @@ Connection.prototype._onMessage = function (data) {
     data = data.slice(0, -1)
   }
 
+  const wasEmpty = this._recvQueue.isEmpty()
   this._recvQueue.push(data)
-  if (!this._processing) {
-    this._processing = true
-    setImmediate(this._recvMessages)
+  if (wasEmpty) {
+    this._schedule(this._recvMessages)
   }
 }
 
-Connection.prototype._recvMessages = function () {
-  const started = Date.now()
+Connection.prototype._recvMessages = function (deadline) {
+  while (deadline.timeRemaining() > 1 || deadline.didTimeout) {
+    const message = this._recvQueue.shift()
 
-  for (let n = 0; true; ++n) {
-    if (n === this._recvQueue.length) {
-      this._processing = false
-      this._recvQueue.splice(0, n)
-      return
+    if (!message) {
+      break
     }
-
-    // TODO: Date.now is slow...
-    if (n % 128 === 0 && Date.now() - started > 100) {
-      this._recvQueue.splice(0, n)
-      setImmediate(this._recvMessages)
-      return
-    }
-
-    const message = this._recvQueue[n]
-    this._recvQueue[n] = null
 
     if (message.length <= 2) {
       continue
@@ -270,6 +268,10 @@ Connection.prototype._recvMessages = function () {
     } else {
       this._client._$onMessage(this._message)
     }
+  }
+
+  if (!this._recvQueue.isEmpty()) {
+    this._schedule(this._recvMessages)
   }
 }
 
@@ -329,7 +331,7 @@ Connection.prototype._handleAuthResponse = function (message) {
       this._authCallback(true, this._getAuthData(message.data[0]))
     }
 
-    this._sendQueuedMessages()
+    this._sendMessages()
   }
 }
 
