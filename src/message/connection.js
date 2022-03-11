@@ -34,7 +34,9 @@ const Connection = function (client, url, options) {
   this._lastHeartBeat = null
   this._heartbeatInterval = null
 
+  this._processingRecv = false
   this._recvMessages = this._recvMessages.bind(this)
+  this._processingSend = false
   this._sendMessages = this._sendMessages.bind(this)
 
   this._url = new URL(url)
@@ -97,9 +99,9 @@ Connection.prototype.send = function (message) {
     return
   }
 
-  const wasEmpty = this._sendQueue.isEmpty()
   this._sendQueue.push(message)
-  if (wasEmpty) {
+  if (!this._processingSend) {
+    this._processingSend = true
     this._schedule(this._sendMessages)
   }
 }
@@ -130,23 +132,22 @@ Connection.prototype._sendMessages = function (deadline) {
     this._state !== C.CONNECTION_STATE.OPEN ||
     this._endpoint.readyState !== this._endpoint.OPEN
   ) {
+    this._processingSend = false
     return
   }
 
   // eslint-disable-next-line no-unmodified-loop-condition
   while (!deadline || deadline.timeRemaining() || deadline.didTimeout) {
     const message = this._sendQueue.shift()
-
     if (!message) {
-      break
+      this._processingSend = false
+      return
     }
 
     this._submit(message)
   }
 
-  if (!this._sendQueue.isEmpty()) {
-    this._schedule(this._sendMessages)
-  }
+  this._schedule(this._sendMessages)
 }
 
 Connection.prototype._submit = function (message) {
@@ -237,9 +238,9 @@ Connection.prototype._onMessage = function (data) {
     data = data.slice(0, -1)
   }
 
-  const wasEmpty = this._recvQueue.isEmpty()
   this._recvQueue.push(data)
-  if (wasEmpty) {
+  if (!this._processingRecv) {
+    this._processingRecv = true
     this._schedule(this._recvMessages)
   }
 }
@@ -248,9 +249,9 @@ Connection.prototype._recvMessages = function (deadline) {
   // eslint-disable-next-line no-unmodified-loop-condition
   while (!deadline || deadline.timeRemaining() || deadline.didTimeout) {
     const message = this._recvQueue.shift()
-
     if (!message) {
-      break
+      this._processingRecv = false
+      return
     }
 
     if (message.length <= 2) {
@@ -272,9 +273,7 @@ Connection.prototype._recvMessages = function (deadline) {
     }
   }
 
-  if (!this._recvQueue.isEmpty()) {
-    this._schedule(this._recvMessages)
-  }
+  this._schedule(this._recvMessages)
 }
 
 Connection.prototype._reset = function () {
