@@ -1,3 +1,5 @@
+'use strict'
+
 // Currently optimal queue size, tested on V8 6.0 - 6.6. Must be power of two.
 const kSize = 2048
 const kMask = kSize - 1
@@ -99,12 +101,6 @@ module.exports = class FixedQueue {
   }
 
   shift() {
-    const head = this.head
-
-    if (head.top === head.bottom) {
-      return null
-    }
-
     const tail = this.tail
     const next = tail.shift()
     if (tail.isEmpty() && tail.next !== null) {
