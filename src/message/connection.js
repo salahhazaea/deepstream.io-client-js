@@ -85,27 +85,6 @@ Connection.prototype.sendMsg2 = function (topic, action, p0, p1) {
   this.send(messageBuilder.getMsg2(topic, action, p0, p1))
 }
 
-Connection.prototype.send = function (message) {
-  const { maxPacketSize } = this._options
-
-  if (message.length > maxPacketSize) {
-    const err = new Error(`Packet to big: ${message.length} > ${maxPacketSize}`)
-    this._client._$onError(
-      C.TOPIC.CONNECTION,
-      C.EVENT.CONNECTION_ERROR,
-      err,
-      message.split(C.MESSAGE_PART_SEPERATOR).map((x) => x.slice(0, 256))
-    )
-    return
-  }
-
-  this._sendQueue.push(message)
-  if (!this._processingSend) {
-    this._processingSend = true
-    this._schedule(this._sendMessages)
-  }
-}
-
 Connection.prototype.close = function () {
   this._reset()
   this._deliberateClose = true
@@ -125,6 +104,27 @@ Connection.prototype._createEndpoint = function () {
   this._endpoint.onmessage = BrowserWebSocket
     ? ({ data }) => this._onMessage(typeof data === 'string' ? data : Buffer.from(data).toString())
     : ({ data }) => this._onMessage(typeof data === 'string' ? data : data.toString())
+}
+
+Connection.prototype.send = function (message) {
+  const { maxPacketSize } = this._options
+
+  if (message.length > maxPacketSize) {
+    const err = new Error(`Packet to big: ${message.length} > ${maxPacketSize}`)
+    this._client._$onError(
+      C.TOPIC.CONNECTION,
+      C.EVENT.CONNECTION_ERROR,
+      err,
+      message.split(C.MESSAGE_PART_SEPERATOR).map((x) => x.slice(0, 256))
+    )
+    return
+  }
+
+  this._sendQueue.push(message)
+  if (!this._processingSend) {
+    this._processingSend = true
+    this._schedule(this._sendMessages)
+  }
 }
 
 Connection.prototype._sendMessages = function (deadline) {
