@@ -34,7 +34,7 @@ const RecordHandler = function (options, connection, client) {
     misses: 0,
   }
 
-  this._schedule = options.schedule ?? setImmediate
+  this._schedule = options.schedule ?? utils.schedule
 
   if (options.cache) {
     this._cache = options.cache
