@@ -66,7 +66,6 @@ const RecordHandler = function (options, connection, client) {
     }
 
     let batch = this._cache && typeof this._cache.batch === 'function' ? this._cache.batch() : null
-
     let batchSize = 0
 
     for (const [rec, timestamp] of this._prune) {
@@ -107,7 +106,7 @@ const RecordHandler = function (options, connection, client) {
         batchSize = 0
       }
 
-      if (deadline && deadline.timeRemaining() && !deadline.didTimeout) {
+      if (deadline && !deadline.timeRemaining() && !deadline.didTimeout) {
         this._schedule(prune)
         return
       }
