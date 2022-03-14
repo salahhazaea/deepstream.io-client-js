@@ -100,8 +100,6 @@ Object.defineProperty(Record.prototype, 'state', {
       return this.version[0] === '0' ? Record.STATE.EMPTY : Record.STATE.CLIENT
     }
 
-    invariant(this.connected, 'must be connected when no patch queue')
-
     if (this._provided) {
       return this.version[0] === 'I' ? Record.STATE.PROVIDER : Record.STATE.SERVER
     }
