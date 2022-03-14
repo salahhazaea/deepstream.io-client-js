@@ -61,7 +61,7 @@ const RecordHandler = function (options, connection, client) {
   const prune = () => {
     this._now = Date.now()
 
-    const batchSize = 1024
+    const batchSize = 256
 
     if (this.connected) {
       const batch =
