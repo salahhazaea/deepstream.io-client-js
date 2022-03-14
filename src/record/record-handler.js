@@ -98,20 +98,13 @@ const RecordHandler = function (options, connection, client) {
       rec._$destroy()
 
       if (n++ > 256) {
-        if (batch) {
-          batch.write((err) => {
-            if (err) {
-              this._client._$onError(C.TOPIC.RECORD, C.EVENT.CACHE_ERROR, err)
-            }
-          })
-        }
-        this._schedule(prune)
-        return
+        n = null
+        break
       }
 
       if (deadline && !deadline.timeRemaining() && !deadline.didTimeout) {
-        this._schedule(prune)
-        return
+        n = null
+        break
       }
     }
 
@@ -123,7 +116,11 @@ const RecordHandler = function (options, connection, client) {
       })
     }
 
-    this._pruning = false
+    if (n === null) {
+      this._schedule(prune)
+    } else {
+      this._pruning = false
+    }
   }
 
   setInterval(() => {
