@@ -96,7 +96,7 @@ const RecordHandler = function (options, connection, client) {
       this._prune.delete(rec)
       rec._$destroy()
 
-      if (batchSize > 256) {
+      if (batch && batchSize > 256) {
         batch.write((err) => {
           if (err) {
             this._client._$onError(C.TOPIC.RECORD, C.EVENT.CACHE_ERROR, err)
