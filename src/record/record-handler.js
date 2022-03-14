@@ -78,11 +78,8 @@ const RecordHandler = function (options, connection, client) {
         const ttl =
           rec.state >= C.RECORD_STATE.PROVIDER || Object.keys(rec.data).length === 0 ? 1e3 : 10e3
 
-        if (this._now - timestamp <= ttl) {
-          continue
-        }
-
         if (rec._dirty) {
+          rec._dirty = false
           const value = [rec.version, rec.data]
           if (batch) {
             batch.put(rec.name, value)
@@ -91,6 +88,10 @@ const RecordHandler = function (options, connection, client) {
           } else if (this._cache.set) {
             this._cache.set(rec.name, value)
           }
+        }
+
+        if (this._now - timestamp <= ttl) {
+          continue
         }
 
         this._records.delete(rec.name)
