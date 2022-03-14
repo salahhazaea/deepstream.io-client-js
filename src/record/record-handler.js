@@ -68,59 +68,56 @@ const RecordHandler = function (options, connection, client) {
     const batch =
       this._cache && typeof this._cache.batch === 'function' ? this._cache.batch() : null
 
-    let n = 0
+    try {
+      let n = 0
+      for (const [rec, timestamp] of this._prune) {
+        if (!rec.isReady) {
+          continue
+        }
 
-    for (const [rec, timestamp] of this._prune) {
-      if (!rec.isReady) {
-        continue
-      }
+        const ttl =
+          rec.state >= C.RECORD_STATE.PROVIDER || Object.keys(rec.data).length === 0 ? 1e3 : 10e3
 
-      const ttl =
-        rec.state >= C.RECORD_STATE.PROVIDER || Object.keys(rec.data).length === 0 ? 1e3 : 10e3
+        if (this._now - timestamp <= ttl) {
+          continue
+        }
 
-      if (this._now - timestamp <= ttl) {
-        continue
-      }
+        if (rec._dirty) {
+          const value = [rec.version, rec.data]
+          if (batch) {
+            batch.put(rec.name, value)
+          } else if (this._cache.put) {
+            this._cache.put(rec.name, value)
+          } else if (this._cache.set) {
+            this._cache.set(rec.name, value)
+          }
+        }
 
-      if (rec._dirty) {
-        const value = [rec.version, rec.data]
-        if (batch) {
-          batch.put(rec.name, value)
-        } else if (this._cache.put) {
-          this._cache.put(rec.name, value)
-        } else if (this._cache.set) {
-          this._cache.set(rec.name, value)
+        this._records.delete(rec.name)
+        this._prune.delete(rec)
+        rec._$destroy()
+
+        if (n++ > 256) {
+          this._schedule(prune)
+          return
+        }
+
+        if (deadline && !deadline.timeRemaining() && !deadline.didTimeout) {
+          this._schedule(prune)
+          return
         }
       }
-
-      this._records.delete(rec.name)
-      this._prune.delete(rec)
-      rec._$destroy()
-
-      if (n++ > 256) {
-        n = null
-        break
-      }
-
-      if (deadline && !deadline.timeRemaining() && !deadline.didTimeout) {
-        n = null
-        break
+    } finally {
+      if (batch) {
+        batch.write((err) => {
+          if (err) {
+            this._client._$onError(C.TOPIC.RECORD, C.EVENT.CACHE_ERROR, err)
+          }
+        })
       }
     }
 
-    if (batch) {
-      batch.write((err) => {
-        if (err) {
-          this._client._$onError(C.TOPIC.RECORD, C.EVENT.CACHE_ERROR, err)
-        }
-      })
-    }
-
-    if (n === null) {
-      this._schedule(prune)
-    } else {
-      this._pruning = false
-    }
+    this._pruning = false
   }
 
   setInterval(() => {
