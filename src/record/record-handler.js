@@ -23,6 +23,7 @@ const RecordHandler = function (options, connection, client) {
   this._prune = new Map()
   this._pendingWrite = new Set()
   this._now = Date.now()
+  this._pruning = false
 
   this._syncEmitter = new EventEmitter()
   this._syncCounter = 0
@@ -33,7 +34,7 @@ const RecordHandler = function (options, connection, client) {
     misses: 0,
   }
 
-  this._schedule = options.schedule
+  this._schedule = options.schedule ?? setImmediate
 
   if (options.cache) {
     this._cache = options.cache
@@ -58,72 +59,66 @@ const RecordHandler = function (options, connection, client) {
     }
   })
 
-  const prune = () => {
-    this._now = Date.now()
-
-    const batchSize = 256
-
-    if (this.connected) {
-      const batch =
-        this._cache && typeof this._cache.batch === 'function' ? this._cache.batch() : null
-
-      let n = 0
-      for (const [rec, timestamp] of this._prune) {
-        if (!rec.isReady) {
-          continue
-        }
-
-        const ttl =
-          rec.state >= C.RECORD_STATE.PROVIDER || Object.keys(rec.data).length === 0 ? 1e3 : 10e3
-
-        if (this._now - timestamp <= ttl) {
-          continue
-        }
-
-        if (n++ >= batchSize) {
-          break
-        }
-
-        if (rec._dirty) {
-          const value = [rec.version, rec.data]
-          if (batch) {
-            batch.put(rec.name, value)
-          } else if (this._cache.put) {
-            this._cache.put(rec.name, value)
-          } else if (this._cache.set) {
-            this._cache.set(rec.name, value)
-          }
-        }
-
-        this._records.delete(rec.name)
-        this._prune.delete(rec)
-        rec._$destroy()
-      }
-
-      if (batch) {
-        batch.write((err) => {
-          if (err) {
-            this._client._$onError(C.TOPIC.RECORD, C.EVENT.CACHE_ERROR, err)
-          }
-        })
-      }
+  const prune = (deadline) => {
+    if (!this.connected) {
+      this._pruning = false
+      return
     }
 
-    if (this._prune.size >= batchSize) {
-      if (this._schedule) {
+    const batch =
+      this._cache && typeof this._cache.batch === 'function' ? this._cache.batch() : null
+
+    for (const [rec, timestamp] of this._prune) {
+      if (!rec.isReady) {
+        continue
+      }
+
+      const ttl =
+        rec.state >= C.RECORD_STATE.PROVIDER || Object.keys(rec.data).length === 0 ? 1e3 : 10e3
+
+      if (this._now - timestamp <= ttl) {
+        continue
+      }
+
+      if (rec._dirty) {
+        const value = [rec.version, rec.data]
+        if (batch) {
+          batch.put(rec.name, value)
+        } else if (this._cache.put) {
+          this._cache.put(rec.name, value)
+        } else if (this._cache.set) {
+          this._cache.set(rec.name, value)
+        }
+      }
+
+      this._records.delete(rec.name)
+      this._prune.delete(rec)
+      rec._$destroy()
+
+      if (deadline && deadline.timeRemaining() && !deadline.didTimeout) {
         this._schedule(prune)
-      } else {
-        setImmediate(prune)
-      }
-    } else {
-      const timeout = setTimeout(() => (this._schedule ? this._schedule(prune) : prune()), 1e3)
-      if (timeout.unref) {
-        timeout.unref()
+        return
       }
     }
+
+    if (batch) {
+      batch.write((err) => {
+        if (err) {
+          this._client._$onError(C.TOPIC.RECORD, C.EVENT.CACHE_ERROR, err)
+        }
+      })
+    }
+
+    this._pruning = false
   }
 
-  prune()
+  setInterval(() => {
+    this._now = Date.now()
+    if (!this._pruning) {
+      this._pruning = true
+      this._schedule(prune)
+    }
+  }, 1e3)
 }
 
 Object.defineProperty(RecordHandler.prototype, 'connected', {
