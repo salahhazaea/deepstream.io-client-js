@@ -65,8 +65,10 @@ const RecordHandler = function (options, connection, client) {
       return
     }
 
-    let batch = this._cache && typeof this._cache.batch === 'function' ? this._cache.batch() : null
-    let batchSize = 0
+    const batch =
+      this._cache && typeof this._cache.batch === 'function' ? this._cache.batch() : null
+
+    let n = 0
 
     for (const [rec, timestamp] of this._prune) {
       if (!rec.isReady) {
@@ -84,7 +86,6 @@ const RecordHandler = function (options, connection, client) {
         const value = [rec.version, rec.data]
         if (batch) {
           batch.put(rec.name, value)
-          batchSize++
         } else if (this._cache.put) {
           this._cache.put(rec.name, value)
         } else if (this._cache.set) {
@@ -96,14 +97,16 @@ const RecordHandler = function (options, connection, client) {
       this._prune.delete(rec)
       rec._$destroy()
 
-      if (batch && batchSize > 256) {
-        batch.write((err) => {
-          if (err) {
-            this._client._$onError(C.TOPIC.RECORD, C.EVENT.CACHE_ERROR, err)
-          }
-        })
-        batch = this._cache.batch()
-        batchSize = 0
+      if (n++ > 256) {
+        if (batch) {
+          batch.write((err) => {
+            if (err) {
+              this._client._$onError(C.TOPIC.RECORD, C.EVENT.CACHE_ERROR, err)
+            }
+          })
+        }
+        this._schedule(prune)
+        return
       }
 
       if (deadline && !deadline.timeRemaining() && !deadline.didTimeout) {
