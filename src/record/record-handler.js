@@ -12,6 +12,7 @@ const fastJson = require('fast-json-stringify')
 const RecordHandler = function (options, connection, client) {
   this.STATE = C.RECORD_STATE
   this.JSON = jsonPath
+  this.defaultTimeout = 2 * 60e3
 
   Object.assign(this, C.RECORD_STATE)
 
@@ -324,7 +325,7 @@ RecordHandler.prototype.observe = function (...args) {
   return this._observe(
     {
       state: C.RECORD_STATE.SERVER,
-      timeout: 2 * 60e3,
+      timeout: this.defaultTimeout ?? 2 * 60e3,
     },
     ...args
   ).pipe(rx.pluck('data'), rx.distinctUntilChanged())
