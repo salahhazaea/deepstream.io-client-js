@@ -68,24 +68,22 @@ class Listener {
         }
       }
       provider.next = (value$) => {
-        if (value$ && typeof value$.subscribe !== 'function') {
-          // Compat for recursive with value
-          value$ = rxjs.of(value$)
-        } else if (!value$) {
+        if (!value$) {
           value$ = null
+        } else if (typeof value$.subscribe !== 'function') {
+          value$ = rxjs.of(value$) // Compat for recursive with value
         }
 
-        const accepted = Boolean(value$)
-        if (provider.accepted !== accepted) {
-          provider.accepted = accepted
+        if (Boolean(provider.value$) !== Boolean(value$)) {
           this._connection.sendMsg(
             this._topic,
-            accepted ? C.ACTIONS.LISTEN_ACCEPT : C.ACTIONS.LISTEN_REJECT,
+            value$ ? C.ACTIONS.LISTEN_ACCEPT : C.ACTIONS.LISTEN_REJECT,
             [this._pattern, provider.name]
           )
         }
 
         provider.value$ = value$
+
         if (provider.valueSubscription) {
           provider.valueSubscription.unsubscribe()
           provider.valueSubscription = value$ ? value$.subscribe(provider.observer) : null
@@ -143,11 +141,11 @@ class Listener {
       const provider = this._providers.get(name)
 
       if (!provider || !provider.value$) {
-        this._error(name, 'invalid accept: listener missing')
-      } else if (provider.valueSubscription) {
+        return
+      }
+
+      if (provider.valueSubscription) {
         this._error(name, 'invalid accept: listener started')
-      } else if (!provider.accepted) {
-        this._connection.sendMsg(this._topic, C.ACTIONS.LISTEN_REJECT, [this._pattern, name])
       } else {
         // TODO (fix): provider.version = message.data[2]
         provider.valueSubscription = provider.value$.subscribe(provider.observer)
