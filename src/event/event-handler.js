@@ -15,6 +15,12 @@ const EventHandler = function (options, connection, client) {
     emitted: 0,
   }
 
+  this.subscribe = this.subscribe.bind(this)
+  this.unsubscribe = this.unsubscribe.bind(this)
+  this.observe = this.observe.bind(this)
+  this.provide = this.provide.bind(this)
+  this.emit = this.emit.bind(this)
+
   this._client.on('connectionStateChanged', (state) => {
     if (state === C.CONNECTION_STATE.OPEN) {
       this._handleConnectionStateChange(true)

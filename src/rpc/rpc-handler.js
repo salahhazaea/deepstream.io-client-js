@@ -12,6 +12,10 @@ const RpcHandler = function (options, connection, client) {
   this._providers = new Map()
   this._stats = {}
 
+  this.provide = this.provide.bind(this)
+  this.unprovide = this.unprovide.bind(this)
+  this.make = this.make.bind(this)
+
   this._client.on('connectionStateChanged', (state) => {
     if (state === C.CONNECTION_STATE.OPEN) {
       this._handleConnectionStateChange(true)

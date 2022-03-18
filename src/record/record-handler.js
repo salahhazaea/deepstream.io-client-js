@@ -28,6 +28,15 @@ const RecordHandler = function (options, connection, client) {
   this._syncEmitter = new EventEmitter()
   this._syncCounter = 0
 
+  this.set = this.set.bind(this)
+  this.get = this.get.bind(this)
+  this.update = this.update.bind(this)
+  this.observe = this.observe.bind(this)
+  this.observe2 = this.observe2.bind(this)
+  this.sync = this.sync.bind(this)
+  this.provide = this.provide.bind(this)
+  this.getRecord = this.getRecord.bind(this)
+
   this._stats = {
     reads: 0,
     hits: 0,
