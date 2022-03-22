@@ -200,8 +200,6 @@ Connection.prototype._onOpen = function () {
 Connection.prototype._onError = function (err) {
   this._reset()
 
-  this._setState(C.CONNECTION_STATE.ERROR)
-
   if (err.error) {
     const { message, error } = err
     err = error
@@ -217,6 +215,8 @@ Connection.prototype._onError = function (err) {
   }
 
   this._client._$onError(C.TOPIC.CONNECTION, C.EVENT.CONNECTION_ERROR, err)
+
+  this._setState(C.CONNECTION_STATE.ERROR)
 }
 
 Connection.prototype._onClose = function () {
