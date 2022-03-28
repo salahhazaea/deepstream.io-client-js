@@ -130,13 +130,14 @@ const RecordHandler = function (options, connection, client) {
     this._pruning = false
   }
 
-  setInterval(() => {
+  const pruneInterval = setInterval(() => {
     this._now = Date.now()
     if (!this._pruning) {
       this._pruning = true
       this._schedule(prune)
     }
   }, 1e3)
+  pruneInterval.unref?.()
 }
 
 Object.defineProperty(RecordHandler.prototype, 'connected', {
@@ -256,6 +257,7 @@ RecordHandler.prototype.sync = function (options) {
     const onTimeout = () => {
       if (!this.connected) {
         timeout = setTimeout(onTimeout, 2 * 60e3)
+        timeout.unref?.()
         return
       }
 
@@ -272,6 +274,7 @@ RecordHandler.prototype.sync = function (options) {
     }
 
     timeout = setTimeout(onTimeout, 2 * 60e3)
+    timeout.unref?.()
 
     if (signal) {
       signal.addEventListener('abort', onAbort)
@@ -421,6 +424,7 @@ RecordHandler.prototype._observe = function (defaults, name, ...args) {
         const current = C.RECORD_STATE_NAME[record.state]
         o.error(new Error(`timeout after ${timeout / 1e3}s: ${name} [${current}<${expected}]`))
       }, timeout)
+      timeoutHandle.unref?.()
     }
 
     if (record.version) {

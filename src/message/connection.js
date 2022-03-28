@@ -85,7 +85,7 @@ Connection.prototype.sendMsg2 = function (topic, action, p0, p1) {
   this.send(messageBuilder.getMsg2(topic, action, p0, p1))
 }
 
-Connection.prototype.close = function () {
+Connection.prototype.close = function (cb) {
   this._reset()
   this._deliberateClose = true
   this._endpoint.close()
@@ -194,6 +194,7 @@ Connection.prototype._onOpen = function () {
     this._checkHeartBeat.bind(this),
     this._options.heartbeatInterval
   )
+  this._heartbeatInterval.unref?.()
   this._setState(C.CONNECTION_STATE.AWAITING_CONNECTION)
 }
 
@@ -366,6 +367,7 @@ Connection.prototype._tryReconnect = function () {
         this._options.reconnectIntervalIncrement * this._reconnectionAttempt
       )
     )
+    this._reconnectTimeout.unref?.()
     this._reconnectionAttempt++
   } else {
     this._clearReconnect()

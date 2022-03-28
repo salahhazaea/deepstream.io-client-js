@@ -55,8 +55,8 @@ Client.prototype.login = function (authParamsOrCallback, callback) {
   return this
 }
 
-Client.prototype.close = function () {
-  this._connection.close()
+Client.prototype.close = function (cb) {
+  this._connection.close(cb)
 }
 
 Client.prototype.getConnectionState = function () {
