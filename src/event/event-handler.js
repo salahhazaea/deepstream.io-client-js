@@ -76,6 +76,25 @@ EventHandler.prototype.unsubscribe = function (name, callback) {
   }
 }
 
+EventHandler.on = function (name, callback) {
+  this.subscribe(name, callback)
+  return this
+}
+
+EventHandler.once = function (name, callback) {
+  const fn = (...args) => {
+    this.unsubscribe(fn)
+    callback(...args) // eslint-disable-line
+  }
+  this.subscribe(name, fn)
+  return this
+}
+
+EventHandler.off = function (name, callback) {
+  this.unsubscribe(name, callback)
+  return this
+}
+
 EventHandler.prototype.observe = function (name) {
   return new rxjs.Observable((o) => {
     const onValue = (value) => o.next(value)
