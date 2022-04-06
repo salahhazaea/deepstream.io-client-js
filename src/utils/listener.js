@@ -53,15 +53,31 @@ class Listener {
         name,
         value$: null,
         version: null,
-        accepted: null,
+        timeout: null,
         patternSubscription: null,
         valueSubscription: null,
       }
-      provider.dispose = () => {
+      provider.stop = () => {
+        if (this.connected && provider.value$) {
+          this._connection.sendMsg(this._topic, C.ACTIONS.LISTEN_REJECT, [
+            this._pattern,
+            provider.name,
+          ])
+        }
+
+        provider.value$ = null
+        provider.version = null
+
+        if (provider.timeout) {
+          clearTimeout(provider.timeout)
+          provider.timeout = null
+        }
+
         if (provider.patternSubscription) {
           provider.patternSubscription.unsubscribe()
           provider.patternSubscription = null
         }
+
         if (provider.valueSubscription) {
           provider.valueSubscription.unsubscribe()
           provider.valueSubscription = null
@@ -83,15 +99,22 @@ class Listener {
         }
 
         provider.value$ = value$
+        provider.valueSubscription?.unsubscribe()
 
-        if (provider.valueSubscription) {
-          provider.valueSubscription.unsubscribe()
-          provider.valueSubscription = value$ ? value$.subscribe(provider.observer) : null
+        if (!value$) {
+          provider.version = null
+        } else {
+          provider.valueSubscription = value$.subscribe(provider.observer)
         }
       }
       provider.error = (err) => {
+        provider.stop()
+        // TODO (feat): backoff retryCount * delay?
+        // TODO (feat): backoff option?
+        provider.timeout = setTimeout(() => {
+          provider.start()
+        }, 10e3)
         this._error(provider.name, err)
-        provider.next(null)
       }
       provider.observer = {
         next: (value) => {
@@ -124,17 +147,22 @@ class Listener {
         },
         error: provider.error,
       }
+      provider.start = () => {
+        provider.stop()
 
-      try {
-        const provider$ = this._callback(name)
-        if (this._recursive) {
-          provider.patternSubscription = provider$.subscribe(provider)
-        } else {
-          provider.next(provider$)
+        try {
+          const provider$ = this._callback(name)
+          if (this._recursive) {
+            provider.patternSubscription = provider$.subscribe(provider)
+          } else {
+            provider.next(provider$)
+          }
+        } catch (err) {
+          this._error(provider.name, err)
         }
-      } catch (err) {
-        provider.error(err)
       }
+
+      provider.start()
 
       this._providers.set(provider.name, provider)
     } else if (message.action === C.ACTIONS.LISTEN_ACCEPT) {
@@ -156,7 +184,7 @@ class Listener {
       if (!provider) {
         this._error(name, 'invalid remove: listener missing')
       } else {
-        provider.dispose()
+        provider.stop()
         this._providers.delete(provider.name)
       }
     } else {
@@ -179,7 +207,7 @@ class Listener {
 
   _reset() {
     for (const provider of this._providers.values()) {
-      provider.dispose()
+      provider.stop()
     }
     this._providers.clear()
   }
