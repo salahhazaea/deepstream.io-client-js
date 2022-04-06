@@ -99,14 +99,11 @@ class Listener {
         }
 
         provider.value$ = value$
+        provider.version = null
 
-        provider.valueSubscription?.unsubscribe()
-        provider.valueSubscription = null
-
-        if (!value$) {
-          provider.version = null
-        } else {
-          provider.valueSubscription = value$.subscribe(provider.observer)
+        if (provider.valueSubscription$) {
+          provider.valueSubscription.unsubscribe()
+          provider.valueSubscription = provider.value$?.subscribe(provider.observer)
         }
       }
       provider.error = (err) => {
