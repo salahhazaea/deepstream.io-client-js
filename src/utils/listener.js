@@ -99,7 +99,9 @@ class Listener {
         }
 
         provider.value$ = value$
+
         provider.valueSubscription?.unsubscribe()
+        provider.valueSubscription = null
 
         if (!value$) {
           provider.version = null
