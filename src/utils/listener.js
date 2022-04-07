@@ -96,10 +96,10 @@ class Listener {
             value$ ? C.ACTIONS.LISTEN_ACCEPT : C.ACTIONS.LISTEN_REJECT,
             [this._pattern, provider.name]
           )
+          provider.version = null
         }
 
         provider.value$ = value$
-        provider.version = null
 
         if (provider.valueSubscription$) {
           provider.valueSubscription.unsubscribe()
