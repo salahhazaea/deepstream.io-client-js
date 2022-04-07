@@ -147,8 +147,6 @@ class Listener {
         error: provider.error,
       }
       provider.start = () => {
-        provider.stop()
-
         try {
           const pattern$ = this._callback(name)
           if (this._recursive && pattern$ && typeof pattern$.subscribe === 'function') {
