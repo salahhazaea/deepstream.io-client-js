@@ -150,11 +150,11 @@ class Listener {
         provider.stop()
 
         try {
-          const provider$ = this._callback(name)
-          if (this._recursive && provider$ && typeof provider$.subscribe === 'function') {
-            provider.patternSubscription = provider$.subscribe(provider)
+          const pattern$ = this._callback(name)
+          if (this._recursive && pattern$ && typeof pattern$.subscribe === 'function') {
+            provider.patternSubscription = pattern$.subscribe(provider)
           } else {
-            provider.next(provider$)
+            provider.next(pattern$)
           }
         } catch (err) {
           this._error(provider.name, err)
