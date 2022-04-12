@@ -22,7 +22,7 @@ const Record = function (name, handler) {
   this._subscribed = false
   this._provided = null
   this._dirty = false
-  this._cached = null
+  this._entry = null
   this._patchQueue = []
 
   this._usages = 1 // Start with 1 for cache unref without subscribe.
@@ -51,9 +51,9 @@ const Record = function (name, handler) {
       if (this.version) {
         // TODO (fix): What if this.version is older than version?
       } else {
-        invariant(!this._cached, 'no version no entry')
+        invariant(!this._entry, 'no version no entry')
 
-        this._cached = entry
+        this._entry = entry
         this.version = entry[0]
         this.data = utils.deepFreeze(Object.keys(entry[1]).length === 0 ? jsonPath.EMPTY : entry[1])
         this.emit('update', this)
@@ -327,8 +327,8 @@ Record.prototype._onUpdate = function ([name, version, data]) {
       // TODO (fix): What to do when client version is newer than server version?
     }
 
-    if (this._cached && this._cached[0] === version) {
-      data = jsonPath.set(this.data, null, this._cached[1], true)
+    if (this._entry && this._entry[0] === version) {
+      data = jsonPath.set(this.data, null, this._entry[1], true)
     } else if (this.version === version) {
       data = this.data
     } else if (data) {
@@ -339,6 +339,7 @@ Record.prototype._onUpdate = function ([name, version, data]) {
     invariant(data, 'missing data')
     invariant(version, 'missing version')
 
+    this._entry = [version, data]
     this.version = version
     this.data = data
 
@@ -360,7 +361,6 @@ Record.prototype._onUpdate = function ([name, version, data]) {
       }
 
       this._patchQueue = null
-      this._cached = null
 
       if (this._pendingWrite.delete(this)) {
         this.unref()
@@ -405,10 +405,8 @@ Record.prototype._subscribe = function () {
 
   // TODO (fix): Limit number of reads.
 
-  if (!this._patchQueue) {
-    this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.SUBSCRIBE, [this.name, this.version])
-  } else if (this._cached && this._cached[0]) {
-    this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.SUBSCRIBE, [this.name, this._cached[0]])
+  if (this._entry && this._entry[0]) {
+    this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.SUBSCRIBE, [this.name, this._entry[0]])
   } else {
     this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.SUBSCRIBE, [this.name])
   }
