@@ -55,7 +55,10 @@ const Record = function (name, handler) {
 
         this._entry = entry
         this.version = entry[0]
-        this.data = utils.deepFreeze(Object.keys(entry[1]).length === 0 ? jsonPath.EMPTY : entry[1])
+        this.data = jsonPath.set(this.data, null, this._entry[1], true)
+        this.data = utils.deepFreeze(this.data)
+        this._applyPatches()
+
         this.emit('update', this)
       }
     } else {
@@ -312,6 +315,20 @@ Record.prototype._onSubscriptionHasProvider = function (data) {
   this.emit('update', this)
 }
 
+Record.prototype._applyPatches = function () {
+  if (!this._patchQueue) {
+    return
+  }
+
+  if (this.version.charAt(0) !== 'I') {
+    for (let i = 0; i < this._patchQueue.length; i += 2) {
+      this.data = jsonPath.set(this.data, this._patchQueue[i + 0], this._patchQueue[i + 1], true)
+    }
+  } else if (this._patchQueue.length) {
+    this._onError(C.EVENT.USER_ERROR, 'cannot patch provided value')
+  }
+}
+
 Record.prototype._onUpdate = function ([name, version, data]) {
   invariant(this.connected, 'must be connected')
 
@@ -344,20 +361,10 @@ Record.prototype._onUpdate = function ([name, version, data]) {
     this.data = data
 
     if (this._patchQueue) {
-      if (this.version.charAt(0) !== 'I') {
-        for (let i = 0; i < this._patchQueue.length; i += 2) {
-          this.data = jsonPath.set(
-            this.data,
-            this._patchQueue[i + 0],
-            this._patchQueue[i + 1],
-            true
-          )
-        }
-        if (this.data !== data) {
-          this._sendUpdate()
-        }
-      } else if (this._patchQueue.length > 0) {
-        // TODO (fix): Warning?
+      this._applyPatches()
+
+      if (this.data !== data) {
+        this._sendUpdate()
       }
 
       this._patchQueue = null
@@ -365,6 +372,7 @@ Record.prototype._onUpdate = function ([name, version, data]) {
       if (this._pendingWrite.delete(this)) {
         this.unref()
       }
+
       this.emit('ready')
     }
 
