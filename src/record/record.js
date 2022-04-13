@@ -15,16 +15,13 @@ const Record = function (name, handler) {
   this._client = handler._client
   this._connection = handler._connection
 
-  this.name = name
-  this.version = null
-  this.data = jsonPath.EMPTY
-
+  this._name = name
   this._subscribed = false
   this._provided = null
   this._dirty = false
   this._entry = null
   this._patchQueue = []
-
+  this._patchData = null
   this._usages = 1 // Start with 1 for cache unref without subscribe.
   this._cache.get(this.name, (err, entry) => {
     this.unref()
@@ -48,11 +45,17 @@ const Record = function (name, handler) {
 
       this._stats.hits += 1
 
+      if (Object.keys(entry[1]).length === 0) {
+        entry[1] = jsonPath.EMPTY
+      }
+
+      if (this._patchQueue && this._patchQueue.length && entry[0].charAt(0) === 'I') {
+        this._onError(C.EVENT.USER_ERROR, 'cannot patch provided value')
+        this._patchQueue = []
+        this._patchData = null
+      }
+
       this._entry = entry
-      this.version = entry[0]
-      this.data = jsonPath.set(this.data, null, this._entry[1], true)
-      this.data = utils.deepFreeze(this.data)
-      this._applyPatches()
 
       this.emit('update', this)
     } else {
@@ -86,6 +89,54 @@ Record.prototype._$destroy = function () {
   return this
 }
 
+Object.defineProperty(Record.prototype, 'name', {
+  enumerable: true,
+  get: function name() {
+    return this._name
+  },
+})
+
+// TODO (perf): memoize?
+Object.defineProperty(Record.prototype, 'version', {
+  enumerable: true,
+  get: function version() {
+    const version = this._entry ? this._entry[0] : null
+
+    if (!this._patchQueue || !this._patchQueue.length) {
+      return version
+    }
+
+    if (version && version.charAt(0) === 'I') {
+      return version
+    }
+
+    const start = version ? parseInt(version) : 0
+    return this._makeVersion(start + this._patchQueue.length)
+  },
+})
+
+Object.defineProperty(Record.prototype, 'data', {
+  enumerable: true,
+  get: function data() {
+    let data = this._entry ? this._entry[1] : jsonPath.EMPTY
+
+    if (!this._patchQueue || !this._patchQueue.length) {
+      return data
+    }
+
+    for (let i = 0; i < this._patchQueue.length; i += 2) {
+      data = jsonPath.set(data, this._patchQueue[i + 0], this._patchQueue[i + 1], true)
+    }
+
+    // TODO (perf): This is slow...
+    if (JSON.stringify(data) !== JSON.stringify(this._patchData)) {
+      this._patchData = data
+    }
+
+    return this._patchData
+  },
+})
+
 Object.defineProperty(Record.prototype, 'state', {
   enumerable: true,
   get: function state() {
@@ -94,11 +145,11 @@ Object.defineProperty(Record.prototype, 'state', {
     }
 
     if (this._patchQueue) {
-      return this.version[0] === '0' ? Record.STATE.EMPTY : Record.STATE.CLIENT
+      return this.version.charAt(0) === '0' ? Record.STATE.EMPTY : Record.STATE.CLIENT
     }
 
     if (this._provided) {
-      return this.version[0] === 'I' ? Record.STATE.PROVIDER : Record.STATE.SERVER
+      return this.version.charAt(0) === 'I' ? Record.STATE.PROVIDER : Record.STATE.SERVER
     }
 
     return Record.STATE.SERVER
@@ -144,8 +195,6 @@ Record.prototype.set = function (pathOrData, dataOrNil) {
   // TODO (perf): Avoid clone
   const jsonData = jsonPath.jsonClone(data)
 
-  const newData = jsonPath.set(this.data, path, jsonData, true)
-
   if (this._patchQueue) {
     this._patchQueue = path ? this._patchQueue : []
     this._patchQueue.push(path, jsonData)
@@ -154,19 +203,8 @@ Record.prototype.set = function (pathOrData, dataOrNil) {
       this.ref()
       this._pendingWrite.add(this)
     }
-  }
-
-  if (newData === this.data) {
+  } else if (!this._update(path, jsonData, jsonData)) {
     return Promise.resolve()
-  }
-
-  this.data = utils.deepFreeze(newData)
-
-  if (!this._patchQueue) {
-    this._sendUpdate()
-  } else {
-    const [start] = this.version ? this.version.split('-') : ['0']
-    this.version = this._makeVersion(start)
   }
 
   this.emit('update', this)
@@ -309,18 +347,31 @@ Record.prototype._onSubscriptionHasProvider = function (data) {
   this.emit('update', this)
 }
 
-Record.prototype._applyPatches = function () {
-  if (!this._patchQueue) {
-    return
+Record.prototype._update = function (path, data) {
+  invariant(this._entry[0], '_update must have version')
+  invariant(this._entry[1], '_update must have data')
+
+  const prevData = this._entry[1]
+  const nextData = jsonPath.set(prevData, path, data, true)
+
+  if (nextData === prevData) {
+    return false
   }
 
-  if (this.version.charAt(0) !== 'I') {
-    for (let i = 0; i < this._patchQueue.length; i += 2) {
-      this.data = jsonPath.set(this.data, this._patchQueue[i + 0], this._patchQueue[i + 1], true)
-    }
-  } else if (this._patchQueue.length) {
-    this._onError(C.EVENT.USER_ERROR, 'cannot patch provided value')
-  }
+  const prevVersion = this._entry[0]
+  const nextVersion = this._makeVersion(parseInt(prevVersion) + 1)
+
+  this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.UPDATE, [
+    this.name,
+    nextVersion,
+    JSON.stringify(nextData),
+    prevVersion,
+  ])
+
+  this._entry = [nextVersion, nextData]
+  this._dirty = true
+
+  return true
 }
 
 Record.prototype._onUpdate = function ([name, version, data]) {
@@ -338,30 +389,25 @@ Record.prototype._onUpdate = function ([name, version, data]) {
       // TODO (fix): What to do when client version is newer than server version?
     }
 
-    if (this._entry && this._entry[0] === version) {
-      data = jsonPath.set(this.data, null, this._entry[1], true)
-    } else if (this.version === version) {
-      data = this.data
-    } else if (data) {
-      data = jsonPath.set(this.data, null, JSON.parse(data), true)
+    if (!this._entry || this._entry[0] !== version) {
+      this._entry = [version, data]
       this._dirty = true
     }
 
-    invariant(data, 'missing data')
-    invariant(version, 'missing version')
-
-    this._entry = [version, data]
-    this.version = version
-    this.data = data
+    invariant(this._entry[0], 'missing version')
+    invariant(this._entry[1], 'missing data')
 
     if (this._patchQueue) {
-      this._applyPatches()
-
-      if (this.data !== data) {
-        this._sendUpdate()
+      if (this.version.charAt(0) !== 'I') {
+        for (let i = 0; i < this._patchQueue.length; i += 2) {
+          this._update(this._patchQueue[i + 0], this._patchQueue[i + 1])
+        }
+      } else if (this._patchQueue.length) {
+        this._onError(C.EVENT.USER_ERROR, 'cannot patch provided value')
       }
 
       this._patchQueue = null
+      this._patchData = null
 
       if (this._pendingWrite.delete(this)) {
         this.unref()
@@ -370,34 +416,10 @@ Record.prototype._onUpdate = function ([name, version, data]) {
       this.emit('ready')
     }
 
-    this.data = utils.deepFreeze(this.data)
     this.emit('update', this)
   } catch (err) {
     this._onError(C.EVENT.UPDATE_ERROR, err, [this.name, version, data])
   }
-}
-
-Record.prototype._sendUpdate = function () {
-  invariant(this.connected, 'must be connected')
-
-  if (this.version.charAt(0) === 'I' || this._provided) {
-    // TODO (fix): Warn?
-    return
-  }
-
-  const start = this.version ? parseInt(this.version) : 0
-  const nextVersion = this._makeVersion(start + 1)
-  const prevVersion = this.version || ''
-
-  // TODO (fix): This might never make it to server?
-  this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.UPDATE, [
-    this.name,
-    nextVersion,
-    JSON.stringify(this.data),
-    prevVersion,
-  ])
-
-  this.version = nextVersion
 }
 
 Record.prototype._subscribe = function () {
