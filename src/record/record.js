@@ -385,11 +385,16 @@ Record.prototype._onUpdate = function ([name, version, data]) {
     const prevData = this.data
     const prevVersion = this.version
 
-    if (!this._entry || utils.compareRev(version, this._entry[0]) > 0) {
+    if (
+      !this._entry ||
+      (version.charAt(0) === 'I'
+        ? version !== this._entry[0]
+        : utils.compareRev(version, this._entry[0]) > 0)
+    ) {
       if (data === '{}') {
         data = jsonPath.EMPTY
       } else if (this._entry) {
-        data = jsonPath.patch(this._entry[1], JSON.parse(data), true)
+        data = jsonPath.set(this._entry[1], null, JSON.parse(data), true)
       } else {
         data = JSON.parse(data)
       }
