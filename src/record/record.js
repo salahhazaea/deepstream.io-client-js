@@ -390,7 +390,7 @@ Record.prototype._onUpdate = function ([name, version, data]) {
     }
 
     if (!this._entry || this._entry[0] !== version) {
-      this._entry = [version, data]
+      this._entry = [version, JSON.parse(data)]
       this._dirty = true
     }
 
