@@ -48,19 +48,13 @@ const Record = function (name, handler) {
 
       this._stats.hits += 1
 
-      if (this.version) {
-        // TODO (fix): What if this.version is older than version?
-      } else {
-        invariant(!this._entry, 'no version no entry')
+      this._entry = entry
+      this.version = entry[0]
+      this.data = jsonPath.set(this.data, null, this._entry[1], true)
+      this.data = utils.deepFreeze(this.data)
+      this._applyPatches()
 
-        this._entry = entry
-        this.version = entry[0]
-        this.data = jsonPath.set(this.data, null, this._entry[1], true)
-        this.data = utils.deepFreeze(this.data)
-        this._applyPatches()
-
-        this.emit('update', this)
-      }
+      this.emit('update', this)
     } else {
       this._stats.misses += 1
     }
