@@ -46,7 +46,7 @@ const Record = function (name, handler) {
       this._stats.hits += 1
 
       if (Object.keys(entry[1]).length === 0) {
-        entry[1] = jsonPath.EMPTY
+        entry[1] = Array.isArray(entry[1]) ? jsonPath.EMPTY_ARR : jsonPath.EMPTY_OBJ
       }
 
       if (this._patchQueue && this._patchQueue.length && entry[0].charAt(0) === 'I') {
