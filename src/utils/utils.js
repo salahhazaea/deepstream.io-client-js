@@ -98,10 +98,21 @@ module.exports.compareRev = function compareRev(a, b) {
     return 0
   }
 
-  const [av, ar] = module.exports.splitRev(a)
-  const [bv, br] = module.exports.splitRev(b)
+  const av = parseInt(a)
+  const bv = parseInt(b)
 
-  return av !== bv ? (av < bv ? -1 : 1) : ar < br ? -1 : 1
+  if (av !== bv) {
+    return av > bv ? 1 : -1
+  }
+
+  const ar = a.slice(a.indexOf('-') + 1)
+  const br = b.slice(b.indexOf('-') + 1)
+
+  if (ar !== br) {
+    return ar > br ? 1 : -1
+  }
+
+  return 0
 }
 
 module.exports.AbortError = class AbortError extends Error {

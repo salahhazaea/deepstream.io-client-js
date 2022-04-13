@@ -382,15 +382,19 @@ Record.prototype._onUpdate = function ([name, version, data]) {
       throw new Error('missing version')
     }
 
-    if (version.charAt(0) !== 'I' && utils.isSameOrNewer(this.version, version)) {
-      if (!this._patchQueue || this.version.charAt(0) === 'I') {
-        return
-      }
-      // TODO (fix): What to do when client version is newer than server version?
-    }
+    const prevData = this.data
+    const prevVersion = this.version
 
-    if (!this._entry || this._entry[0] !== version) {
-      this._entry = [version, JSON.parse(data)]
+    if (!this._entry || utils.compareRev(version, this._entry[0]) > 0) {
+      if (data === '{}') {
+        data = jsonPath.EMPTY
+      } else if (this._entry) {
+        data = jsonPath.patch(this._entry[1], JSON.parse(data), true)
+      } else {
+        data = JSON.parse(data)
+      }
+
+      this._entry = [version, data]
       this._dirty = true
     }
 
@@ -398,7 +402,7 @@ Record.prototype._onUpdate = function ([name, version, data]) {
     invariant(this._entry[1], 'missing data')
 
     if (this._patchQueue) {
-      if (this.version.charAt(0) !== 'I') {
+      if (this._entry[0].charAt(0) !== 'I') {
         for (let i = 0; i < this._patchQueue.length; i += 2) {
           this._update(this._patchQueue[i + 0], this._patchQueue[i + 1])
         }
@@ -414,9 +418,10 @@ Record.prototype._onUpdate = function ([name, version, data]) {
       }
 
       this.emit('ready')
+      this.emit('update', this)
+    } else if (this.version !== prevVersion || this.data !== prevData) {
+      this.emit('update', this)
     }
-
-    this.emit('update', this)
   } catch (err) {
     this._onError(C.EVENT.UPDATE_ERROR, err, [this.name, version, data])
   }
