@@ -98,8 +98,8 @@ module.exports.compareRev = function compareRev(a, b) {
     return 0
   }
 
-  const av = parseInt(a)
-  const bv = parseInt(b)
+  const av = a[0] === 'I' ? Infinity : parseInt(a)
+  const bv = b[0] === 'I' ? Infinity : parseInt(b)
 
   if (av !== bv) {
     return av > bv ? 1 : -1
