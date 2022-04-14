@@ -5,7 +5,7 @@ const cache = new Map()
 const EMPTY = utils.deepFreeze({})
 
 const EMPTY_OBJ = EMPTY
-const EMPTY_ARR = []
+const EMPTY_ARR = utils.deepFreeze([])
 
 function get(data, path) {
   data = data || EMPTY
