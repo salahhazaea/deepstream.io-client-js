@@ -21,11 +21,11 @@ const EventHandler = function (options, connection, client) {
   this.provide = this.provide.bind(this)
   this.emit = this.emit.bind(this)
 
+  this._connected = false
   this._client.on('connectionStateChanged', (state) => {
-    if (state === C.CONNECTION_STATE.OPEN) {
-      this._handleConnectionStateChange(true)
-    } else if (state === C.CONNECTION_STATE.RECONNECTING || state === C.CONNECTION_STATE.CLOSED) {
-      this._handleConnectionStateChange(false)
+    const connected = state === C.CONNECTION_STATE.OPEN
+    if (connected !== this._connected) {
+      this._handleConnectionStateChange(connected)
     }
   })
 }

@@ -16,11 +16,11 @@ const RpcHandler = function (options, connection, client) {
   this.unprovide = this.unprovide.bind(this)
   this.make = this.make.bind(this)
 
+  this._connected = false
   this._client.on('connectionStateChanged', (state) => {
-    if (state === C.CONNECTION_STATE.OPEN) {
-      this._handleConnectionStateChange(true)
-    } else if (state === C.CONNECTION_STATE.RECONNECTING || state === C.CONNECTION_STATE.CLOSED) {
-      this._handleConnectionStateChange(false)
+    const connected = state === C.CONNECTION_STATE.OPEN
+    if (connected !== this._connected) {
+      this._handleConnectionStateChange(connected)
     }
   })
 }
@@ -154,11 +154,13 @@ RpcHandler.prototype._$handle = function (message) {
     this._rpcs.delete(id)
 
     if (error) {
-      const err = new Error(data)
-      err.rpcId = rpc.id
-      err.rpcName = rpc.name
-      err.rpcData = rpc.data
-      rpc.callback(err)
+      rpc.callback(
+        Object.assign(new Error(data), {
+          rpcId: rpc.id,
+          rpcName: rpc.name,
+          rpcData: rpc.data,
+        })
+      )
     } else {
       rpc.callback(null, messageParser.convertTyped(data, this._client))
     }
@@ -171,9 +173,8 @@ RpcHandler.prototype._handleConnectionStateChange = function (connected) {
       this._connection.sendMsg(C.TOPIC.RPC, C.ACTIONS.SUBSCRIBE, [name])
     }
   } else {
-    const err = new Error('socket hang up')
-    err.code = 'ECONNRESET'
-    for (const [, rpc] of this._rpcs) {
+    const err = Object.assign(new Error('socket hang up'), { code: 'ECONNRESET' })
+    for (const rpc of this._rpcs.values()) {
       rpc.callback(err)
     }
     this._rpcs.clear()
