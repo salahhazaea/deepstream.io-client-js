@@ -393,7 +393,7 @@ Record.prototype._onUpdate = function ([name, version, data]) {
 
     if (
       version !== this._entry[0] &&
-      (this._entry[0].charAt(0) !== 'I' || version.charAt(0) === 'I')
+      (!this._entry[0] || this._entry[0].charAt(0) !== 'I' || version.charAt(0) === 'I')
     ) {
       // TODO (fix): state STALE
 
