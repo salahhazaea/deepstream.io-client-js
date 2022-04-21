@@ -6,6 +6,8 @@ const messageParser = require('../message/message-parser')
 const xuid = require('xuid')
 const invariant = require('invariant')
 
+const EMPTY_ENTRY = utils.deepFreeze([null, null])
+
 const Record = function (name, handler) {
   this._handler = handler
   this._stats = handler._stats
@@ -19,7 +21,7 @@ const Record = function (name, handler) {
   this._subscribed = false
   this._provided = null
   this._dirty = false
-  this._entry = null
+  this._entry = EMPTY_ENTRY
   this._patchQueue = []
   this._patchData = null
   this._usages = 1 // Start with 1 for cache unref without subscribe.
@@ -100,7 +102,7 @@ Object.defineProperty(Record.prototype, 'name', {
 Object.defineProperty(Record.prototype, 'version', {
   enumerable: true,
   get: function version() {
-    const version = this._entry ? this._entry[0] : null
+    const version = this._entry[0]
 
     if (!this._patchQueue || !this._patchQueue.length) {
       return version
@@ -118,7 +120,7 @@ Object.defineProperty(Record.prototype, 'version', {
 Object.defineProperty(Record.prototype, 'data', {
   enumerable: true,
   get: function data() {
-    let data = this._entry ? this._entry[1] : jsonPath.EMPTY
+    let data = this._entry[1] || jsonPath.EMPTY
 
     if (!this._patchQueue || !this._patchQueue.length) {
       return data
@@ -149,7 +151,11 @@ Object.defineProperty(Record.prototype, 'state', {
     }
 
     if (this._provided) {
-      return this.version.charAt(0) === 'I' ? Record.STATE.PROVIDER : Record.STATE.SERVER
+      return Record.STATE.PROVIDER
+    }
+
+    if (this.version.charAt(0) === 'I') {
+      return Record.STATE.STALE
     }
 
     return Record.STATE.SERVER
@@ -386,11 +392,11 @@ Record.prototype._onUpdate = function ([name, version, data]) {
     const prevVersion = this.version
 
     if (
-      !this._entry ||
-      (version.charAt(0) === 'I'
-        ? version !== this._entry[0]
-        : utils.compareRev(version, this._entry[0]) > 0)
+      version !== this._entry[0] &&
+      (this._entry[0].charAt(0) !== 'I' || version.charAt(0) === 'I')
     ) {
+      // TODO (fix): state STALE
+
       if (data === '{}') {
         data = jsonPath.EMPTY
       } else if (this._entry) {
@@ -439,7 +445,7 @@ Record.prototype._subscribe = function () {
 
   // TODO (fix): Limit number of reads.
 
-  if (this._entry && this._entry[0]) {
+  if (this._entry[0]) {
     this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.SUBSCRIBE, [this.name, this._entry[0]])
   } else {
     this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.SUBSCRIBE, [this.name])
