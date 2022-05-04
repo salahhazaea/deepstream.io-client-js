@@ -8,6 +8,7 @@ const jsonPath = require('./json-path')
 const utils = require('../utils/utils')
 const rx = require('rxjs/operators')
 const fastJson = require('fast-json-stringify')
+const xuid = require('xuid')
 
 const RecordHandler = function (options, connection, client) {
   this.STATE = C.RECORD_STATE
@@ -26,7 +27,6 @@ const RecordHandler = function (options, connection, client) {
   this._pruning = false
 
   this._syncEmitter = new EventEmitter()
-  this._syncCounter = 0
 
   this.set = this.set.bind(this)
   this.get = this.get.bind(this)
@@ -281,8 +281,7 @@ RecordHandler.prototype.sync = function (options) {
     }
 
     return Promise.all(pending).then(() => {
-      token = this._syncCounter.toString(16)
-      this._syncCounter = (this._syncCounter + 1) & 2147483647
+      token = xuid()
 
       this._syncEmitter.once(token, onToken)
 
