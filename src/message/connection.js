@@ -92,6 +92,7 @@ Connection.prototype.close = function (cb) {
 
   if (this._reconnectTimeout) {
     clearTimeout(this._reconnectTimeout)
+    this._reconnectTimeout = null
   }
 }
 
