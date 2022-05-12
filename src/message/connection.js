@@ -89,6 +89,10 @@ Connection.prototype.close = function (cb) {
   this._reset()
   this._deliberateClose = true
   this._endpoint.close()
+
+  if (this._reconnectTimeout) {
+    clearTimeout(this._reconnectTimeout)
+  }
 }
 
 Connection.prototype._createEndpoint = function () {
@@ -367,7 +371,6 @@ Connection.prototype._tryReconnect = function () {
         this._options.reconnectIntervalIncrement * this._reconnectionAttempt
       )
     )
-    this._reconnectTimeout.unref?.()
     this._reconnectionAttempt++
   } else {
     this._clearReconnect()
