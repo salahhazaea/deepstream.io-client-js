@@ -86,6 +86,9 @@ Connection.prototype.sendMsg2 = function (topic, action, p0, p1) {
 }
 
 Connection.prototype.close = function () {
+  while (this._sendQueue.length) {
+    this._submit(this._sendQueue.shift())
+  }
   this._reset()
   this._deliberateClose = true
   this._endpoint.close()
