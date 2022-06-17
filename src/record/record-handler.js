@@ -209,31 +209,28 @@ RecordHandler.prototype.provide = function (pattern, callback, recursive = false
 }
 
 RecordHandler.prototype.sync = function (options) {
-  // TODO (perf): Optimize
-
-  const signal = options && options.signal
-
-  const pending = []
-  const records = []
-  for (const rec of this._pendingWrite) {
-    rec.ref()
-    pending.push(rec.when())
-    records.push(rec)
-  }
-
   return new Promise((resolve) => {
     let token
     let timeout
 
+    const signal = options?.signal
+    const records = [...this._pendingWrite]
+
+    for (const rec of records) {
+      rec.ref()
+    }
+
     const onDone = (val) => {
       clearTimeout(timeout)
 
-      if (signal) {
-        signal.removeEventListener('abort', onAbort)
-      }
+      signal?.removeEventListener('abort', onAbort)
 
       if (token) {
         this._syncEmitter.off(token, onToken)
+      }
+
+      for (const rec of records) {
+        rec.unref()
       }
 
       resolve(val)
@@ -254,11 +251,8 @@ RecordHandler.prototype.sync = function (options) {
         return
       }
 
-      for (const rec of records) {
-        if (!rec.isReady) {
-          this._client._$onError(C.TOPIC.RECORD, C.EVENT.TIMEOUT, 'record timeout', [rec.name])
-        }
-        rec.unref()
+      for (const rec of records.filter((rec) => !rec.isReady)) {
+        this._client._$onError(C.TOPIC.RECORD, C.EVENT.TIMEOUT, 'record timeout', [rec.name])
       }
 
       this._client._$onError(C.TOPIC.RECORD, C.EVENT.TIMEOUT, 'sync timeout', [token])
@@ -269,11 +263,9 @@ RecordHandler.prototype.sync = function (options) {
     timeout = setTimeout(onTimeout, 2 * 60e3)
     timeout.unref?.()
 
-    if (signal) {
-      signal.addEventListener('abort', onAbort)
-    }
+    signal?.addEventListener('abort', onAbort)
 
-    return Promise.all(pending).then(() => {
+    return Promise.all(records.map((rec) => rec.when())).then(() => {
       token = xuid()
 
       this._syncEmitter.once(token, onToken)
