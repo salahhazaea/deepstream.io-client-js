@@ -285,10 +285,10 @@ RecordHandler.prototype.sync = function (options) {
   })
 }
 
-RecordHandler.prototype.set = function (name, pathOrData, dataOrNil) {
+RecordHandler.prototype.set = function (name, ...args) {
   const record = this.getRecord(name)
   try {
-    return arguments.length === 2 ? record.set(pathOrData) : record.set(pathOrData, dataOrNil)
+    return record.set(...args)
   } finally {
     record.unref()
   }
