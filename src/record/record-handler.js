@@ -28,6 +28,8 @@ const RecordHandler = function (options, connection, client) {
 
   this._syncEmitter = new EventEmitter()
 
+  this._handleConnectionStateChange = this._handleConnectionStateChange.bind(this)
+
   this.set = this.set.bind(this)
   this.get = this.get.bind(this)
   this.update = this.update.bind(this)
