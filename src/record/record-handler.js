@@ -60,13 +60,7 @@ const RecordHandler = function (options, connection, client) {
     }
   }
 
-  this._client.on('connectionStateChanged', (state) => {
-    if (state === C.CONNECTION_STATE.OPEN) {
-      this._handleConnectionStateChange(true)
-    } else if (state === C.CONNECTION_STATE.RECONNECTING || state === C.CONNECTION_STATE.CLOSED) {
-      this._handleConnectionStateChange(false)
-    }
-  })
+  this._client.on(C.EVENT.CONNECTED, this._handleConnectionStateChange)
 
   const prune = (deadline) => {
     this._pruning = false
@@ -224,6 +218,7 @@ RecordHandler.prototype.sync = function (options) {
       clearTimeout(timeout)
 
       signal?.removeEventListener('abort', onAbort)
+      this._client.off(C.EVENT.CONNECTED, onConnectionStateChanged)
 
       if (token) {
         this._syncEmitter.off(token, onToken)
@@ -245,12 +240,6 @@ RecordHandler.prototype.sync = function (options) {
     }
 
     const onTimeout = () => {
-      if (!this.connected) {
-        timeout = setTimeout(onTimeout, 2 * 60e3)
-        timeout.unref?.()
-        return
-      }
-
       for (const rec of records.filter((rec) => !rec.isReady)) {
         this._client._$onError(C.TOPIC.RECORD, C.EVENT.TIMEOUT, 'record timeout', [rec.name])
       }
@@ -260,10 +249,20 @@ RecordHandler.prototype.sync = function (options) {
       onDone(false)
     }
 
+    const onConnectionStateChanged = (connected) => {
+      if (connected) {
+        timeout = setTimeout(onTimeout, 2 * 60e3)
+        timeout.unref?.()
+      } else {
+        clearTimeout(timeout)
+      }
+    }
+
     timeout = setTimeout(onTimeout, 2 * 60e3)
     timeout.unref?.()
 
     signal?.addEventListener('abort', onAbort)
+    this._client.on(C.EVENT.CONNECTED, onConnectionStateChanged)
 
     return Promise.all(records.map((rec) => rec.when())).then(() => {
       token = xuid()

@@ -359,6 +359,12 @@ Connection.prototype._setState = function (state) {
   }
   this._state = state
   this._client.emit(C.EVENT.CONNECTION_STATE_CHANGED, state)
+
+  if (state === C.CONNECTION_STATE.OPEN) {
+    this._client.emit(C.EVENT.CONNECTED, true)
+  } else if (state === C.CONNECTION_STATE.RECONNECTING || state === C.CONNECTION_STATE.CLOSED) {
+    this._client.emit(C.EVENT.CONNECTED, false)
+  }
 }
 
 Connection.prototype._tryReconnect = function () {
