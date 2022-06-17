@@ -177,7 +177,7 @@ Record.prototype.set = function (pathOrData, dataOrNil) {
     this.name.startsWith('_')
   ) {
     this._onError(C.EVENT.USER_ERROR, 'cannot set')
-    return Promise.resolve()
+    return
   }
 
   const path = arguments.length === 1 ? undefined : pathOrData
@@ -209,12 +209,10 @@ Record.prototype.set = function (pathOrData, dataOrNil) {
       this._pendingWrite.add(this)
     }
   } else if (!this._update(path, jsonData, jsonData)) {
-    return Promise.resolve()
+    return
   }
 
   this.emit('update', this)
-
-  return this.when()
 }
 
 Record.prototype.when = function (stateOrNull) {
