@@ -13,6 +13,7 @@ const Connection = function (client, url, options) {
   this._options = options
   this._logger = options.logger
   this._schedule = options.schedule ?? utils.schedule
+  this._batchSize = options.batchSize ?? 1024
   this._authParams = null
   this._authCallback = null
   this._deliberateClose = false
@@ -144,8 +145,12 @@ Connection.prototype._sendMessages = function (deadline) {
     return
   }
 
-  // eslint-disable-next-line no-unmodified-loop-condition
-  while (!deadline || deadline.timeRemaining() || deadline.didTimeout) {
+  for (
+    let n = 0;
+    // eslint-disable-next-line no-unmodified-loop-condition
+    n < this._batchSize && (!deadline || deadline.timeRemaining() || deadline.didTimeout);
+    ++n
+  ) {
     const message = this._sendQueue.shift()
     if (!message) {
       this._processingSend = false
@@ -255,8 +260,12 @@ Connection.prototype._onMessage = function (data) {
 }
 
 Connection.prototype._recvMessages = function (deadline) {
-  // eslint-disable-next-line no-unmodified-loop-condition
-  while (!deadline || deadline.timeRemaining() || deadline.didTimeout) {
+  for (
+    let n = 0;
+    // eslint-disable-next-line no-unmodified-loop-condition
+    n < this._batchSize && (!deadline || deadline.timeRemaining() || deadline.didTimeout);
+    ++n
+  ) {
     const message = this._recvQueue.shift()
     if (!message) {
       this._processingRecv = false
