@@ -63,25 +63,25 @@
   "dependencies": {
     "bufferutil": "^4.0.5",
     "component-emitter2": "^1.3.5",
-    "fast-json-stringify": "^3.0.3",
+    "fast-json-stringify": "^4.2.0",
     "invariant": "^2.2.4",
     "utf-8-validate": "^5.0.9",
-    "ws": "^8.5.0",
+    "ws": "^8.8.0",
     "xuid": "^4.0.10",
     "xxhash-wasm": "^1.0.1"
   },
   "devDependencies": {
-    "eslint": "^8.12.0",
+    "eslint": "^8.18.0",
     "eslint-config-prettier": "^8.5.0",
-    "eslint-config-standard": "^16.0.2",
+    "eslint-config-standard": "^17.0.0",
     "eslint-plugin-import": "^2.26.0",
     "eslint-plugin-node": "^11.1.0",
     "eslint-plugin-promise": "^6.0.0",
-    "husky": "^7.0.4",
-    "jest": "^27.5.1",
-    "lint-staged": "^12.3.7",
+    "husky": "^8.0.1",
+    "jest": "^28.1.1",
+    "lint-staged": "^13.0.2",
     "pinst": "^3.0.0",
-    "prettier": "^2.6.2"
+    "prettier": "^2.7.1"
   },
   "peerDependencies": {
     "rxjs": ">=6.x"
