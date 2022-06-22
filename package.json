@@ -63,7 +63,6 @@
   "dependencies": {
     "bufferutil": "^4.0.5",
     "component-emitter2": "^1.3.5",
-    "fast-json-stringify": "^4.2.0",
     "invariant": "^2.2.4",
     "utf-8-validate": "^5.0.9",
     "ws": "^8.8.0",
@@ -75,6 +74,7 @@
     "eslint-config-prettier": "^8.5.0",
     "eslint-config-standard": "^17.0.0",
     "eslint-plugin-import": "^2.26.0",
+    "eslint-plugin-n": "^15.2.3",
     "eslint-plugin-node": "^11.1.0",
     "eslint-plugin-promise": "^6.0.0",
     "husky": "^8.0.1",

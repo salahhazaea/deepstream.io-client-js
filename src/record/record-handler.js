@@ -7,7 +7,6 @@ const EventEmitter = require('component-emitter2')
 const jsonPath = require('./json-path')
 const utils = require('../utils/utils')
 const rx = require('rxjs/operators')
-const fastJson = require('fast-json-stringify')
 const xuid = require('xuid')
 
 const RecordHandler = function (options, connection, client) {
@@ -181,8 +180,6 @@ RecordHandler.prototype.provide = function (pattern, callback, recursive = false
     }
   }
 
-  const stringify = options.schema ? fastJson(options.schema) : null
-
   if (this._listeners.has(pattern)) {
     this._client._$onError(C.TOPIC.RECORD, C.EVENT.LISTENER_EXISTS, new Error(pattern))
     return
@@ -194,7 +191,7 @@ RecordHandler.prototype.provide = function (pattern, callback, recursive = false
     callback,
     this,
     options.recursive,
-    stringify
+    options.stringify
   )
 
   this._listeners.set(pattern, listener)
