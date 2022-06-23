@@ -18,7 +18,7 @@ const Record = function (name, handler) {
   this._connection = handler._connection
 
   this.version = null
-  this.data = null
+  this.data = jsonPath.EMPTY
 
   this._name = name
   this._subscribed = false
