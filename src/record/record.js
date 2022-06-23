@@ -102,7 +102,7 @@ Record.prototype._apply = function (ready) {
   }
 
   if (this._patchQueue && this._patchQueue.length) {
-    if (version.charAt(0) !== 'I') {
+    if (!version || version.charAt(0) !== 'I') {
       const start = this.version ? parseInt(version) : 0
       version = this._makeVersion(start + this._patchQueue.length)
     }
