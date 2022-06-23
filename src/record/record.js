@@ -17,9 +17,6 @@ const Record = function (name, handler) {
   this._client = handler._client
   this._connection = handler._connection
 
-  this.version = null
-  this.data = jsonPath.EMPTY
-
   this._name = name
   this._subscribed = false
   this._provided = null
@@ -62,7 +59,7 @@ const Record = function (name, handler) {
 
       this._entry = entry
 
-      this._apply()
+      this.emit('update', this)
     } else {
       this._stats.misses += 1
     }
@@ -93,39 +90,51 @@ Record.prototype._$destroy = function () {
   return this
 }
 
-Record.prototype._apply = function (ready) {
-  let version = this._entry[0]
-  let data = this._entry[1]
+Object.defineProperty(Record.prototype, 'name', {
+  enumerable: true,
+  get: function name() {
+    return this._name
+  },
+})
 
-  if (!data) {
-    data = jsonPath.EMPTY
-  }
+// TODO (perf): memoize?
+Object.defineProperty(Record.prototype, 'version', {
+  enumerable: true,
+  get: function version() {
+    const version = this._entry[0]
 
-  if (this._patchQueue && this._patchQueue.length) {
-    if (!version || version.charAt(0) !== 'I') {
-      const start = this.version ? parseInt(version) : 0
-      version = this._makeVersion(start + this._patchQueue.length)
+    if (!this._patchQueue || !this._patchQueue.length) {
+      return version
+    }
+
+    if (version && version.charAt(0) === 'I') {
+      return version
+    }
+
+    const start = version ? parseInt(version) : 0
+    return this._makeVersion(start + this._patchQueue.length)
+  },
+})
+
+Object.defineProperty(Record.prototype, 'data', {
+  enumerable: true,
+  get: function data() {
+    let data = this._entry[1] || jsonPath.EMPTY
+
+    if (!this._patchQueue || !this._patchQueue.length) {
+      return data
     }
 
     for (let i = 0; i < this._patchQueue.length; i += 2) {
       data = jsonPath.set(data, this._patchQueue[i + 0], this._patchQueue[i + 1], true)
     }
-  }
 
-  this.data = data
-  this.version = version
+    // TODO (perf): This is slow...
+    if (JSON.stringify(data) !== JSON.stringify(this._patchData)) {
+      this._patchData = data
+    }
 
-  if (ready) {
-    this.emit('ready')
-  }
-
-  this.emit('update', this)
-}
-
-Object.defineProperty(Record.prototype, 'name', {
-  enumerable: true,
-  get: function name() {
-    return this._name
+    return this._patchData
   },
 })
 
@@ -203,7 +212,7 @@ Record.prototype.set = function (pathOrData, dataOrNil) {
     return
   }
 
-  this._apply()
+  this.emit('update', this)
 }
 
 Record.prototype.when = function (stateOrNull) {
@@ -338,8 +347,7 @@ Record.prototype._onSubscriptionHasProvider = function (data) {
   }
 
   this._provided = provided
-
-  this._apply()
+  this.emit('update', this)
 }
 
 Record.prototype._update = function (path, data) {
@@ -417,9 +425,10 @@ Record.prototype._onUpdate = function ([name, version, data]) {
         this.unref()
       }
 
-      this._apply(true)
+      this.emit('ready')
+      this.emit('update', this)
     } else if (this.version !== prevVersion || this.data !== prevData) {
-      this._apply()
+      this.emit('update', this)
     }
   } catch (err) {
     this._onError(C.EVENT.UPDATE_ERROR, err, [this.name, version, data])
@@ -451,7 +460,7 @@ Record.prototype._$handleConnectionStateChange = function () {
     this._patchQueue = this._patchQueue || []
   }
 
-  this._apply()
+  this.emit('update', this)
 }
 
 Record.prototype._onError = function (event, msgOrError, data) {
