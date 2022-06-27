@@ -77,7 +77,7 @@ Record.prototype._$destroy = function () {
   invariant(this._usages === 0, 'must have no refs')
   invariant(this.version, 'must have version to destroy')
   invariant(this.isReady, 'must be ready to destroy')
-  invariant(!this._patchQueue, 'must not have patch queue')
+  invariant(this._patchQueue == null, 'must not have patch queue')
 
   if (this._subscribed) {
     this._connection.sendMsg1(C.TOPIC.RECORD, C.ACTIONS.UNSUBSCRIBE, this.name)
