@@ -55,7 +55,16 @@ MessageParser.prototype._getActions = function () {
   return actions
 }
 
-MessageParser.prototype.parseMessage = function (message, client, result) {
+MessageParser.prototype.parseMessage = function (message, client) {
+  // Remove MESSAGE_SEPERATOR if exists.
+  if (message.charCodeAt(message.length - 1) === 30) {
+    message = message.slice(0, -1)
+  }
+
+  if (message.length <= 2) {
+    return []
+  }
+
   const parts = message.split(C.MESSAGE_PART_SEPERATOR)
 
   if (parts.length < 2) {
@@ -64,12 +73,12 @@ MessageParser.prototype.parseMessage = function (message, client, result) {
       C.EVENT.MESSAGE_PARSE_ERROR,
       new Error('Insufficiant message parts')
     )
-    return null
+    return []
   }
 
   if (parts[0] === C.TOPIC.ERROR) {
     client._$onError(C.TOPIC.ERROR, parts[1], new Error('Message error'), message)
-    return null
+    return []
   }
 
   if (this._actions[parts[1]] === undefined) {
@@ -79,13 +88,17 @@ MessageParser.prototype.parseMessage = function (message, client, result) {
       new Error('Unknown action'),
       message
     )
-    return null
+    return []
   }
 
-  result.raw = message
-  result.topic = parts[0]
-  result.action = parts[1]
-  result.data = parts.splice(2)
+  return [
+    {
+      raw: message,
+      topic: parts[0],
+      action: parts[1],
+      data: parts.splice(2),
+    },
+  ]
 }
 
 module.exports = new MessageParser()
