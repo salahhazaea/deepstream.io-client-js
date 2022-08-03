@@ -247,7 +247,7 @@ Connection.prototype._onMessage = function (data) {
     } else if (message.topic === C.TOPIC.AUTH) {
       this._handleAuthResponse(message)
     } else {
-      this._recvQueue.push(data)
+      this._recvQueue.push(message)
       if (!this._processingRecv) {
         this._processingRecv = true
         this._schedule(this._recvMessages)
@@ -258,7 +258,7 @@ Connection.prototype._onMessage = function (data) {
 
 Connection.prototype._recvMessages = function (deadline) {
   for (let n = 0; n < this._batchSize && this._recvQueue.length; ++n) {
-    if (deadline && deadline.timeRemaining() < 1 && !deadline.didTimeout) {
+    if (deadline && !deadline.timeRemaining() && !deadline.didTimeout) {
       break
     }
     this._client._$onMessage(this._recvQueue.shift())
