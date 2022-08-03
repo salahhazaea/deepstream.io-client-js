@@ -21,6 +21,12 @@ const Connection = function (client, url, options) {
   this._connectionAuthenticationTimeout = false
   this._challengeDenied = false
   this._sendQueue = new FixedQueue()
+  this._message = {
+    raw: null,
+    topic: null,
+    action: null,
+    data: null,
+  }
   this._recvQueue = new FixedQueue()
   this._reconnectTimeout = null
   this._reconnectionAttempt = 0
@@ -186,13 +192,11 @@ Connection.prototype._checkHeartBeat = function () {
   if (Date.now() - this._lastHeartBeat > heartBeatTolerance) {
     clearInterval(this._heartbeatInterval)
     this._endpoint.close()
-    const err = new Error(
-      `heartbeat not received in the last ${heartBeatTolerance} milliseconds (${this._state})`
-    )
+    const err = new Error(`heartbeat not received in the last ${heartBeatTolerance} milliseconds`)
     this._client._$onError(C.TOPIC.CONNECTION, C.EVENT.CONNECTION_ERROR, err)
+  } else {
+    this._submit(messageBuilder.getMsg(C.TOPIC.CONNECTION, C.ACTIONS.PING))
   }
-
-  this._submit(messageBuilder.getMsg(C.TOPIC.CONNECTION, C.ACTIONS.PING))
 }
 
 Connection.prototype._onOpen = function () {
@@ -239,36 +243,51 @@ Connection.prototype._onClose = function () {
 }
 
 Connection.prototype._onMessage = function (data) {
-  for (const message of messageParser.parseMessage(data)) {
-    this._logger?.trace(message, 'receive')
+  // Remove MESSAGE_SEPERATOR if exists.
+  if (data.charCodeAt(data.length - 1) === 30) {
+    data = data.slice(0, -1)
+  }
 
-    if (message.topic === C.TOPIC.CONNECTION) {
-      this._handleConnectionResponse(message)
-    } else if (message.topic === C.TOPIC.AUTH) {
-      this._handleAuthResponse(message)
-    } else {
-      this._recvQueue.push(message)
-      if (!this._processingRecv) {
-        this._processingRecv = true
-        this._schedule(this._recvMessages)
-      }
-    }
+  this._recvQueue.push(data)
+  if (!this._processingRecv) {
+    this._processingRecv = true
+    this._schedule(this._recvMessages)
   }
 }
 
 Connection.prototype._recvMessages = function (deadline) {
-  for (let n = 0; n < this._batchSize && this._recvQueue.length; ++n) {
-    if (deadline && !deadline.timeRemaining() && !deadline.didTimeout) {
-      break
+  for (
+    let n = 0;
+    // eslint-disable-next-line no-unmodified-loop-condition
+    n < this._batchSize && (!deadline || deadline.timeRemaining() || deadline.didTimeout);
+    ++n
+  ) {
+    const message = this._recvQueue.shift()
+    if (!message) {
+      this._processingRecv = false
+      return
     }
-    this._client._$onMessage(this._recvQueue.shift())
+
+    if (message.length <= 2) {
+      continue
+    }
+
+    if (this._logger) {
+      this._logger.trace(message, 'receive')
+    }
+
+    messageParser.parseMessage(message, this._client, this._message)
+
+    if (this._message.topic === C.TOPIC.CONNECTION) {
+      this._handleConnectionResponse(this._message)
+    } else if (this._message.topic === C.TOPIC.AUTH) {
+      this._handleAuthResponse(this._message)
+    } else {
+      this._client._$onMessage(this._message)
+    }
   }
 
-  if (this._recvQueue.length) {
-    this._schedule(this._recvMessages)
-  } else {
-    this._processingRecv = false
-  }
+  this._schedule(this._recvMessages)
 }
 
 Connection.prototype._reset = function () {
