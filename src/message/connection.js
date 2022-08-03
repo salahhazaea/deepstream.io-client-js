@@ -17,7 +17,6 @@ const Connection = function (client, url, options) {
   this._authParams = null
   this._authCallback = null
   this._deliberateClose = false
-  this._redirecting = false
   this._tooManyAuthAttempts = false
   this._connectionAuthenticationTimeout = false
   this._challengeDenied = false
@@ -236,10 +235,7 @@ Connection.prototype._onError = function (err) {
 Connection.prototype._onClose = function () {
   this._reset()
 
-  if (this._redirecting === true) {
-    this._redirecting = false
-    this._createEndpoint()
-  } else if (this._deliberateClose === true) {
+  if (this._deliberateClose === true) {
     this._setState(C.CONNECTION_STATE.CLOSED)
   } else {
     this._tryReconnect()
