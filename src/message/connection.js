@@ -202,7 +202,7 @@ Connection.prototype._checkHeartBeat = function () {
 Connection.prototype._onOpen = function () {
   this._clearReconnect()
   this._lastHeartBeat = Date.now()
-  this._heartbeatInterval = utils.setInterval(
+  this._heartbeatInterval = setInterval(
     this._checkHeartBeat.bind(this),
     this._options.heartbeatInterval
   )
