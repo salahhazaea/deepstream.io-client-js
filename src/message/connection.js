@@ -91,7 +91,7 @@ Connection.prototype.close = function () {
   }
   this._reset()
   this._deliberateClose = true
-  this._endpoint.close()
+  this._endpoint?.close()
 
   if (this._reconnectTimeout) {
     clearTimeout(this._reconnectTimeout)
