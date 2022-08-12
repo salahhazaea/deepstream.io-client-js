@@ -9,6 +9,8 @@ const utils = require('../utils/utils')
 const rx = require('rxjs/operators')
 const xuid = require('xuid')
 
+const kEmpty = Symbol('kEmpty')
+
 const RecordHandler = function (options, connection, client) {
   this.STATE = C.RECORD_STATE
   this.JSON = jsonPath
@@ -367,19 +369,22 @@ RecordHandler.prototype._observe = function (defaults, name, ...args) {
   }
 
   if (!name) {
+    const data = path ? undefined : jsonPath.EMPTY
     return rxjs.of(
-      utils.deepFreeze({
-        name,
-        version: '0-00000000000000',
-        data: path ? undefined : jsonPath.EMPTY,
-        state: Number.isFinite(state) ? state : C.RECORD_STATE.SERVER,
-      })
+      dataOnly
+        ? data
+        : utils.deepFreeze({
+            name,
+            version: '0-00000000000000',
+            data,
+            state: Number.isFinite(state) ? state : C.RECORD_STATE.SERVER,
+          })
     )
   }
 
   let x$ = new rxjs.Observable((o) => {
     let timeoutHandle
-    let prevData
+    let prevData = kEmpty
 
     const onUpdate = (record) => {
       if (state && record.state < state) {
