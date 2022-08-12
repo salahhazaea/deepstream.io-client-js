@@ -392,7 +392,7 @@ RecordHandler.prototype._observe = function (defaults, name, ...args) {
       }
 
       if (dataOnly) {
-        const nextData = path ? record.get(path) : record.data
+        const nextData = record.get(path)
         if (nextData !== prevData) {
           prevData = nextData
           o.next(nextData)
