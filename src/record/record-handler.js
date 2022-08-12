@@ -297,16 +297,21 @@ RecordHandler.prototype.update = function (name, ...args) {
   }
 }
 
+RecordHandler.prototype.observe = function (...args) {
+  return this._observe(
+    {
+      state: C.RECORD_STATE.SERVER,
+      timeout: 2 * 60e3,
+      dataOnly: true,
+    },
+    ...args
+  )
+}
+
 RecordHandler.prototype.get = function (...args) {
   return new Promise((resolve, reject) => {
-    this._observe(
-      {
-        state: C.RECORD_STATE.SERVER,
-        timeout: 2 * 60e3,
-      },
-      ...args
-    )
-      .pipe(rx.pluck('data'), rx.first())
+    this.observe(...args)
+      .pipe(rx.first())
       .subscribe({
         next: resolve,
         error: reject,
@@ -314,25 +319,16 @@ RecordHandler.prototype.get = function (...args) {
   })
 }
 
-RecordHandler.prototype.observe = function (...args) {
-  return this._observe(
-    {
-      state: C.RECORD_STATE.SERVER,
-      timeout: 2 * 60e3,
-    },
-    ...args
-  ).pipe(rx.pluck('data'), rx.distinctUntilChanged())
-}
-
 RecordHandler.prototype.observe2 = function (...args) {
-  return this._observe({}, ...args)
+  return this._observe(null, ...args)
 }
 
 RecordHandler.prototype._observe = function (defaults, name, ...args) {
   let path
-  let state = defaults.state
+  let state = defaults ? defaults.state : undefined
   let signal
-  let timeout = defaults.timeout
+  let timeout = defaults ? defaults.timeout : undefined
+  let dataOnly = defaults ? defaults.dataOnly : undefined
 
   let idx = 0
 
@@ -360,6 +356,10 @@ RecordHandler.prototype._observe = function (defaults, name, ...args) {
     if (options.state != null) {
       state = options.state
     }
+
+    if (options.dataOnly != null) {
+      dataOnly = options.dataOnly
+    }
   }
 
   if (typeof state === 'string') {
@@ -379,6 +379,7 @@ RecordHandler.prototype._observe = function (defaults, name, ...args) {
 
   let x$ = new rxjs.Observable((o) => {
     let timeoutHandle
+    let prevData
 
     const onUpdate = (record) => {
       if (state && record.state < state) {
@@ -390,12 +391,20 @@ RecordHandler.prototype._observe = function (defaults, name, ...args) {
         timeoutHandle = null
       }
 
-      o.next({
-        name,
-        version: record.version,
-        data: record.get(path),
-        state: record.state,
-      })
+      if (dataOnly) {
+        const nextData = path ? record.get(path) : record.data
+        if (nextData !== prevData) {
+          prevData = nextData
+          o.next(nextData)
+        }
+      } else {
+        o.next({
+          name,
+          version: record.version,
+          data: record.get(path),
+          state: record.state,
+        })
+      }
     }
 
     const record = this.getRecord(name)
