@@ -404,7 +404,7 @@ RecordHandler.prototype._observe = function (defaults, name, ...args) {
         }
       } else {
         o.next({
-          name,
+          name: record.name,
           version: record.version,
           data: record.get(path),
           state: record.state,
