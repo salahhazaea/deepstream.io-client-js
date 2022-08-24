@@ -259,6 +259,7 @@ RecordHandler.prototype.sync = function (options) {
             rec.name,
             rec.version,
             rec.state,
+            ...(rec._entry ?? []),
           ])
         }
 

@@ -7,6 +7,7 @@ const C = require('../constants/constants')
 const pkg = require('../../package.json')
 const xxhash = require('xxhash-wasm')
 const FixedQueue = require('../utils/fixed-queue')
+const Emitter = require('component-emitter2')
 
 const Connection = function (client, url, options) {
   this._client = client
@@ -49,6 +50,8 @@ const Connection = function (client, url, options) {
     this._createEndpoint()
   })
 }
+
+Emitter(Connection.prototype)
 
 Connection.prototype.getState = function () {
   return this._state
@@ -169,6 +172,7 @@ Connection.prototype._submit = function (message) {
     const err = new Error(`Packet to big: ${message.length} > ${maxPacketSize}`)
     this._client._$onError(C.TOPIC.CONNECTION, C.EVENT.CONNECTION_ERROR, err)
   } else if (this._endpoint.readyState === this._endpoint.OPEN) {
+    this.emit('send', message)
     this._endpoint.send(message)
   } else {
     const err = new Error('Tried to send message on a closed websocket connection')
@@ -277,6 +281,8 @@ Connection.prototype._recvMessages = function (deadline) {
     }
 
     messageParser.parseMessage(message, this._client, this._message)
+
+    this.emit('recv', this._message)
 
     if (this._message.topic === C.TOPIC.CONNECTION) {
       this._handleConnectionResponse(this._message)

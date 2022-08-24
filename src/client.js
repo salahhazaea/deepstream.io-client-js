@@ -13,6 +13,12 @@ const Client = function (url, options) {
   this._options = this._getOptions(options || {})
 
   this._connection = new Connection(this, this._url, this._options)
+    .on('recv', (message) => {
+      this.emit('recv', message)
+    })
+    .on('send', (message) => {
+      this.emit('send', message)
+    })
 
   this.nuid = xuid
   this.event = new EventHandler(this._options, this._connection, this)
@@ -64,7 +70,6 @@ Client.prototype.getConnectionState = function () {
 }
 
 Client.prototype._$onMessage = function (message) {
-  this.emit('trace', message)
   if (this._messageCallbacks[message.topic]) {
     this._messageCallbacks[message.topic](message)
   } else {
