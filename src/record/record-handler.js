@@ -26,6 +26,7 @@ const RecordHandler = function (options, connection, client) {
   this._pendingWrite = new Set()
   this._now = Date.now()
   this._pruning = false
+  this._connected = 0
 
   this._syncEmitter = new EventEmitter()
 
@@ -132,7 +133,7 @@ const RecordHandler = function (options, connection, client) {
 
 Object.defineProperty(RecordHandler.prototype, 'connected', {
   get: function connected() {
-    return this._client.getConnectionState() === C.CONNECTION_STATE.OPEN
+    return Boolean(this._connected)
   },
 })
 
@@ -205,24 +206,31 @@ RecordHandler.prototype.provide = function (pattern, callback, recursive = false
 
 RecordHandler.prototype.sync = function (options) {
   return new Promise((resolve) => {
+    let done = false
     let token
     let timeout
 
+    const timeoutValue = 2 * 60e3
     const signal = options?.signal
     const records = [...this._pendingWrite]
 
-    for (const rec of records) {
-      rec.ref()
-    }
-
     const onDone = (val) => {
-      clearTimeout(timeout)
+      if (done) {
+        return
+      }
+
+      done = true
 
       signal?.removeEventListener('abort', onAbort)
-      this._client.off(C.EVENT.CONNECTED, onConnectionStateChanged)
+
+      if (timeout) {
+        clearTimeout(timeout)
+        timeout = null
+      }
 
       if (token) {
         this._syncEmitter.off(token, onToken)
+        token = null
       }
 
       for (const rec of records) {
@@ -241,39 +249,49 @@ RecordHandler.prototype.sync = function (options) {
     }
 
     const onTimeout = () => {
-      for (const rec of records.filter((rec) => !rec.isReady)) {
-        this._client._$onError(C.TOPIC.RECORD, C.EVENT.TIMEOUT, 'record timeout', [rec.name])
-      }
-
-      this._client._$onError(C.TOPIC.RECORD, C.EVENT.TIMEOUT, 'sync timeout', [token])
-
-      onDone(false)
-    }
-
-    const onConnectionStateChanged = (connected) => {
-      if (connected) {
-        timeout = setTimeout(onTimeout, 2 * 60e3)
+      const elapsed = Date.now() - this._connected
+      if (elapsed < timeoutValue) {
+        timeout = setTimeout(onTimeout, timeoutValue - elapsed)
         timeout.unref?.()
       } else {
-        clearTimeout(timeout)
+        for (const rec of records.filter((rec) => !rec.isReady)) {
+          this._client._$onError(C.TOPIC.RECORD, C.EVENT.TIMEOUT, 'record timeout', [
+            rec.name,
+            rec.version,
+            rec.state,
+          ])
+        }
+
+        this._client._$onError(C.TOPIC.RECORD, C.EVENT.TIMEOUT, 'sync timeout', [token])
+
+        onDone(false)
       }
+    }
+
+    for (const rec of records) {
+      rec.ref()
     }
 
     timeout = setTimeout(onTimeout, 2 * 60e3)
     timeout.unref?.()
 
     signal?.addEventListener('abort', onAbort)
-    this._client.on(C.EVENT.CONNECTED, onConnectionStateChanged)
 
-    return Promise.all(records.map((rec) => rec.when())).then(() => {
-      token = xuid()
+    Promise.all(records.map((rec) => rec.when())).then(
+      () => {
+        if (done) {
+          return
+        }
 
-      this._syncEmitter.once(token, onToken)
+        token = xuid()
+        this._syncEmitter.once(token, onToken)
 
-      if (this.connected) {
-        this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.SYNC, [token])
-      }
-    })
+        if (this._connected) {
+          this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.SYNC, [token])
+        }
+      },
+      (err) => onDone(Promise.reject(err))
+    )
   })
 }
 
@@ -479,9 +497,12 @@ RecordHandler.prototype._handleConnectionStateChange = function (connected) {
   }
 
   if (connected) {
+    this._connected = Date.now()
     for (const token of this._syncEmitter.eventNames()) {
       this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.SYNC, [token])
     }
+  } else {
+    this._connected = 0
   }
 }
 
