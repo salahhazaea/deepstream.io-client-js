@@ -213,6 +213,8 @@ Record.prototype.set = function (pathOrData, dataOrNil) {
   }
 
   this.emit('update', this)
+
+  return this.when(Record.STATE.SERVER)
 }
 
 Record.prototype.when = function (stateOrNull) {
