@@ -14,9 +14,7 @@
   "author": "deepstreamHub GmbH",
   "main": "src/client.js",
   "browser": {
-    "net": false,
-    "ws": false,
-    "worker_threads": false
+    "ws": false
   },
   "scripts": {
     "postinstall": "husky install",

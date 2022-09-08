@@ -1,5 +1,5 @@
-const BrowserWebSocket = global.WebSocket || global.MozWebSocket
-const NodeWebSocket = require('ws')
+const BrowserWebSocket = globalThis.WebSocket || globalThis.MozWebSocket
+const NodeWebSocket = BrowserWebSocket ? null : require('ws')
 const messageParser = require('./message-parser')
 const messageBuilder = require('./message-builder')
 const utils = require('../utils/utils')
@@ -185,7 +185,9 @@ Connection.prototype._sendAuthParams = function () {
   const authMessage = messageBuilder.getMsg(C.TOPIC.AUTH, C.ACTIONS.REQUEST, [
     this._authParams,
     pkg.version,
-    utils.isNode ? `Node/${process.version}` : global.navigator && global.navigator.userAgent,
+    utils.isNode
+      ? `Node/${process.version}`
+      : globalThis.navigator && globalThis.navigator.userAgent,
   ])
   this._submit(authMessage)
 }
