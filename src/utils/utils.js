@@ -85,73 +85,34 @@ module.exports.setInterval = function (callback, intervalDuration) {
   }
 }
 
-// From nxt-lib.
 module.exports.compareRev = function compareRev(a, b) {
-  if (!a || !a.length) {
-    return !b || !b.length ? 0 : -1
-  } else if (!b || !b.length) {
-    return 1
+  if (!a) {
+    return b ? -1 : 0
   }
 
-  // Handle INF-XXXXXXXX
-  {
-    const isInfA = a[0] === 'I'
-    const isInfB = b[0] === 'I'
-    if (isInfA !== isInfB) {
-      return isInfB ? -1 : 1
-    }
+  if (!b) {
+    return a ? 1 : 0
   }
 
-  let indexA = 0
-  const endA = a.length
-  let lenA = endA
-
-  let indexB = 0
-  const endB = b.length
-  let lenB = endB
-
-  // Skip leading zeroes
-  while (a[indexA] === '0') {
-    ++indexA
-    --lenA
-  }
-  while (b[indexB] === '0') {
-    ++indexB
-    --lenB
+  if (a === b) {
+    return 0
   }
 
-  // Compare the revision number
-  let result = 0
-  while (indexA < endA && indexB < endB) {
-    const ac = a[indexA++]
-    const bc = b[indexB++]
+  const av = a[0] === 'I' ? Number.MAX_SAFE_INTEGER : parseInt(a)
+  const bv = b[0] === 'I' ? Number.MAX_SAFE_INTEGER : parseInt(b)
 
-    if (ac === '-') {
-      if (bc === '-') {
-        break
-      }
-      return -1
-    } else if (bc === '-') {
-      return 1
-    }
-
-    result ||= ac === bc ? 0 : ac < bc ? -1 : 1
+  if (av !== bv) {
+    return av > bv ? 1 : -1
   }
 
-  if (result) {
-    return result
+  const ar = a.slice(a.indexOf('-') + 1)
+  const br = b.slice(b.indexOf('-') + 1)
+
+  if (ar !== br) {
+    return ar > br ? 1 : -1
   }
 
-  // Compare the rest
-  while (indexA < endA && indexB < endB) {
-    const ac = a[indexA++]
-    const bc = b[indexB++]
-    if (ac !== bc) {
-      return ac < bc ? -1 : 1
-    }
-  }
-
-  return lenA - lenB
+  return 0
 }
 
 module.exports.AbortError = class AbortError extends Error {
