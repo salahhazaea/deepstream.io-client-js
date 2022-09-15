@@ -388,7 +388,10 @@ Record.prototype._onUpdate = function ([name, version, data]) {
     const prevData = this.data
     const prevVersion = this.version
 
-    if (version.charAt(0) === 'I' || utils.compareRev(version, this._entry[0]) >= 0) {
+    if (
+      version !== this._entry[0] &&
+      (version.charAt(0) === 'I' || utils.compareRev(version, this._entry[0]) > 0)
+    ) {
       // TODO (fix): state STALE
 
       if (data === '{}') {
