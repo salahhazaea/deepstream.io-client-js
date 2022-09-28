@@ -437,7 +437,7 @@ RecordHandler.prototype._observe = function (defaults, name, ...args) {
         o.error(
           Object.assign(
             new Error(`timeout after ${timeout / 1e3}s: ${name} [${current}<${expected}]`),
-            { code: 'ERR_TIMEOUT' }
+            { code: 'ETIMEDOUT' }
           )
         )
       }, timeout)
