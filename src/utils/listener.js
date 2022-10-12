@@ -65,11 +65,11 @@ class Listener {
             this._pattern,
             provider.name,
           ])
-          provider.accepted = false
         }
 
         provider.version = null
         provider.value$ = null
+        provider.accepted = false
         provider.valueSubscription?.unsubscribe()
         provider.valueSubscription = null
       }
@@ -187,7 +187,7 @@ class Listener {
       this._providers.set(provider.name, provider)
     } else if (message.action === C.ACTIONS.LISTEN_ACCEPT) {
       const provider = this._providers.get(name)
-      if (!provider) {
+      if (!provider || !provider.value$) {
         return
       }
 
