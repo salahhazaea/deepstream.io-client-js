@@ -436,7 +436,11 @@ RecordHandler.prototype._observe = function (defaults, name, ...args) {
         const current = C.RECORD_STATE_NAME[record.state]
         o.error(
           Object.assign(
-            new Error(`timeout after ${timeout / 1e3}s: ${name} [${current}<${expected}]`),
+            new Error(
+              `timeout after ${timeout / 1e3}s: ${name} [${current}(${
+                record.state
+              })<${expected}(${state})]`
+            ),
             { code: 'ETIMEDOUT' }
           )
         )
