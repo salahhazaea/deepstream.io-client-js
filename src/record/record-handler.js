@@ -354,7 +354,10 @@ RecordHandler.prototype._observe = function (defaults, name, ...args) {
     path = args[idx++]
   }
 
-  if (idx < args.length && (args[idx] == null || typeof args[idx] === 'number')) {
+  if (
+    idx < args.length &&
+    (args[idx] == null || typeof args[idx] === 'number' || typeof args[idx] === 'string')
+  ) {
     state = args[idx++]
   }
 
