@@ -415,7 +415,7 @@ Record.prototype._onUpdate = function ([name, version, data]) {
         data = JSON.parse(data)
       }
 
-      this._entry = [version, data, prevVersion]
+      this._entry = [version, data]
       this._dirty = this._entry
     }
 
