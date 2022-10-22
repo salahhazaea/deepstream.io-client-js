@@ -164,7 +164,7 @@ class Listener {
       provider.start = () => {
         try {
           const ret$ = this._callback(name)
-          if (this._recursive && ret$ && typeof ret$.subscribe === 'function') {
+          if (this._recursive && typeof ret$?.subscribe === 'function') {
             provider.patternSubscription = ret$.subscribe(provider)
           } else {
             provider.patternSubscription = rxjs.of(ret$).subscribe(provider)
