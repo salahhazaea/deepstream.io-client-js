@@ -88,6 +88,8 @@ class Listener {
         provider.valueSubscription = null
       }
       provider.listen = () => {
+        provider.pending = false
+
         if (!provider.patternSubscription || !provider.pending) {
           return
         }
@@ -105,7 +107,6 @@ class Listener {
 
         provider.accepted = accepted
         provider.version = null
-        provider.pending = false
       }
       provider.next = (value$) => {
         if (!value$) {
@@ -115,8 +116,8 @@ class Listener {
         }
 
         if (!provider.pending && Boolean(provider.value$) !== Boolean(value$)) {
-          process.nextTick(provider.listen)
           provider.pending = true
+          process.nextTick(provider.listen)
         }
 
         provider.value$ = value$
