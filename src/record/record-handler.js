@@ -83,13 +83,13 @@ const RecordHandler = function (options, connection, client) {
 
       if (rec._dirty) {
         rec._dirty = false
-        const entry = rec._entry
+        const value = [rec.version, rec.data]
         if (batch) {
-          batch.put(rec.name, entry)
+          batch.put(rec.name, value)
         } else if (this._cache.put) {
-          this._cache.put(rec.name, entry)
+          this._cache.put(rec.name, value)
         } else if (this._cache.set) {
-          this._cache.set(rec.name, entry)
+          this._cache.set(rec.name, value)
         }
       }
 
@@ -354,10 +354,7 @@ RecordHandler.prototype._observe = function (defaults, name, ...args) {
     path = args[idx++]
   }
 
-  if (
-    idx < args.length &&
-    (args[idx] == null || typeof args[idx] === 'number' || typeof args[idx] === 'string')
-  ) {
+  if (idx < args.length && (args[idx] == null || typeof args[idx] === 'number')) {
     state = args[idx++]
   }
 
@@ -439,11 +436,7 @@ RecordHandler.prototype._observe = function (defaults, name, ...args) {
         const current = C.RECORD_STATE_NAME[record.state]
         o.error(
           Object.assign(
-            new Error(
-              `timeout after ${timeout / 1e3}s: ${name} [${current}(${
-                record.state
-              })<${expected}(${state})]`
-            ),
+            new Error(`timeout after ${timeout / 1e3}s: ${name} [${current}<${expected}]`),
             { code: 'ETIMEDOUT' }
           )
         )

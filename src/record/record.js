@@ -16,7 +16,6 @@ const Record = function (name, handler) {
   this._cache = handler._cache
   this._client = handler._client
   this._connection = handler._connection
-  this._connected = false
 
   this._name = name
   this._subscribed = false
@@ -322,7 +321,7 @@ Record.prototype.unref = function () {
 }
 
 Record.prototype._$onMessage = function (message) {
-  if (!this._connected) {
+  if (!this.connected) {
     this._onError(C.EVENT.NOT_CONNECTED, 'received message while not connected')
     return
   }
@@ -331,8 +330,6 @@ Record.prototype._$onMessage = function (message) {
     this._onUpdate(message.data)
   } else if (message.action === C.ACTIONS.SUBSCRIPTION_HAS_PROVIDER) {
     this._onSubscriptionHasProvider(message.data)
-  } else if (message.action === C.ACTIONS.READ) {
-    this._onRead(message.data)
   } else {
     return false
   }
@@ -341,7 +338,7 @@ Record.prototype._$onMessage = function (message) {
 }
 
 Record.prototype._onSubscriptionHasProvider = function (data) {
-  invariant(this._connected, 'must be connected')
+  invariant(this.connected, 'must be connected')
 
   const provided = Boolean(data[1] && messageParser.convertTyped(data[1], this._client))
 
@@ -374,25 +371,14 @@ Record.prototype._update = function (path, data) {
     prevVersion,
   ])
 
-  this._entry = [nextVersion, nextData, prevVersion]
+  this._entry = [nextVersion, nextData]
   this._dirty = true
 
   return true
 }
 
-Record.prototype._onRead = function ([name, version]) {
-  if (this._entry && utils.compareRev(this._entry[0], version) === 0) {
-    this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.UPDATE, [
-      name,
-      this._entry[0],
-      JSON.stringify(this._entry[1]),
-      this._entry[2] ?? '',
-    ])
-  }
-}
-
 Record.prototype._onUpdate = function ([name, version, data]) {
-  invariant(this._connected, 'must be connected')
+  invariant(this.connected, 'must be connected')
 
   try {
     if (!version) {
@@ -416,7 +402,7 @@ Record.prototype._onUpdate = function ([name, version, data]) {
         data = JSON.parse(data)
       }
 
-      this._entry = [version, data, prevVersion]
+      this._entry = [version, data]
       this._dirty = true
     }
 
@@ -450,7 +436,7 @@ Record.prototype._onUpdate = function ([name, version, data]) {
 }
 
 Record.prototype._subscribe = function () {
-  if (!this._connected || this._subscribed || this._usages === 0) {
+  if (!this.connected || this._subscribed || this._usages === 0) {
     return
   }
 
@@ -465,10 +451,8 @@ Record.prototype._subscribe = function () {
   this._subscribed = true
 }
 
-Record.prototype._$handleConnectionStateChange = function (connected) {
-  this._connected = connected
-
-  if (this._connected) {
+Record.prototype._$handleConnectionStateChange = function () {
+  if (this.connected) {
     this._subscribe()
   } else {
     this._subscribed = false
@@ -502,6 +486,13 @@ Record.prototype._makeVersion = function (start) {
 Record.prototype.acquire = Record.prototype.ref
 Record.prototype.discard = Record.prototype.unref
 Record.prototype.destroy = Record.prototype.unref
+
+// TODO (fix): Remove
+Object.defineProperty(Record.prototype, 'connected', {
+  get: function connected() {
+    return this._client.getConnectionState() === C.CONNECTION_STATE.OPEN
+  },
+})
 
 // TODO (fix): Remove
 Object.defineProperty(Record.prototype, 'empty', {

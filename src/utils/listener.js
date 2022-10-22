@@ -13,19 +13,24 @@ class Listener {
     this._providers = new Map()
     this._recursive = recursive
     this._stringify = stringify || JSON.stringify
-    this._connected = false
+
+    this._$handleConnectionStateChange()
+  }
+
+  get connected() {
+    return this._client.getConnectionState() === C.CONNECTION_STATE.OPEN
   }
 
   _$destroy() {
     this._reset()
 
-    if (this._connected) {
+    if (this.connected) {
       this._connection.sendMsg(this._topic, C.ACTIONS.UNLISTEN, [this._pattern])
     }
   }
 
   _$onMessage(message) {
-    if (!this._connected) {
+    if (!this.connected) {
       this._client._$onError(
         C.TOPIC.RECORD,
         C.EVENT.NOT_CONNECTED,
@@ -53,7 +58,7 @@ class Listener {
         valueSubscription: null,
       }
       provider.stop = () => {
-        if (this._connected && provider.value$) {
+        if (this.connected && provider.value$) {
           this._connection.sendMsg(this._topic, C.ACTIONS.LISTEN_REJECT, [
             this._pattern,
             provider.name,
@@ -185,10 +190,8 @@ class Listener {
     return true
   }
 
-  _$handleConnectionStateChange(connected) {
-    this._connected = connected
-
-    if (this._connected) {
+  _$handleConnectionStateChange() {
+    if (this.connected) {
       this._connection.sendMsg(this._topic, C.ACTIONS.LISTEN, [this._pattern])
     } else {
       this._reset()
