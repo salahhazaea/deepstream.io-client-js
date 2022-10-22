@@ -52,13 +52,15 @@ class Listener {
       const provider = {
         name,
         value$: null,
+        pending: false,
+        accepted: false,
         version: null,
         timeout: null,
         patternSubscription: null,
         valueSubscription: null,
       }
       provider.stop = () => {
-        if (this.connected && provider.value$) {
+        if (this.connected && provider.accepted) {
           this._connection.sendMsg(this._topic, C.ACTIONS.LISTEN_REJECT, [
             this._pattern,
             provider.name,
@@ -67,21 +69,42 @@ class Listener {
 
         provider.value$ = null
         provider.version = null
+        provider.accepted = false
+        provider.pending = false
 
-        if (provider.timeout) {
-          clearTimeout(provider.timeout)
-          provider.timeout = null
+        clearTimeout(provider.timeout)
+        provider.timeout = null
+
+        provider.patternSubscription?.unsubscribe()
+        provider.patternSubscription = null
+
+        provider.valueSubscription?.unsubscribe()
+        provider.valueSubscription = null
+      }
+      provider.listen = () => {
+        if (!provider.pending) {
+          return
         }
 
-        if (provider.patternSubscription) {
-          provider.patternSubscription.unsubscribe()
-          provider.patternSubscription = null
+        provider.pending = false
+
+        if (!provider.patternSubscription) {
+          return
         }
 
-        if (provider.valueSubscription) {
-          provider.valueSubscription.unsubscribe()
-          provider.valueSubscription = null
+        const accepted = Boolean(provider.value$)
+        if (provider.accepted === accepted) {
+          return
         }
+
+        this._connection.sendMsg(
+          this._topic,
+          accepted ? C.ACTIONS.LISTEN_ACCEPT : C.ACTIONS.LISTEN_REJECT,
+          [this._pattern, provider.name]
+        )
+
+        provider.version = null
+        provider.accepted = accepted
       }
       provider.next = (value$) => {
         if (!value$) {
@@ -148,11 +171,11 @@ class Listener {
       }
       provider.start = () => {
         try {
-          const pattern$ = this._callback(name)
-          if (this._recursive && pattern$ && typeof pattern$.subscribe === 'function') {
-            provider.patternSubscription = pattern$.subscribe(provider)
+          const ret$ = this._callback(name)
+          if (this._recursive && ret$ && typeof ret$.subscribe === 'function') {
+            provider.patternSubscription = ret$.subscribe(provider)
           } else {
-            provider.next(pattern$)
+            provider.patternSubscription = rxjs.of(ret$).subscribe(provider)
           }
         } catch (err) {
           this._error(provider.name, err)
@@ -164,8 +187,7 @@ class Listener {
       this._providers.set(provider.name, provider)
     } else if (message.action === C.ACTIONS.LISTEN_ACCEPT) {
       const provider = this._providers.get(name)
-
-      if (!provider || !provider.value$) {
+      if (!provider?.value$) {
         return
       }
 
