@@ -16,6 +16,7 @@ const Record = function (name, handler) {
   this._cache = handler._cache
   this._client = handler._client
   this._connection = handler._connection
+  this._connected = false
 
   this._name = name
   this._subscribed = false
@@ -321,7 +322,7 @@ Record.prototype.unref = function () {
 }
 
 Record.prototype._$onMessage = function (message) {
-  if (!this.connected) {
+  if (!this._connected) {
     this._onError(C.EVENT.NOT_CONNECTED, 'received message while not connected')
     return
   }
@@ -338,7 +339,7 @@ Record.prototype._$onMessage = function (message) {
 }
 
 Record.prototype._onSubscriptionHasProvider = function (data) {
-  invariant(this.connected, 'must be connected')
+  invariant(this._connected, 'must be connected')
 
   const provided = Boolean(data[1] && messageParser.convertTyped(data[1], this._client))
 
@@ -378,7 +379,7 @@ Record.prototype._update = function (path, data) {
 }
 
 Record.prototype._onUpdate = function ([name, version, data]) {
-  invariant(this.connected, 'must be connected')
+  invariant(this._connected, 'must be connected')
 
   try {
     if (!version) {
@@ -436,7 +437,7 @@ Record.prototype._onUpdate = function ([name, version, data]) {
 }
 
 Record.prototype._subscribe = function () {
-  if (!this.connected || this._subscribed || this._usages === 0) {
+  if (!this._connected || this._subscribed || this._usages === 0) {
     return
   }
 
@@ -451,8 +452,10 @@ Record.prototype._subscribe = function () {
   this._subscribed = true
 }
 
-Record.prototype._$handleConnectionStateChange = function () {
-  if (this.connected) {
+Record.prototype._$handleConnectionStateChange = function (connected) {
+  this._connected = connected
+
+  if (this._connected) {
     this._subscribe()
   } else {
     this._subscribed = false
@@ -486,13 +489,6 @@ Record.prototype._makeVersion = function (start) {
 Record.prototype.acquire = Record.prototype.ref
 Record.prototype.discard = Record.prototype.unref
 Record.prototype.destroy = Record.prototype.unref
-
-// TODO (fix): Remove
-Object.defineProperty(Record.prototype, 'connected', {
-  get: function connected() {
-    return this._client.getConnectionState() === C.CONNECTION_STATE.OPEN
-  },
-})
 
 // TODO (fix): Remove
 Object.defineProperty(Record.prototype, 'empty', {
