@@ -82,10 +82,6 @@ class Listener {
         provider.valueSubscription = null
       }
       provider.listen = () => {
-        if (!provider.pending) {
-          return
-        }
-
         provider.pending = false
 
         if (!provider.patternSubscription) {
