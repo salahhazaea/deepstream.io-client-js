@@ -13,21 +13,24 @@ class Listener {
     this._providers = new Map()
     this._recursive = recursive
     this._stringify = stringify || JSON.stringify
-    this._connected = false
 
     this._$handleConnectionStateChange()
+  }
+
+  get connected() {
+    return this._client.getConnectionState() === C.CONNECTION_STATE.OPEN
   }
 
   _$destroy() {
     this._reset()
 
-    if (this._connected) {
+    if (this.connected) {
       this._connection.sendMsg(this._topic, C.ACTIONS.UNLISTEN, [this._pattern])
     }
   }
 
   _$onMessage(message) {
-    if (!this._connected) {
+    if (!this.connected) {
       this._client._$onError(
         C.TOPIC.RECORD,
         C.EVENT.NOT_CONNECTED,
@@ -53,86 +56,69 @@ class Listener {
         timeout: null,
         patternSubscription: null,
         valueSubscription: null,
-        accepted: false,
       }
-      provider.clientReject = () => {
-        if (!this._connected) {
-          return
-        }
-
-        if (provider.value$) {
+      provider.stop = () => {
+        if (this.connected && provider.value$) {
           this._connection.sendMsg(this._topic, C.ACTIONS.LISTEN_REJECT, [
             this._pattern,
             provider.name,
           ])
-          provider.accepted = false
         }
-
-        provider.version = null
-        provider.value$ = null
-        provider.valueSubscription?.unsubscribe()
-        provider.valueSubscription = null
-      }
-      provider.clientAccept = (value$) => {
-        if (!this._connected) {
-          return
-        }
-
-        if (!provider.value$) {
-          this._connection.sendMsg(this._topic, C.ACTIONS.LISTEN_ACCEPT, [
-            this._pattern,
-            provider.name,
-          ])
-        }
-
-        provider.version = null
-        provider.value$ = value$
-        provider.valueSubscription?.unsubscribe()
-        provider.valueSubscription = provider.value$.subscribe(provider.observer)
-      }
-      provider.serverAccept = () => {
-        provider.accepted = true
-        provider.valueSubscription?.unsubscribe()
-        provider.valueSubscription = provider.value$.subscribe(provider.observer)
-      }
-      provider.serverReject = () => {
-        provider.accepted = false
-        provider.valueSubscription?.unsubscribe()
-        provider.valueSubscription = null
-      }
-      provider.stop = () => {
-        provider.clientReject()
 
         provider.value$ = null
         provider.version = null
-        provider.accepted = false
 
-        clearTimeout(provider.timeout)
-        provider.timeout = null
+        if (provider.timeout) {
+          clearTimeout(provider.timeout)
+          provider.timeout = null
+        }
 
-        provider.patternSubscription?.unsubscribe()
-        provider.patternSubscription = null
+        if (provider.patternSubscription) {
+          provider.patternSubscription.unsubscribe()
+          provider.patternSubscription = null
+        }
 
-        provider.valueSubscription?.unsubscribe()
-        provider.valueSubscription = null
+        if (provider.valueSubscription) {
+          provider.valueSubscription.unsubscribe()
+          provider.valueSubscription = null
+        }
       }
       provider.next = (value$) => {
-        if (value$ && typeof value$.subscribe !== 'function') {
-          // Compat for recursive with value
-          value$ = rxjs.of(value$)
+        if (!value$) {
+          value$ = null
+        } else if (typeof value$.subscribe !== 'function') {
+          value$ = rxjs.of(value$) // Compat for recursive with value
         }
 
-        if (value$) {
-          provider.clientAccept(value$)
-        } else {
-          provider.clientReject()
+        if (Boolean(provider.value$) !== Boolean(value$)) {
+          this._connection.sendMsg(
+            this._topic,
+            value$ ? C.ACTIONS.LISTEN_ACCEPT : C.ACTIONS.LISTEN_REJECT,
+            [this._pattern, provider.name]
+          )
+          provider.version = null
         }
+
+        provider.value$ = value$
+
+        if (provider.valueSubscription) {
+          provider.valueSubscription.unsubscribe()
+          provider.valueSubscription = provider.value$?.subscribe(provider.observer)
+        }
+      }
+      provider.error = (err) => {
+        provider.stop()
+        // TODO (feat): backoff retryCount * delay?
+        // TODO (feat): backoff option?
+        provider.timeout = setTimeout(() => {
+          provider.start()
+        }, 10e3)
+        this._error(provider.name, err)
       }
       provider.observer = {
         next: (value) => {
           if (value == null) {
-            // Compat for recursive with value
-            provider.clientReject()
+            provider.next(null) // TODO (fix): This is weird...
             return
           }
 
@@ -160,15 +146,6 @@ class Listener {
         },
         error: provider.error,
       }
-      provider.error = (err) => {
-        provider.stop()
-        // TODO (feat): backoff retryCount * delay?
-        // TODO (feat): backoff option?
-        provider.timeout = setTimeout(() => {
-          provider.start()
-        }, 10e3)
-        this._error(provider.name, err)
-      }
       provider.start = () => {
         try {
           const pattern$ = this._callback(name)
@@ -187,25 +164,16 @@ class Listener {
       this._providers.set(provider.name, provider)
     } else if (message.action === C.ACTIONS.LISTEN_ACCEPT) {
       const provider = this._providers.get(name)
-      if (!provider) {
+
+      if (!provider || !provider.value$) {
         return
       }
 
-      if (provider.accepted) {
+      if (provider.valueSubscription) {
         this._error(name, 'invalid accept: listener started')
       } else {
-        provider.serverAccept()
-      }
-    } else if (message.action === C.ACTIONS.LISTEN_REJECT) {
-      const provider = this._providers.get(name)
-      if (!provider) {
-        return
-      }
-
-      if (!provider.accepted) {
-        this._error(name, 'invalid reject: listener stopped')
-      } else {
-        provider.serverReject()
+        // TODO (fix): provider.version = message.data[2]
+        provider.valueSubscription = provider.value$.subscribe(provider.observer)
       }
     } else if (message.action === C.ACTIONS.SUBSCRIPTION_FOR_PATTERN_REMOVED) {
       const provider = this._providers.get(name)
@@ -222,10 +190,8 @@ class Listener {
     return true
   }
 
-  _$handleConnectionStateChange(connected) {
-    this._connected = connected
-
-    if (connected) {
+  _$handleConnectionStateChange() {
+    if (this.connected) {
       this._connection.sendMsg(this._topic, C.ACTIONS.LISTEN, [this._pattern])
     } else {
       this._reset()
