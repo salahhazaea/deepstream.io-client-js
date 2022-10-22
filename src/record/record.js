@@ -20,7 +20,7 @@ const Record = function (name, handler) {
   this._name = name
   this._subscribed = false
   this._provided = null
-  this._dirty = false
+  this._dirty = null
   this._entry = EMPTY_ENTRY
   this._patchQueue = []
   this._patchData = null
@@ -328,6 +328,8 @@ Record.prototype._$onMessage = function (message) {
 
   if (message.action === C.ACTIONS.UPDATE) {
     this._onUpdate(message.data)
+  } else if (message.action === C.ACTIONS.READ) {
+    this._onRead(message.data)
   } else if (message.action === C.ACTIONS.SUBSCRIPTION_HAS_PROVIDER) {
     this._onSubscriptionHasProvider(message.data)
   } else {
@@ -364,17 +366,28 @@ Record.prototype._update = function (path, data) {
   const prevVersion = this._entry[0]
   const nextVersion = this._makeVersion(parseInt(prevVersion) + 1)
 
+  this._entry = [nextVersion, nextData, prevVersion]
+  this._dirty = this._entry
+
   this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.UPDATE, [
     this.name,
-    nextVersion,
-    JSON.stringify(nextData),
-    prevVersion,
+    this._entry[0],
+    JSON.stringify(this._entry[1]),
+    this._entry[2],
   ])
 
-  this._entry = [nextVersion, nextData]
-  this._dirty = true
-
   return true
+}
+
+Record.prototype._onRead = function ([name, version]) {
+  if (utils.compareRev(this._entry?.[0], version) === 0) {
+    this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.UPDATE, [
+      this.name,
+      this._entry[0],
+      JSON.stringify(this._entry[1]),
+      this._entry[2],
+    ])
+  }
 }
 
 Record.prototype._onUpdate = function ([name, version, data]) {
@@ -402,8 +415,8 @@ Record.prototype._onUpdate = function ([name, version, data]) {
         data = JSON.parse(data)
       }
 
-      this._entry = [version, data]
-      this._dirty = true
+      this._entry = [version, data, prevVersion]
+      this._dirty = this._entry
     }
 
     invariant(this._entry[0], 'missing version')

@@ -82,15 +82,14 @@ const RecordHandler = function (options, connection, client) {
         rec.state >= C.RECORD_STATE.PROVIDER || Object.keys(rec.data).length === 0 ? 1e3 : 10e3
 
       if (rec._dirty) {
-        rec._dirty = false
-        const value = [rec.version, rec.data]
         if (batch) {
-          batch.put(rec.name, value)
+          batch.put(rec.name, rec._dirty)
         } else if (this._cache.put) {
-          this._cache.put(rec.name, value)
+          this._cache.put(rec.name, rec._dirty)
         } else if (this._cache.set) {
-          this._cache.set(rec.name, value)
+          this._cache.set(rec.name, rec._dirty)
         }
+        rec._dirty = null
       }
 
       if (this._now - timestamp <= ttl) {
