@@ -52,7 +52,7 @@ class Listener {
       const provider = {
         name,
         value$: null,
-        pending: false,
+        sending: false,
         accepted: false,
         version: null,
         timeout: null,
@@ -70,7 +70,7 @@ class Listener {
         provider.value$ = null
         provider.version = null
         provider.accepted = false
-        provider.pending = false
+        provider.sending = false
 
         clearTimeout(provider.timeout)
         provider.timeout = null
@@ -81,8 +81,8 @@ class Listener {
         provider.valueSubscription?.unsubscribe()
         provider.valueSubscription = null
       }
-      provider.listen = () => {
-        provider.pending = false
+      provider.send = () => {
+        provider.sending = false
 
         if (!provider.patternSubscription) {
           return
@@ -110,12 +110,8 @@ class Listener {
         }
 
         if (Boolean(provider.value$) !== Boolean(value$)) {
-          this._connection.sendMsg(
-            this._topic,
-            value$ ? C.ACTIONS.LISTEN_ACCEPT : C.ACTIONS.LISTEN_REJECT,
-            [this._pattern, provider.name]
-          )
-          provider.version = null
+          provider.sending = true
+          process.nextTick(provider.send)
         }
 
         provider.value$ = value$
