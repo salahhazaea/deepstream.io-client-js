@@ -331,6 +331,8 @@ Record.prototype._$onMessage = function (message) {
     this._onUpdate(message.data)
   } else if (message.action === C.ACTIONS.SUBSCRIPTION_HAS_PROVIDER) {
     this._onSubscriptionHasProvider(message.data)
+  } else if (message.action === C.ACTIONS.READ) {
+    this._onRead(message.data)
   } else {
     return false
   }
@@ -372,10 +374,21 @@ Record.prototype._update = function (path, data) {
     prevVersion,
   ])
 
-  this._entry = [nextVersion, nextData]
+  this._entry = [nextVersion, nextData, prevVersion]
   this._dirty = true
 
   return true
+}
+
+Record.prototype._onRead = function ([name, version]) {
+  if (this._entry && utils.compareRev(this._entry[0], version) === 0) {
+    this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.UPDATE, [
+      name,
+      this._entry[0],
+      JSON.stringify(this._entry[1]),
+      this._entry[2] ?? '',
+    ])
+  }
 }
 
 Record.prototype._onUpdate = function ([name, version, data]) {
@@ -403,7 +416,7 @@ Record.prototype._onUpdate = function ([name, version, data]) {
         data = JSON.parse(data)
       }
 
-      this._entry = [version, data]
+      this._entry = [version, data, prevVersion]
       this._dirty = true
     }
 

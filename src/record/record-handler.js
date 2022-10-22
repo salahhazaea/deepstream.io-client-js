@@ -83,13 +83,13 @@ const RecordHandler = function (options, connection, client) {
 
       if (rec._dirty) {
         rec._dirty = false
-        const value = [rec.version, rec.data]
+        const entry = rec._entry
         if (batch) {
-          batch.put(rec.name, value)
+          batch.put(rec.name, entry)
         } else if (this._cache.put) {
-          this._cache.put(rec.name, value)
+          this._cache.put(rec.name, entry)
         } else if (this._cache.set) {
-          this._cache.set(rec.name, value)
+          this._cache.set(rec.name, entry)
         }
       }
 
