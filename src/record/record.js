@@ -366,7 +366,7 @@ Record.prototype._update = function (path, data) {
   const prevVersion = this._entry[0]
   const nextVersion = this._makeVersion(parseInt(prevVersion) + 1)
 
-  this._entry = [nextVersion, nextData, prevVersion]
+  this._entry = [nextVersion, nextData]
   this._dirty = this._entry
 
   this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.UPDATE, [
