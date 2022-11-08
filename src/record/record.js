@@ -402,11 +402,8 @@ Record.prototype._onUpdate = function ([name, version, data]) {
     const prevData = this.data
     const prevVersion = this.version
 
-    if (this._updates) {
-      this._updates.delete(version)
-      if (this._updates.size === 0) {
-        this._updates = null
-      }
+    if (this._updates?.delete(version) && this._updates.size === 0) {
+      this._updates = null
     }
 
     const cmp = utils.compareRev(version, this._entry[0])
