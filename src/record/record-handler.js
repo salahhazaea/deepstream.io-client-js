@@ -402,32 +402,28 @@ RecordHandler.prototype._observe = function (defaults, name, ...args) {
     let prevData = kEmpty
 
     const onUpdate = (record) => {
-      try {
-        if (state && record.state < state) {
-          return
-        }
+      if (state && record.state < state) {
+        return
+      }
 
-        if (timeoutHandle) {
-          clearTimeout(timeoutHandle)
-          timeoutHandle = null
-        }
+      if (timeoutHandle) {
+        clearTimeout(timeoutHandle)
+        timeoutHandle = null
+      }
 
-        if (dataOnly) {
-          const nextData = record.get(path)
-          if (nextData !== prevData) {
-            prevData = nextData
-            o.next(nextData)
-          }
-        } else {
-          o.next({
-            name: record.name,
-            version: record.version,
-            data: record.get(path),
-            state: record.state,
-          })
+      if (dataOnly) {
+        const nextData = record.get(path)
+        if (nextData !== prevData) {
+          prevData = nextData
+          o.next(nextData)
         }
-      } catch (err) {
-        o.error(err)
+      } else {
+        o.next({
+          name: record.name,
+          version: record.version,
+          data: record.get(path),
+          state: record.state,
+        })
       }
     }
 
