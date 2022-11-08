@@ -433,6 +433,8 @@ RecordHandler.prototype._observe = function (defaults, name, ...args) {
 
     const record = this.getRecord(name)
 
+    record.on('update', onUpdate)
+
     if (timeout && state && record.state < state) {
       timeoutHandle = setTimeout(() => {
         const expected = C.RECORD_STATE_NAME[state]
@@ -451,7 +453,6 @@ RecordHandler.prototype._observe = function (defaults, name, ...args) {
       onUpdate(record)
     }
 
-    record.on('update', onUpdate)
     return () => {
       record.off('update', onUpdate)
       record.unref()
