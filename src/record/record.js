@@ -371,7 +371,7 @@ Record.prototype._update = function (path, data) {
   const prevVersion = this._entry[0]
   const nextVersion = this._makeVersion(parseInt(prevVersion) + 1)
 
-  this._entry = [nextVersion, nextData]
+  this._entry = [nextVersion, nextData, prevVersion]
   this._dirty = this._entry
 
   const update = [this.name, nextVersion, JSON.stringify(nextData), prevVersion]
@@ -385,12 +385,12 @@ Record.prototype._update = function (path, data) {
 }
 
 Record.prototype._onRead = function ([name, version]) {
-  if (utils.compareRev(this._entry?.[0], version) === 0) {
+  if (utils.compareRev(this._entry[0], version) === 0) {
     this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.UPDATE, [
       this.name,
       this._entry[0],
       JSON.stringify(this._entry[1]),
-      this._entry[2],
+      this._entry[2] || '',
     ])
   }
 }
@@ -413,12 +413,11 @@ Record.prototype._onUpdate = function ([name, version, data]) {
       }
     }
 
-    if (
-      version !== this._entry[0] &&
-      (version.charAt(0) === 'I' || utils.compareRev(version, this._entry[0]) > 0)
-    ) {
-      // TODO (fix): state STALE
+    const cmp = utils.compareRev(version, this._entry[0])
 
+    if (cmp === 0) {
+      // Do nothing...
+    } else if (cmp > 0 || version.charAt(0) === 'I') {
       if (data === '{}') {
         data = jsonPath.EMPTY
       } else if (this._entry) {
@@ -426,9 +425,15 @@ Record.prototype._onUpdate = function ([name, version, data]) {
       } else {
         data = JSON.parse(data)
       }
-
       this._entry = [version, data]
       this._dirty = this._entry
+    } else {
+      this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.UPDATE, [
+        this.name,
+        this._entry[0],
+        JSON.stringify(this._entry[1]),
+        this._entry[2],
+      ])
     }
 
     invariant(this._entry[0], this.name + ' missing version')
