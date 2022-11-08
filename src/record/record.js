@@ -419,7 +419,9 @@ Record.prototype._onUpdate = function ([name, version, data]) {
       // Do nothing...
     } else if (cmp > 0 || version.charAt(0) === 'I') {
       if (data === '{}') {
-        data = jsonPath.EMPTY
+        data = jsonPath.EMPTY_OBJ
+      } else if (data === '[]') {
+        data = jsonPath.EMPTY_ARR
       } else if (this._entry) {
         data = jsonPath.set(this._entry[1], null, JSON.parse(data), true)
       } else {
