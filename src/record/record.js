@@ -427,7 +427,7 @@ Record.prototype._onUpdate = function ([name, version, data]) {
         this.name,
         this._entry[0],
         JSON.stringify(this._entry[1]),
-        this._entry[2],
+        this._entry[2] || '',
       ])
     }
 
