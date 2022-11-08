@@ -16,6 +16,7 @@ const Record = function (name, handler) {
   this._cache = handler._cache
   this._client = handler._client
   this._connection = handler._connection
+  this._updates = null
 
   this._name = name
   this._subscribed = false
@@ -373,12 +374,12 @@ Record.prototype._update = function (path, data) {
   this._entry = [nextVersion, nextData]
   this._dirty = this._entry
 
-  this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.UPDATE, [
-    this.name,
-    nextVersion,
-    JSON.stringify(nextData),
-    prevVersion,
-  ])
+  const update = [this.name, nextVersion, JSON.stringify(nextData), prevVersion]
+
+  this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.UPDATE, update)
+
+  this._updates ??= new Map()
+  this._updates.set(nextVersion, update)
 
   return true
 }
@@ -404,6 +405,13 @@ Record.prototype._onUpdate = function ([name, version, data]) {
 
     const prevData = this.data
     const prevVersion = this.version
+
+    if (this._updates) {
+      this._updates.delete(version)
+      if (this._updates.size === 0) {
+        this._updates = null
+      }
+    }
 
     if (
       version !== this._entry[0] &&
@@ -463,6 +471,12 @@ Record.prototype._subscribe = function () {
     this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.READ, [this.name, this._entry[0]])
   } else {
     this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.READ, [this.name])
+  }
+
+  if (this._updates) {
+    for (const update of this._updates.values()) {
+      this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.UPDATE, update)
+    }
   }
 
   this._subscribed = true
