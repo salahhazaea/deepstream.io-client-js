@@ -6,7 +6,7 @@ const messageParser = require('../message/message-parser')
 const xuid = require('xuid')
 const invariant = require('invariant')
 
-const EMPTY_ENTRY = utils.deepFreeze([null, null])
+const EMPTY_ENTRY = utils.deepFreeze([null, null, null])
 
 const Record = function (name, handler) {
   this._handler = handler
@@ -420,7 +420,7 @@ Record.prototype._onUpdate = function ([name, version, data]) {
       } else {
         data = JSON.parse(data)
       }
-      this._entry = [version, data]
+      this._entry = [version, data, null]
       this._dirty = this._entry
     } else {
       this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.UPDATE, [
