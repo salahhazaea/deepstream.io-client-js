@@ -42,7 +42,7 @@ const Record = function (name, handler) {
     } else if (entry) {
       invariant(
         typeof entry[0] === 'string' && entry[1] && typeof entry[1] === 'object',
-        'entry must be [string, object]'
+        this.name + ' entry must be [string, object]'
       )
 
       this._stats.hits += 1
@@ -74,10 +74,10 @@ Record.STATE = C.RECORD_STATE
 EventEmitter(Record.prototype)
 
 Record.prototype._$destroy = function () {
-  invariant(this._usages === 0, 'must have no refs')
-  invariant(this.version, 'must have version to destroy')
-  invariant(this.isReady, 'must be ready to destroy')
-  invariant(this._patchQueue == null, 'must not have patch queue')
+  invariant(this._usages === 0, this.name + ' must have no refs')
+  invariant(this.version, this.name + ' must have version to destroy')
+  invariant(this.isReady, this.name + ' must be ready to destroy')
+  invariant(this._patchQueue == null, this.name + ' must not have patch queue')
 
   if (this._subscribed) {
     this._connection.sendMsg1(C.TOPIC.RECORD, C.ACTIONS.UNSUBSCRIBE, this.name)
@@ -162,13 +162,13 @@ Object.defineProperty(Record.prototype, 'state', {
 })
 
 Record.prototype.get = function (path) {
-  invariant(this._usages > 0, 'must have refs')
+  invariant(this._usages > 0, this.name + ' must have refs')
 
   return jsonPath.get(this.data, path)
 }
 
 Record.prototype.set = function (pathOrData, dataOrNil) {
-  invariant(this._usages > 0, 'must have refs')
+  invariant(this._usages > 0, this.name + ' must have refs')
 
   if (
     this._usages === 0 ||
@@ -216,7 +216,7 @@ Record.prototype.set = function (pathOrData, dataOrNil) {
 }
 
 Record.prototype.when = function (stateOrNull) {
-  invariant(this._usages > 0, 'must have refs')
+  invariant(this._usages > 0, this.name + ' must have refs')
 
   const state = stateOrNull == null ? Record.STATE.SERVER : stateOrNull
 
@@ -256,7 +256,7 @@ Record.prototype.when = function (stateOrNull) {
 }
 
 Record.prototype.update = function (pathOrUpdater, updaterOrNil) {
-  invariant(this._usages > 0, 'must have refs')
+  invariant(this._usages > 0, this.name + ' must have refs')
 
   if (this._usages === 0 || this._provided) {
     this._client._$onError(C.TOPIC.RECORD, C.EVENT.UPDATE_ERROR, 'cannot update', [
@@ -312,7 +312,7 @@ Record.prototype.ref = function () {
 }
 
 Record.prototype.unref = function () {
-  invariant(this._usages > 0, 'must have refs')
+  invariant(this._usages > 0, this.name + ' must have refs')
 
   this._usages -= 1
   if (this._usages === 0) {
@@ -340,7 +340,7 @@ Record.prototype._$onMessage = function (message) {
 }
 
 Record.prototype._onSubscriptionHasProvider = function (data) {
-  invariant(this.connected, 'must be connected')
+  invariant(this.connected, this.name + ' must be connected')
 
   const provided = Boolean(data[1] && messageParser.convertTyped(data[1], this._client))
 
@@ -353,8 +353,8 @@ Record.prototype._onSubscriptionHasProvider = function (data) {
 }
 
 Record.prototype._update = function (path, data) {
-  invariant(this._entry[0], '_update must have version')
-  invariant(this._entry[1], '_update must have data')
+  invariant(this._entry[0], this.name + ' _update must have version')
+  invariant(this._entry[1], this.name + ' _update must have data')
 
   const prevData = this._entry[1]
   const nextData = jsonPath.set(prevData, path, data, true)
@@ -391,7 +391,7 @@ Record.prototype._onRead = function ([name, version]) {
 }
 
 Record.prototype._onUpdate = function ([name, version, data]) {
-  invariant(this.connected, 'must be connected')
+  invariant(this.connected, this.name + ' must be connected')
 
   try {
     if (!version) {
@@ -419,8 +419,8 @@ Record.prototype._onUpdate = function ([name, version, data]) {
       this._dirty = this._entry
     }
 
-    invariant(this._entry[0], 'missing version')
-    invariant(this._entry[1], 'missing data')
+    invariant(this._entry[0], this.name + ' missing version')
+    invariant(this._entry[1], this.name + ' missing data')
 
     if (this._patchQueue) {
       if (this._entry[0].charAt(0) !== 'I') {
