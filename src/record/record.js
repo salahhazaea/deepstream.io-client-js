@@ -231,16 +231,20 @@ Record.prototype.when = function (stateOrNull) {
     }
 
     const onUpdate = () => {
-      if (this.state < state) {
-        return
+      try {
+        if (this.state < state) {
+          return
+        }
+
+        // clearTimeout(timeout)
+
+        this.off('update', onUpdate)
+        this.unref()
+
+        resolve()
+      } catch (err) {
+        reject(err)
       }
-
-      // clearTimeout(timeout)
-
-      this.off('update', onUpdate)
-      this.unref()
-
-      resolve()
     }
 
     // const timeout = setTimeout(() => {
