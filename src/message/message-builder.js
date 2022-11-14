@@ -19,15 +19,15 @@ module.exports.getMsg = function (topic, action, data) {
     }
   }
 
-  return sendData.join(SEP) + C.MESSAGE_SEPERATOR
+  return sendData.join(SEP)
 }
 
 module.exports.getMsg1 = function (topic, action, p0) {
-  return `${topic}${SEP}${action}${SEP}${p0}${C.MESSAGE_SEPERATOR}`
+  return `${topic}${SEP}${action}${SEP}${p0}`
 }
 
 module.exports.getMsg2 = function (topic, action, p0, p1) {
-  return `${topic}${SEP}${action}${SEP}${p0}${SEP}${p1}${C.MESSAGE_SEPERATOR}`
+  return `${topic}${SEP}${action}${SEP}${p0}${SEP}${p1}`
 }
 
 module.exports.typed = function (value) {
