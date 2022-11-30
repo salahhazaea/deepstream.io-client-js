@@ -68,18 +68,21 @@ class Listener {
         return
       }
 
-      const subscription = this._callback(name)
-        .pipe(this._pipe)
-        .subscribe({
+      const observable = this._callback(name)
+      if (observable) {
+        const subscription = observable.pipe(this._pipe).subscribe({
           next: ({ data, hash }) => {
-            this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.UPDATE, [name, `INF-${hash}`, data])
+            this._connection.sendMsg(this._topic, C.ACTIONS.UPDATE, [name, `INF-${hash}`, data])
           },
           error: (err) => {
             this._error(name, err)
           },
         })
-
-      this._subscriptions.set(name, subscription)
+        this._subscriptions.set(name, subscription)
+      } else {
+        this._connection.sendMsg(this._topic, C.ACTIONS.LISTEN_REJECT, [this._pattern, name])
+        this._subscriptions.set(name, null)
+      }
     } else if (message.action === C.ACTIONS.REJECT) {
       const subscription = this._subscriptions.get(name)
 
