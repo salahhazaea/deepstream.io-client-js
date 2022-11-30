@@ -39,7 +39,7 @@ class Listener {
       return
     }
 
-    const [name] = message.data
+    const name = message.data[1]
 
     if (message.action === C.ACTIONS.SUBSCRIPTION_FOR_PATTERN_FOUND) {
       if (this._providers.has(name)) {
