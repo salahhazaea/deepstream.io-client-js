@@ -1,5 +1,6 @@
 const Record = require('./record')
-const Listener = require('../utils/listener')
+const BroadcastListener = require('../utils/broadcast-listener')
+const UnicastListener = require('../utils/unicast-listener')
 const C = require('../constants/constants')
 const rxjs = require('rxjs')
 const invariant = require('invariant')
@@ -163,7 +164,7 @@ RecordHandler.prototype.getRecord = function (name) {
   return record
 }
 
-RecordHandler.prototype.provide = function (pattern, callback, recursive = false) {
+RecordHandler.prototype.provide = function (pattern, callback, options) {
   if (typeof pattern !== 'string' || pattern.length === 0) {
     throw new Error('invalid argument pattern')
   }
@@ -171,12 +172,10 @@ RecordHandler.prototype.provide = function (pattern, callback, recursive = false
     throw new Error('invalid argument callback')
   }
 
-  let options
-
-  if (recursive && typeof recursive === 'object') {
-    options = recursive
-  } else {
-    options = { recursive }
+  if (!options) {
+    options = { recursive: false, stringify: null }
+  } else if (options === true) {
+    options = { recursive: true, stringify: null }
   }
 
   if (this._listeners.has(pattern)) {
@@ -184,14 +183,10 @@ RecordHandler.prototype.provide = function (pattern, callback, recursive = false
     return
   }
 
-  const listener = new Listener(
-    C.TOPIC.RECORD,
-    pattern,
-    callback,
-    this,
-    options.recursive,
-    options.stringify
-  )
+  const listener =
+    options.mode?.toLowerCase() === 'unicast'
+      ? new UnicastListener(C.TOPIC.RECORD, pattern, callback, this, options)
+      : new BroadcastListener(C.TOPIC.RECORD, pattern, callback, this, options)
 
   this._listeners.set(pattern, listener)
   return () => {

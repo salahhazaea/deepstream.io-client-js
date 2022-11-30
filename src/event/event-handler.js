@@ -1,7 +1,8 @@
 const messageBuilder = require('../message/message-builder')
 const messageParser = require('../message/message-parser')
 const C = require('../constants/constants')
-const Listener = require('../utils/listener')
+const BroadcastListener = require('../utils/broadcast-listener')
+const UnicastListener = require('../utils/unicast-listener')
 const EventEmitter = require('component-emitter2')
 const rxjs = require('rxjs')
 
@@ -115,7 +116,7 @@ EventHandler.prototype.emit = function (name, data) {
   this._stats.emitted += 1
 }
 
-EventHandler.prototype.provide = function (pattern, callback) {
+EventHandler.prototype.provide = function (pattern, callback, options) {
   if (typeof pattern !== 'string' || pattern.length === 0) {
     throw new Error('invalid argument pattern')
   }
@@ -128,15 +129,10 @@ EventHandler.prototype.provide = function (pattern, callback) {
     return
   }
 
-  const listener = new Listener(
-    C.TOPIC.EVENT,
-    pattern,
-    callback,
-    this._options,
-    this._client,
-    this._connection,
-    this
-  )
+  const listener =
+    options.mode?.toLowerCase() === 'unicast'
+      ? new UnicastListener(C.TOPIC.EVENT, pattern, callback, this, options)
+      : new BroadcastListener(C.TOPIC.EVENT, pattern, callback, this, options)
 
   this._listeners.set(pattern, listener)
   return () => {

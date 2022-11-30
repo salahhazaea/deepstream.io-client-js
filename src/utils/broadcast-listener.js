@@ -2,12 +2,11 @@ const C = require('../constants/constants')
 const rxjs = require('rxjs')
 
 class Listener {
-  constructor(topic, pattern, callback, handler, recursive, stringify) {
+  constructor(topic, pattern, callback, handler, { recursive = false, stringify = null } = {}) {
     this._topic = topic
     this._pattern = pattern
     this._callback = callback
     this._handler = handler
-    this._options = this._handler._options
     this._client = this._handler._client
     this._connection = this._handler._connection
     this._providers = new Map()
@@ -40,7 +39,7 @@ class Listener {
       return
     }
 
-    const name = message.data[1]
+    const [name] = message.data
 
     if (message.action === C.ACTIONS.SUBSCRIPTION_FOR_PATTERN_FOUND) {
       if (this._providers.has(name)) {
