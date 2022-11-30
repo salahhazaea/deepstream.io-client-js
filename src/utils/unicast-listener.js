@@ -110,8 +110,8 @@ class Listener {
   }
 
   _reset() {
-    for (const provider of this._subscriptions.values()) {
-      provider.stop()
+    for (const subscription of this._subscriptions.values()) {
+      subscription.unsubscribe()
     }
     this._subscriptions.clear()
   }
