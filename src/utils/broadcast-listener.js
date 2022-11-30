@@ -108,7 +108,7 @@ class Listener {
           value$ = rxjs.of(value$) // Compat for recursive with value
         }
 
-        if (Boolean(provider.value$) !== Boolean(value$)) {
+        if (Boolean(provider.value$) !== Boolean(value$) && !provider.sending) {
           provider.sending = true
           process.nextTick(provider.send)
         }
