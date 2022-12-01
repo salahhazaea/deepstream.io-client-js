@@ -1,5 +1,5 @@
 const Record = require('./record')
-const BroadcastListener = require('../utils/broadcast-listener')
+const MulticastListener = require('../utils/multicast-listener')
 const UnicastListener = require('../utils/unicast-listener')
 const C = require('../constants/constants')
 const rxjs = require('rxjs')
@@ -186,7 +186,7 @@ RecordHandler.prototype.provide = function (pattern, callback, options) {
   const listener =
     options.mode?.toLowerCase() === 'unicast'
       ? new UnicastListener(C.TOPIC.RECORD, pattern, callback, this, options)
-      : new BroadcastListener(C.TOPIC.RECORD, pattern, callback, this, options)
+      : new MulticastListener(C.TOPIC.RECORD, pattern, callback, this, options)
 
   this._listeners.set(pattern, listener)
   return () => {

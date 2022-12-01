@@ -1,7 +1,7 @@
 const messageBuilder = require('../message/message-builder')
 const messageParser = require('../message/message-parser')
 const C = require('../constants/constants')
-const BroadcastListener = require('../utils/broadcast-listener')
+const MulticastListener = require('../utils/multicast-listener')
 const UnicastListener = require('../utils/unicast-listener')
 const EventEmitter = require('component-emitter2')
 const rxjs = require('rxjs')
@@ -132,7 +132,7 @@ EventHandler.prototype.provide = function (pattern, callback, options) {
   const listener =
     options.mode?.toLowerCase() === 'unicast'
       ? new UnicastListener(C.TOPIC.EVENT, pattern, callback, this, options)
-      : new BroadcastListener(C.TOPIC.EVENT, pattern, callback, this, options)
+      : new MulticastListener(C.TOPIC.EVENT, pattern, callback, this, options)
 
   this._listeners.set(pattern, listener)
   return () => {
