@@ -84,14 +84,14 @@ class Listener {
         this._subscriptions.set(name, null)
       }
     } else if (message.action === C.ACTIONS.LISTEN_REJECT) {
-      const subscription = this._subscriptions.get(name)
-
-      if (!subscription) {
+      if (!this._subscriptions.has(name)) {
         this._error(name, 'invalid remove: listener missing')
         return
       }
 
-      subscription.unsubscribe()
+      const subscription = this._subscriptions.get(name)
+
+      subscription?.unsubscribe()
 
       this._subscriptions.delete(name)
     } else {
