@@ -108,8 +108,8 @@ class Listener {
     }
   }
 
-  _error(name, msg) {
-    this._client._$onError(this._topic, C.EVENT.LISTENER_ERROR, msg, [this._pattern, name])
+  _error(name, err) {
+    this._client._$onError(this._topic, C.EVENT.LISTENER_ERROR, err, [this._pattern, name])
   }
 
   _reset() {
