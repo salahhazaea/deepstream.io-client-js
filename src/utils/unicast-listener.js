@@ -68,9 +68,9 @@ class Listener {
         return
       }
 
-      const observable = this._callback(name)
-      if (observable) {
-        const subscription = observable.pipe(this._pipe).subscribe({
+      const value$ = this._callback(name)
+      if (value$) {
+        const subscription = value$.pipe(this._pipe).subscribe({
           next: ({ data, hash }) => {
             this._connection.sendMsg(this._topic, C.ACTIONS.UPDATE, [name, `INF-${hash}`, data])
           },
