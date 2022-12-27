@@ -65,10 +65,6 @@ Client.prototype.close = function () {
   this._connection.close()
 }
 
-Client.prototype.getConnectionState = function () {
-  return this._connection.getState()
-}
-
 Client.prototype._$onMessage = function (message) {
   if (this._messageCallbacks[message.topic]) {
     this._messageCallbacks[message.topic](message)

@@ -2,7 +2,7 @@ const C = require('../constants/constants')
 const rxjs = require('rxjs')
 
 class Listener {
-  constructor(topic, pattern, callback, handler, { recursive = false, stringify = null } = {}) {
+  constructor(topic, pattern, callback, handler, { stringify = null, recursive = false } = {}) {
     this._topic = topic
     this._pattern = pattern
     this._callback = callback
@@ -13,32 +13,19 @@ class Listener {
     this._recursive = recursive
     this._stringify = stringify || JSON.stringify
 
-    this._$handleConnectionStateChange()
-  }
-
-  get connected() {
-    return this._client.getConnectionState() === C.CONNECTION_STATE.OPEN
+    if (this._connection.connected) {
+      this._connection.sendMsg(this._topic, C.ACTIONS.LISTEN, [this._pattern, 'U'])
+    }
   }
 
   _$destroy() {
     this._reset()
-
-    if (this.connected) {
+    if (this._connection.connected) {
       this._connection.sendMsg(this._topic, C.ACTIONS.UNLISTEN, [this._pattern])
     }
   }
 
   _$onMessage(message) {
-    if (!this.connected) {
-      this._client._$onError(
-        C.TOPIC.RECORD,
-        C.EVENT.NOT_CONNECTED,
-        new Error('received message while not connected'),
-        message
-      )
-      return
-    }
-
     const name = message.data[1]
 
     if (message.action === C.ACTIONS.SUBSCRIPTION_FOR_PATTERN_FOUND) {
@@ -59,7 +46,7 @@ class Listener {
         valueSubscription: null,
       }
       provider.stop = () => {
-        if (this.connected && provider.accepted) {
+        if (provider.accepted) {
           this._connection.sendMsg(this._topic, C.ACTIONS.LISTEN_REJECT, [
             this._pattern,
             provider.name,
@@ -203,14 +190,6 @@ class Listener {
     return true
   }
 
-  _$handleConnectionStateChange() {
-    if (this.connected) {
-      this._connection.sendMsg(this._topic, C.ACTIONS.LISTEN, [this._pattern])
-    } else {
-      this._reset()
-    }
-  }
-
   _error(name, err) {
     this._client._$onError(this._topic, C.EVENT.LISTENER_ERROR, err, [this._pattern, name])
   }
@@ -220,6 +199,13 @@ class Listener {
       provider.stop()
     }
     this._providers.clear()
+  }
+
+  _$handleConnectionStateChange() {
+    this._reset()
+    if (this._connection.connected) {
+      this._connection.sendMsg(this._topic, C.ACTIONS.LISTEN, [this._pattern])
+    }
   }
 }
 

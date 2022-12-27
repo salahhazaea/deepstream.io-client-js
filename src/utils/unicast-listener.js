@@ -3,7 +3,7 @@ const rx = require('rxjs/operators')
 const rxjs = require('rxjs')
 
 class Listener {
-  constructor(topic, pattern, callback, handler, { stringify = null, recursive = false } = {}) {
+  constructor(topic, pattern, callback, handler, { stringify = null } = {}) {
     this._topic = topic
     this._pattern = pattern
     this._callback = callback
@@ -30,36 +30,19 @@ class Listener {
       rx.distinctUntilKeyChanged('hash')
     )
 
-    this._$handleConnectionStateChange()
-
-    if (recursive) {
-      throw new Error('invalid argument: recursive')
+    if (this._connection.connected) {
+      this._connection.sendMsg(this._topic, C.ACTIONS.LISTEN, [this._pattern, 'U'])
     }
-  }
-
-  get connected() {
-    return this._client.getConnectionState() === C.CONNECTION_STATE.OPEN
   }
 
   _$destroy() {
     this._reset()
-
-    if (this.connected) {
+    if (this._connection.connected) {
       this._connection.sendMsg(this._topic, C.ACTIONS.UNLISTEN, [this._pattern])
     }
   }
 
   _$onMessage(message) {
-    if (!this.connected) {
-      this._client._$onError(
-        C.TOPIC.RECORD,
-        C.EVENT.NOT_CONNECTED,
-        new Error('received message while not connected'),
-        message
-      )
-      return
-    }
-
     const name = message.data[1]
 
     if (message.action === C.ACTIONS.LISTEN_ACCEPT) {
@@ -101,14 +84,6 @@ class Listener {
     return true
   }
 
-  _$handleConnectionStateChange() {
-    if (this.connected) {
-      this._connection.sendMsg(this._topic, C.ACTIONS.LISTEN, [this._pattern, 'U'])
-    } else {
-      this._reset()
-    }
-  }
-
   _error(name, err) {
     this._client._$onError(this._topic, C.EVENT.LISTENER_ERROR, err, [this._pattern, name])
   }
@@ -118,6 +93,13 @@ class Listener {
       subscription?.unsubscribe()
     }
     this._subscriptions.clear()
+  }
+
+  _$handleConnectionStateChange() {
+    this._reset()
+    if (this._connection.connected) {
+      this._connection.sendMsg(this._topic, C.ACTIONS.LISTEN, [this._pattern, 'U'])
+    }
   }
 }
 

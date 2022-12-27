@@ -27,11 +27,8 @@ const RecordHandler = function (options, connection, client) {
   this._pendingWrite = new Set()
   this._now = Date.now()
   this._pruning = false
-  this._connected = 0
 
   this._syncEmitter = new EventEmitter()
-
-  this._handleConnectionStateChange = this._handleConnectionStateChange.bind(this)
 
   this.set = this.set.bind(this)
   this.get = this.get.bind(this)
@@ -65,8 +62,6 @@ const RecordHandler = function (options, connection, client) {
     }
   }
 
-  this._client.on(C.EVENT.CONNECTED, this._handleConnectionStateChange)
-
   const prune = (deadline) => {
     this._pruning = false
 
@@ -79,21 +74,21 @@ const RecordHandler = function (options, connection, client) {
         continue
       }
 
+      if (rec._$dirty) {
+        if (batch) {
+          batch.put(rec.name, rec._$dirty)
+        } else if (this._cache.put) {
+          this._cache.put(rec.name, rec._$dirty)
+        } else if (this._cache.set) {
+          this._cache.set(rec.name, rec._$dirty)
+        }
+        rec._$dirty = null
+      }
+
       const ttl =
         rec.state >= C.RECORD_STATE.PROVIDER || Object.keys(rec.data).length === 0 ? 1e3 : 10e3
 
-      if (rec._dirty) {
-        if (batch) {
-          batch.put(rec.name, rec._dirty)
-        } else if (this._cache.put) {
-          this._cache.put(rec.name, rec._dirty)
-        } else if (this._cache.set) {
-          this._cache.set(rec.name, rec._dirty)
-        }
-        rec._dirty = null
-      }
-
-      if (this._now - timestamp <= ttl) {
+      if (this._now - timestamp < ttl) {
         continue
       }
 
@@ -129,13 +124,23 @@ const RecordHandler = function (options, connection, client) {
     }
   }, 1e3)
   pruneInterval.unref?.()
-}
 
-Object.defineProperty(RecordHandler.prototype, 'connected', {
-  get: function connected() {
-    return Boolean(this._connected)
-  },
-})
+  this._connection.on(C.EVENT.CONNECTED, (connected) => {
+    for (const listener of this._listeners.values()) {
+      listener._$handleConnectionStateChange(connected)
+    }
+
+    for (const record of this._records.values()) {
+      record._$handleConnectionStateChange(connected)
+    }
+
+    if (connected) {
+      for (const token of this._syncEmitter.eventNames()) {
+        this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.SYNC, [token])
+      }
+    }
+  })
+}
 
 Object.defineProperty(RecordHandler.prototype, 'stats', {
   get: function stats() {
@@ -240,7 +245,7 @@ RecordHandler.prototype.sync = function (options) {
     }
 
     const onTimeout = () => {
-      const elapsed = Date.now() - this._connected
+      const elapsed = Date.now() - this._connection.connected
       if (elapsed < timeoutValue) {
         timeout = setTimeout(onTimeout, timeoutValue - elapsed)
         timeout.unref?.()
@@ -277,10 +282,7 @@ RecordHandler.prototype.sync = function (options) {
 
         token = xuid()
         this._syncEmitter.once(token, onToken)
-
-        if (this._connected) {
-          this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.SYNC, [token])
-        }
+        this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.SYNC, [token])
       },
       (err) => onDone(Promise.reject(err))
     )
@@ -483,25 +485,6 @@ RecordHandler.prototype._$handle = function (message) {
   }
 
   return false
-}
-
-RecordHandler.prototype._handleConnectionStateChange = function (connected) {
-  for (const listener of this._listeners.values()) {
-    listener._$handleConnectionStateChange(connected)
-  }
-
-  for (const record of this._records.values()) {
-    record._$handleConnectionStateChange(connected)
-  }
-
-  if (connected) {
-    this._connected = Date.now()
-    for (const token of this._syncEmitter.eventNames()) {
-      this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.SYNC, [token])
-    }
-  } else {
-    this._connected = 0
-  }
 }
 
 module.exports = RecordHandler
