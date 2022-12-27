@@ -202,9 +202,10 @@ class Listener {
   }
 
   _$handleConnectionStateChange() {
-    this._reset()
     if (this._connection.connected) {
       this._connection.sendMsg(this._topic, C.ACTIONS.LISTEN, [this._pattern])
+    } else {
+      this._reset()
     }
   }
 }
