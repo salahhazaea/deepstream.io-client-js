@@ -60,7 +60,7 @@ class Listener {
       return
     }
 
-    const [, name] = message
+    const name = message.data[1]
 
     if (message.action === C.ACTIONS.LISTEN_ACCEPT) {
       if (this._subscriptions.has(name)) {
