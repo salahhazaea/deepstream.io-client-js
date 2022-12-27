@@ -21,13 +21,18 @@ const Record = function (name, handler) {
   this._name = name
   this._subscribed = false
   this._provided = null
+  this._loading = true
   this._dirty = null
   this._entry = EMPTY_ENTRY
   this._patchQueue = []
   this._patchData = null
-  this._usages = 1 // Start with 1 for cache unref without subscribe.
+  this._usages = 0
+
+  this.ref()
   this._cache.get(this.name, (err, entry) => {
     this.unref()
+
+    this._loading = false
 
     if (err && (err.notFound || /notfound/i.test(err))) {
       err = null
@@ -209,7 +214,7 @@ Record.prototype.set = function (pathOrData, dataOrNil) {
       this.ref()
       this._pendingWrite.add(this)
     }
-  } else if (!this._update(path, jsonData, jsonData)) {
+  } else if (!this._update(path, jsonData)) {
     return
   }
 
@@ -461,7 +466,7 @@ Record.prototype._onUpdate = function ([name, version, data]) {
 }
 
 Record.prototype._subscribe = function () {
-  if (!this.connected || this._subscribed || this._usages === 0) {
+  if (!this.connected || this._subscribed || this._loading || this._usages === 0) {
     return
   }
 
@@ -473,18 +478,17 @@ Record.prototype._subscribe = function () {
     this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.SUBSCRIBE, [this.name])
   }
 
-  if (this._updates) {
-    for (const update of this._updates.values()) {
-      this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.UPDATE, update)
-    }
-  }
-
   this._subscribed = true
 }
 
 Record.prototype._$handleConnectionStateChange = function () {
   if (this.connected) {
     this._subscribe()
+    if (this._updates) {
+      for (const update of this._updates.values()) {
+        this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.UPDATE, update)
+      }
+    }
   } else {
     this._subscribed = false
     this._provided = null

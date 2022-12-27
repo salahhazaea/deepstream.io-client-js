@@ -60,7 +60,7 @@ class Listener {
       return
     }
 
-    const name = message.data[1]
+    const [, name] = message
 
     if (message.action === C.ACTIONS.LISTEN_ACCEPT) {
       if (this._subscriptions.has(name)) {
@@ -75,14 +75,13 @@ class Listener {
             this._connection.sendMsg(this._topic, C.ACTIONS.UPDATE, [name, `INF-${hash}`, data])
           },
           error: (err) => {
-            this._error(name, err)
             this._connection.sendMsg(this._topic, C.ACTIONS.LISTEN_REJECT, [this._pattern, name])
+            this._error(name, err)
           },
         })
         this._subscriptions.set(name, subscription)
       } else {
         this._connection.sendMsg(this._topic, C.ACTIONS.LISTEN_REJECT, [this._pattern, name])
-        this._subscriptions.set(name, null)
       }
     } else if (message.action === C.ACTIONS.LISTEN_REJECT) {
       if (!this._subscriptions.has(name)) {
