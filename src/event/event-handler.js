@@ -22,18 +22,20 @@ const EventHandler = function (options, connection, client) {
   this.provide = this.provide.bind(this)
   this.emit = this.emit.bind(this)
 
-  this._connection.on(C.EVENT.CONNECTED, (connected) => {
-    for (const listener of this._listeners.values()) {
-      listener._$handleConnectionStateChange(connected)
-    }
-
-    if (connected) {
-      for (const eventName of this._emitter.eventNames()) {
-        this._connection.sendMsg(C.TOPIC.EVENT, C.ACTIONS.SUBSCRIBE, [eventName])
-      }
+  this._client.on('connectionStateChanged', (state) => {
+    if (state === C.CONNECTION_STATE.OPEN) {
+      this._handleConnectionStateChange(true)
+    } else if (state === C.CONNECTION_STATE.RECONNECTING || state === C.CONNECTION_STATE.CLOSED) {
+      this._handleConnectionStateChange(false)
     }
   })
 }
+
+Object.defineProperty(EventHandler.prototype, 'connected', {
+  get: function connected() {
+    return this._client.getConnectionState() === C.CONNECTION_STATE.OPEN
+  },
+})
 
 Object.defineProperty(EventHandler.prototype, 'stats', {
   get: function stats() {
@@ -53,7 +55,7 @@ EventHandler.prototype.subscribe = function (name, callback) {
     throw new Error('invalid argument callback')
   }
 
-  if (!this._emitter.hasListeners(name)) {
+  if (!this._emitter.hasListeners(name) && this.connected) {
     this._connection.sendMsg(C.TOPIC.EVENT, C.ACTIONS.SUBSCRIBE, [name])
   }
 
@@ -68,11 +70,11 @@ EventHandler.prototype.unsubscribe = function (name, callback) {
     throw new Error('invalid argument callback')
   }
 
-  if (!this._emitter.hasListeners(name)) {
+  this._emitter.off(name, callback)
+
+  if (!this._emitter.hasListeners(name) && this.connected) {
     this._connection.sendMsg(C.TOPIC.EVENT, C.ACTIONS.UNSUBSCRIBE, [name])
   }
-
-  this._emitter.off(name, callback)
 }
 
 EventHandler.on = function (name, callback) {
@@ -153,8 +155,17 @@ EventHandler.prototype._$handle = function (message) {
     }
   } else {
     const listener = this._listeners.get(name)
+
     if (listener) {
       listener._$onMessage(message)
+    }
+  }
+}
+
+EventHandler.prototype._handleConnectionStateChange = function (connected) {
+  if (connected) {
+    for (const eventName of this._emitter.eventNames()) {
+      this._connection.sendMsg(C.TOPIC.EVENT, C.ACTIONS.SUBSCRIBE, [eventName])
     }
   }
 }

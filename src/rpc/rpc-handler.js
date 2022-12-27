@@ -16,20 +16,20 @@ const RpcHandler = function (options, connection, client) {
   this.unprovide = this.unprovide.bind(this)
   this.make = this.make.bind(this)
 
-  this._connection.on(C.EVENT.CONNECTED, (connected) => {
-    if (connected) {
-      for (const name of this._providers.keys()) {
-        this._connection.sendMsg(C.TOPIC.RPC, C.ACTIONS.SUBSCRIBE, [name])
-      }
-    } else {
-      const err = Object.assign(new Error('socket hang up'), { code: 'ECONNRESET' })
-      for (const rpc of this._rpcs.values()) {
-        rpc.callback(err)
-      }
-      this._rpcs.clear()
+  this._client.on('connectionStateChanged', (state) => {
+    if (state === C.CONNECTION_STATE.OPEN) {
+      this._handleConnectionStateChange(true)
+    } else if (state === C.CONNECTION_STATE.RECONNECTING || state === C.CONNECTION_STATE.CLOSED) {
+      this._handleConnectionStateChange(false)
     }
   })
 }
+
+Object.defineProperty(RpcHandler.prototype, 'connected', {
+  get: function connected() {
+    return this._client.getConnectionState() === C.CONNECTION_STATE.OPEN
+  },
+})
 
 Object.defineProperty(RpcHandler.prototype, 'stats', {
   get: function stats() {
@@ -55,7 +55,10 @@ RpcHandler.prototype.provide = function (name, callback) {
   }
 
   this._providers.set(name, callback)
-  this._connection.sendMsg(C.TOPIC.RPC, C.ACTIONS.SUBSCRIBE, [name])
+
+  if (this.connected) {
+    this._connection.sendMsg(C.TOPIC.RPC, C.ACTIONS.SUBSCRIBE, [name])
+  }
 
   return () => this.unprovide(name)
 }
@@ -71,7 +74,10 @@ RpcHandler.prototype.unprovide = function (name) {
   }
 
   this._providers.delete(name)
-  this._connection.sendMsg(C.TOPIC.RPC, C.ACTIONS.UNSUBSCRIBE, [name])
+
+  if (this.connected) {
+    this._connection.sendMsg(C.TOPIC.RPC, C.ACTIONS.UNSUBSCRIBE, [name])
+  }
 }
 
 RpcHandler.prototype.make = function (name, data, callback) {
@@ -158,6 +164,20 @@ RpcHandler.prototype._$handle = function (message) {
     } else {
       rpc.callback(null, messageParser.convertTyped(data, this._client))
     }
+  }
+}
+
+RpcHandler.prototype._handleConnectionStateChange = function (connected) {
+  if (connected) {
+    for (const name of this._providers.keys()) {
+      this._connection.sendMsg(C.TOPIC.RPC, C.ACTIONS.SUBSCRIBE, [name])
+    }
+  } else {
+    const err = Object.assign(new Error('socket hang up'), { code: 'ECONNRESET' })
+    for (const rpc of this._rpcs.values()) {
+      rpc.callback(err)
+    }
+    this._rpcs.clear()
   }
 }
 
