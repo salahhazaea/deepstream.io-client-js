@@ -451,7 +451,7 @@ RecordHandler.prototype._observe = function (defaults, name, ...args) {
   })
 
   if (signal != null) {
-    // TODO (perf): This a slow way to implement.
+    // TODO (perf): This is slow...
     x$ = signal.aborted ? rxjs.EMPTY : x$.pipe(rx.takeUntil(rxjs.fromEvent(signal, 'abort')))
     x$ = x$.pipe(rx.throwIfEmpty(() => new utils.AbortError()))
   }
