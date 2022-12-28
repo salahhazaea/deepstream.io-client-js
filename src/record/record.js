@@ -145,22 +145,25 @@ Object.defineProperty(Record.prototype, 'data', {
   },
 })
 
+// TODO (perf): This is slow...
 Object.defineProperty(Record.prototype, 'state', {
   enumerable: true,
   get: function state() {
-    if (!this.version) {
+    if (!this._entry[0]) {
       return Record.STATE.VOID
     }
 
     if (this._patchQueue) {
-      return this.version.charAt(0) === '0' ? Record.STATE.EMPTY : Record.STATE.CLIENT
+      return this._entry[0].charAt(0) === '0' && this._patchQueue.length === 0
+        ? Record.STATE.EMPTY
+        : Record.STATE.CLIENT
     }
 
     if (this._provided) {
       return Record.STATE.PROVIDER
     }
 
-    if (this.version.charAt(0) === 'I') {
+    if (this._entry[0].charAt(0) === 'I') {
       return Record.STATE.STALE
     }
 
