@@ -318,7 +318,6 @@ class Record extends EventEmitter {
           this._error(C.EVENT.USER_ERROR, 'cannot patch provided value')
         }
 
-        // @ts-ignore
         this._patches = null
         this._pending.delete(this)
       }
