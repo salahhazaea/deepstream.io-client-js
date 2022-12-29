@@ -323,7 +323,7 @@ class Record extends EventEmitter {
 
     if (
       this._state < Record.STATE.SERVER ||
-      version.charAt(0) === 'I' ||
+      (version !== this._version && version.charAt(0) === 'I') ||
       utils.compareRev(version, this._version) > 0
     ) {
       if (data === '{}') {
