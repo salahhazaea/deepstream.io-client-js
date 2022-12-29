@@ -312,13 +312,7 @@ class Record extends EventEmitter {
     }
   }
 
-  _onUpdate(message) {
-    const [, version, data] = message
-
-    if (!version) {
-      throw new Error('missing version')
-    }
-
+  _onUpdate([, version, data]) {
     const prevData = this._data
     const prevVersion = this._version
     const prevState = this._state
@@ -372,16 +366,11 @@ class Record extends EventEmitter {
     }
   }
 
-  _onSubscriptionHasProvider(message) {
-    invariant(this._version, this._name + ' missing version')
-    invariant(this._data, this._name + ' missing data')
-
-    const provided = Boolean(
-      message[1] && messageParser.convertTyped(message[1], this._handler._client)
-    )
+  _onSubscriptionHasProvider([, hasProvider]) {
+    const provided = hasProvider && messageParser.convertTyped(hasProvider, this._handler._client)
     const state = provided
       ? Record.STATE.PROVIDER
-      : this._version.charAt(0) === 'I'
+      : !this._version || this._version.charAt(0) === 'I'
       ? Record.STATE.STALE
       : Record.STATE.SERVER
 
