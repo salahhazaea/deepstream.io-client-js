@@ -20,19 +20,14 @@ const Record = function (name, handler) {
 
   this._name = name
   this._subscribed = false
-  this._provided = false
-  this._loading = true
+  this._provided = null
   this._dirty = null
   this._entry = EMPTY_ENTRY
   this._patchQueue = []
   this._patchData = null
-  this._usages = 0
-
-  this.ref()
+  this._usages = 1 // Start with 1 for cache unref without subscribe.
   this._cache.get(this.name, (err, entry) => {
     this.unref()
-
-    this._loading = false
 
     if (err && (err.notFound || /notfound/i.test(err))) {
       err = null
@@ -90,7 +85,7 @@ Record.prototype._$destroy = function () {
     this._subscribed = false
   }
 
-  this._provided = false
+  this._provided = null
   this._patchQueue = this._patchQueue || []
 
   return this
@@ -103,7 +98,7 @@ Object.defineProperty(Record.prototype, 'name', {
   },
 })
 
-// TODO (perf): This is slow...
+// TODO (perf): memoize?
 Object.defineProperty(Record.prototype, 'version', {
   enumerable: true,
   get: function version() {
@@ -122,7 +117,6 @@ Object.defineProperty(Record.prototype, 'version', {
   },
 })
 
-// TODO (perf): This is slow...
 Object.defineProperty(Record.prototype, 'data', {
   enumerable: true,
   get: function data() {
@@ -145,25 +139,22 @@ Object.defineProperty(Record.prototype, 'data', {
   },
 })
 
-// TODO (perf): This is slow...
 Object.defineProperty(Record.prototype, 'state', {
   enumerable: true,
   get: function state() {
-    if (!this._entry[0]) {
+    if (!this.version) {
       return Record.STATE.VOID
     }
 
     if (this._patchQueue) {
-      return this._entry[0].charAt(0) === '0' && this._patchQueue.length === 0
-        ? Record.STATE.EMPTY
-        : Record.STATE.CLIENT
+      return this.version.charAt(0) === '0' ? Record.STATE.EMPTY : Record.STATE.CLIENT
     }
 
     if (this._provided) {
       return Record.STATE.PROVIDER
     }
 
-    if (this._entry[0].charAt(0) === 'I') {
+    if (this.version.charAt(0) === 'I') {
       return Record.STATE.STALE
     }
 
@@ -218,7 +209,7 @@ Record.prototype.set = function (pathOrData, dataOrNil) {
       this.ref()
       this._pendingWrite.add(this)
     }
-  } else if (!this._update(path, jsonData)) {
+  } else if (!this._update(path, jsonData, jsonData)) {
     return
   }
 
@@ -331,9 +322,12 @@ Record.prototype.unref = function () {
 }
 
 Record.prototype._$onMessage = function (message) {
-  if (!this._subscribed) {
-    // Do nothing...
-  } else if (message.action === C.ACTIONS.UPDATE) {
+  if (!this.connected) {
+    this._onError(C.EVENT.NOT_CONNECTED, 'received message while not connected')
+    return
+  }
+
+  if (message.action === C.ACTIONS.UPDATE) {
     this._onUpdate(message.data)
   } else if (message.action === C.ACTIONS.READ) {
     this._onRead(message.data)
@@ -347,12 +341,16 @@ Record.prototype._$onMessage = function (message) {
 }
 
 Record.prototype._onSubscriptionHasProvider = function (data) {
-  const provided = Boolean(data && data[1] && messageParser.convertTyped(data[1], this._client))
+  invariant(this.connected, this.name + ' must be connected')
 
-  if (this._provided !== provided) {
-    this._provided = provided
-    this.emit('update', this)
+  const provided = Boolean(data[1] && messageParser.convertTyped(data[1], this._client))
+
+  if (Boolean(this._provided) === Boolean(provided)) {
+    return
   }
+
+  this._provided = provided
+  this.emit('update', this)
 }
 
 Record.prototype._update = function (path, data) {
@@ -394,6 +392,8 @@ Record.prototype._onRead = function ([name, version]) {
 }
 
 Record.prototype._onUpdate = function ([name, version, data]) {
+  invariant(this.connected, this.name + ' must be connected')
+
   try {
     if (!version) {
       throw new Error('missing version')
@@ -461,7 +461,7 @@ Record.prototype._onUpdate = function ([name, version, data]) {
 }
 
 Record.prototype._subscribe = function () {
-  if (!this.connected || this._subscribed || this._loading || this._usages === 0) {
+  if (!this.connected || this._subscribed || this._usages === 0) {
     return
   }
 
@@ -473,20 +473,21 @@ Record.prototype._subscribe = function () {
     this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.SUBSCRIBE, [this.name])
   }
 
+  if (this._updates) {
+    for (const update of this._updates.values()) {
+      this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.UPDATE, update)
+    }
+  }
+
   this._subscribed = true
 }
 
-Record.prototype._$handleConnectionStateChange = function (connected) {
-  if (connected) {
+Record.prototype._$handleConnectionStateChange = function () {
+  if (this.connected) {
     this._subscribe()
-    if (this._updates) {
-      for (const update of this._updates.values()) {
-        this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.UPDATE, update)
-      }
-    }
   } else {
     this._subscribed = false
-    this._provided = false
+    this._provided = null
     this._patchQueue = this._patchQueue || []
   }
 

@@ -75,8 +75,8 @@ class Listener {
             this._connection.sendMsg(this._topic, C.ACTIONS.UPDATE, [name, `INF-${hash}`, data])
           },
           error: (err) => {
-            this._connection.sendMsg(this._topic, C.ACTIONS.LISTEN_REJECT, [this._pattern, name])
             this._error(name, err)
+            this._connection.sendMsg(this._topic, C.ACTIONS.LISTEN_REJECT, [this._pattern, name])
           },
         })
         this._subscriptions.set(name, subscription)
@@ -85,12 +85,12 @@ class Listener {
         this._subscriptions.set(name, null)
       }
     } else if (message.action === C.ACTIONS.LISTEN_REJECT) {
-      const subscription = this._subscriptions.get(name)
-
-      if (subscription === undefined) {
+      if (!this._subscriptions.has(name)) {
         this._error(name, 'invalid remove: listener missing')
         return
       }
+
+      const subscription = this._subscriptions.get(name)
 
       subscription?.unsubscribe()
 
