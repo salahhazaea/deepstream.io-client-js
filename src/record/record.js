@@ -217,10 +217,6 @@ class Record extends EventEmitter {
     }
   }
 
-  _$onPrune() {
-    this._unsubscribe()
-  }
-
   _$onMessage(message) {
     const connection = this._handler._connection
 
@@ -261,7 +257,7 @@ class Record extends EventEmitter {
     this._emitUpdate()
   }
 
-  _unsubscribe() {
+  _$destroy() {
     const connection = this._handler._connection
 
     invariant(!this._refs, this._name + ' must not have refs')
@@ -275,6 +271,8 @@ class Record extends EventEmitter {
     if (this._state >= Record.STATE.SERVER) {
       this._state = this._data === jsonPath.EMPTY ? Record.STATE.EMPTY : Record.STATE.CLIENT
     }
+
+    return this
   }
 
   _subscribe() {

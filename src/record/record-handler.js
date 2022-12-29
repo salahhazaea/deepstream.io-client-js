@@ -28,12 +28,6 @@ const RecordHandler = function (options, connection, client) {
   this._now = Date.now()
   this._pruning = false
   this._connected = 0
-  this._registry = new FinalizationRegistry((key) => {
-    const ref = this._records.get(key)
-    if (ref !== undefined && ref.deref() === undefined) {
-      this._records.delete(key)
-    }
-  })
 
   this._syncEmitter = new EventEmitter()
 
@@ -66,8 +60,9 @@ const RecordHandler = function (options, connection, client) {
         continue
       }
 
+      this._records.delete(rec.name)
       this._prune.delete(rec)
-      rec._$onPrune()
+      rec._$destroy()
 
       if (n++ > 256) {
         this._schedule(prune)
@@ -112,13 +107,11 @@ RecordHandler.prototype.getRecord = function (name) {
     `invalid name ${name}`
   )
 
-  let ref = this._records.get(name)
-  let record = ref ? ref.deref() : null
+  let record = this._records.get(name)
+
   if (!record) {
     record = new Record(name, this)
-    ref = new WeakRef(record)
-    this._registry.register(record, name)
-    this._records.set(name, ref)
+    this._records.set(name, record)
   } else {
     record.ref()
   }
