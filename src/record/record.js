@@ -209,7 +209,7 @@ class Record extends EventEmitter {
   _emitUpdate() {
     // Compat
     if (this._callbacks) {
-      this.emit('update')
+      this.emit('update', this)
     }
 
     for (const fn of this._subscriptions) {
