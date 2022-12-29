@@ -53,6 +53,13 @@ const Connection = function (client, url, options) {
 
 Emitter(Connection.prototype)
 
+// TODO (fix): Remove
+Object.defineProperty(Connection.prototype, 'connected', {
+  get: function connected() {
+    return this._state === C.CONNECTION_STATE.OPEN
+  },
+})
+
 Connection.prototype.getState = function () {
   return this._state
 }

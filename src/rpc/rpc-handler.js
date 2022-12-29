@@ -18,9 +18,9 @@ const RpcHandler = function (options, connection, client) {
 
   this._client.on('connectionStateChanged', (state) => {
     if (state === C.CONNECTION_STATE.OPEN) {
-      this._handleConnectionStateChange(true)
+      this._onConnectionStateChange(true)
     } else if (state === C.CONNECTION_STATE.RECONNECTING || state === C.CONNECTION_STATE.CLOSED) {
-      this._handleConnectionStateChange(false)
+      this._onConnectionStateChange(false)
     }
   })
 }
@@ -167,7 +167,7 @@ RpcHandler.prototype._$handle = function (message) {
   }
 }
 
-RpcHandler.prototype._handleConnectionStateChange = function (connected) {
+RpcHandler.prototype._onConnectionStateChange = function (connected) {
   if (connected) {
     for (const name of this._providers.keys()) {
       this._connection.sendMsg(C.TOPIC.RPC, C.ACTIONS.SUBSCRIBE, [name])

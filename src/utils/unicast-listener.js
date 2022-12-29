@@ -30,7 +30,7 @@ class Listener {
       rx.distinctUntilKeyChanged('hash')
     )
 
-    this._$handleConnectionStateChange()
+    this._$onConnectionStateChange()
 
     if (recursive) {
       throw new Error('invalid argument: recursive')
@@ -101,7 +101,7 @@ class Listener {
     return true
   }
 
-  _$handleConnectionStateChange() {
+  _$onConnectionStateChange() {
     if (this.connected) {
       this._connection.sendMsg(this._topic, C.ACTIONS.LISTEN, [this._pattern, 'U'])
     } else {
