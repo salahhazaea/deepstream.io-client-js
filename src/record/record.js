@@ -323,7 +323,9 @@ class Record extends EventEmitter {
 
     const cmp = utils.compareRev(version, this._version)
     if (cmp > 0 || (cmp !== 0 && version.charAt(0) === 'I')) {
-      if (data === '{}') {
+      if (!data) {
+        return
+      } else if (data === '{}') {
         this._data = jsonPath.EMPTY_OBJ
       } else if (data === '[]') {
         this._data = jsonPath.EMPTY_ARR
@@ -332,9 +334,6 @@ class Record extends EventEmitter {
       }
       this._version = version
     }
-
-    invariant(this._version, this._name + ' missing version')
-    invariant(this._data, this._name + ' missing data')
 
     if (this._patches) {
       if (this._version.charAt(0) !== 'I') {
@@ -364,7 +363,7 @@ class Record extends EventEmitter {
   }
 
   _onSubscriptionHasProvider([, hasProvider]) {
-    if (!this._version) {
+    if (this._state < Record.STATE.SERVER) {
       return
     }
 
