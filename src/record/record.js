@@ -367,10 +367,14 @@ class Record extends EventEmitter {
   }
 
   _onSubscriptionHasProvider([, hasProvider]) {
+    if (!this._version) {
+      return
+    }
+
     const provided = hasProvider && messageParser.convertTyped(hasProvider, this._handler._client)
     const state = provided
       ? Record.STATE.PROVIDER
-      : !this._version || this._version.charAt(0) === 'I'
+      : this._version.charAt(0) === 'I'
       ? Record.STATE.STALE
       : Record.STATE.SERVER
 
