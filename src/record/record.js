@@ -304,6 +304,7 @@ class Record extends EventEmitter {
         } else {
           this._data = jsonPath.set(this._data, null, JSON.parse(data), true)
         }
+        this._version = version
       }
 
       invariant(this._version, this._name + ' missing version')
