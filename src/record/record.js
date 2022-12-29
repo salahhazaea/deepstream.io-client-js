@@ -49,8 +49,6 @@ class Record extends EventEmitter {
   }
 
   get(path) {
-    invariant(this._usages > 0, this._name + ' missing refs')
-
     return jsonPath.get(this._data, path)
   }
 
