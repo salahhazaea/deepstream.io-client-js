@@ -1,0 +1,19 @@
+{
+  "compilerOptions": {
+    "lib": ["es2022"],
+    "module": "ESNext",
+    "target": "es2022",
+    "strict": true,
+    "allowJs": true,
+    "checkJs": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "moduleResolution": "node",
+    "noImplicitAny": false,
+    "resolveJsonModule": true,
+    "useUnknownInCatchVariables": false,
+    "noEmit": true
+  },
+  "include": ["src/**/*"]
+}
