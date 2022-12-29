@@ -25,6 +25,7 @@ class Record extends EventEmitter {
     this._data = jsonPath.EMPTY
     this._state = Record.STATE.VOID
     this._usages = 1
+    this._subscribed = false
 
     this._patches = null
 
@@ -220,6 +221,8 @@ class Record extends EventEmitter {
           this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.UPDATE, update)
         }
       }
+    } else {
+      this._subscribed = false
     }
 
     if (this._state >= Record.STATE.SERVER) {
@@ -234,8 +237,9 @@ class Record extends EventEmitter {
     invariant(this._version, this._name + ' missing version')
     invariant(!this._patches, this._name + ' must not have patch queue')
 
-    if (this._connection.connected) {
+    if (this._subscribed && this._connection.connected) {
       this._connection.sendMsg1(C.TOPIC.RECORD, C.ACTIONS.UNSUBSCRIBE, this._name)
+      this._subscribed = false
     }
 
     if (this._state >= Record.STATE.SERVER) {
@@ -248,12 +252,13 @@ class Record extends EventEmitter {
   _subscribe() {
     invariant(this._usages, this._name + ' missing refs')
 
-    if (this._connection.connected) {
+    if (!this._subscribed && this._connection.connected) {
       if (this._patches) {
         this._connection.sendMsg1(C.TOPIC.RECORD, C.ACTIONS.SUBSCRIBE, this._name)
       } else {
         this._connection.sendMsg2(C.TOPIC.RECORD, C.ACTIONS.SUBSCRIBE, this._name, this._version)
       }
+      this._subscribed = true
     }
   }
 
