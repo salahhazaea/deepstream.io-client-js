@@ -233,8 +233,7 @@ class Record extends EventEmitter {
   }
 
   _$destroy() {
-    invariant(this._usages, this._name + ' missing refs')
-    invariant(this._version, this._name + ' missing version')
+    invariant(!this._usages, this._name + ' must not have refs')
     invariant(!this._patches, this._name + ' must not have patch queue')
 
     if (this._subscribed && this._connection.connected) {
