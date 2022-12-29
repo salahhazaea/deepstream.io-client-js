@@ -13,12 +13,6 @@ class Record extends EventEmitter {
     super()
 
     this._handler = handler
-    this._prune = handler._prune
-    this._client = handler._client
-    this._connection = handler._connection
-
-    this._pending = handler._pending
-    this._updating = null
 
     this._name = name
     this._version = ''
@@ -27,7 +21,8 @@ class Record extends EventEmitter {
     this._refs = 1
     this._subscribed = false
 
-    this._patches = null
+    // this._updating = null
+    // this._patches = null
 
     this._subscribe()
   }
@@ -88,7 +83,7 @@ class Record extends EventEmitter {
     if (this._state < Record.STATE.SERVER) {
       this._patches = this._patches && path ? this._patches : []
       this._patches.push(path, jsonPath.jsonClone(data))
-      this._pending.add(this)
+      this._handler._pending.add(this)
 
       this._version = this._makeVersion(this._version ? parseInt(this._version) + 1 : 1)
       this._data = jsonPath.set(this._data, path, data, true)
@@ -146,7 +141,7 @@ class Record extends EventEmitter {
     invariant(this._refs > 0, this._name + ' missing refs')
 
     if (this._version.charAt(0) === 'I') {
-      this._client._$onError(C.TOPIC.RECORD, C.EVENT.UPDATE_ERROR, 'cannot update', [
+      this._handler._client._$onError(C.TOPIC.RECORD, C.EVENT.UPDATE_ERROR, 'cannot update', [
         this._name,
         this._version,
         this._state,
@@ -184,7 +179,7 @@ class Record extends EventEmitter {
   ref() {
     this._refs += 1
     if (this._refs === 1) {
-      this._prune.delete(this)
+      this._handler._prune.delete(this)
       this._subscribe()
     }
   }
@@ -194,12 +189,14 @@ class Record extends EventEmitter {
 
     this._refs -= 1
     if (this._refs === 0) {
-      this._prune.set(this, this._handler._now)
+      this._handler._prune.set(this, this._handler._now)
     }
   }
 
   _$onMessage(message) {
-    invariant(this._connection.connected, this._name + ' must be connected')
+    const connection = this._handler._connection
+
+    invariant(connection.connected, this._name + ' must be connected')
 
     if (message.action === C.ACTIONS.UPDATE) {
       this._onUpdate(message.data)
@@ -213,14 +210,16 @@ class Record extends EventEmitter {
   }
 
   _$onConnectionStateChange() {
-    if (this._connection.connected) {
+    const connection = this._handler._connection
+
+    if (connection.connected) {
       if (this._refs > 0) {
         this._subscribe()
       }
 
       if (this._updating) {
         for (const update of this._updating.values()) {
-          this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.UPDATE, update)
+          connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.UPDATE, update)
         }
       }
     } else {
@@ -235,11 +234,13 @@ class Record extends EventEmitter {
   }
 
   _$destroy() {
+    const connection = this._handler._connection
+
     invariant(!this._refs, this._name + ' must not have refs')
     invariant(!this._patches, this._name + ' must not have patch queue')
 
-    if (this._subscribed && this._connection.connected) {
-      this._connection.sendMsg1(C.TOPIC.RECORD, C.ACTIONS.UNSUBSCRIBE, this._name)
+    if (this._subscribed && connection.connected) {
+      connection.sendMsg1(C.TOPIC.RECORD, C.ACTIONS.UNSUBSCRIBE, this._name)
       this._subscribed = false
     }
 
@@ -253,11 +254,13 @@ class Record extends EventEmitter {
   _subscribe() {
     invariant(this._refs, this._name + ' missing refs')
 
-    if (!this._subscribed && this._connection.connected) {
+    const connection = this._handler._connection
+
+    if (!this._subscribed && connection.connected) {
       if (this._patches) {
-        this._connection.sendMsg1(C.TOPIC.RECORD, C.ACTIONS.SUBSCRIBE, this._name)
+        connection.sendMsg1(C.TOPIC.RECORD, C.ACTIONS.SUBSCRIBE, this._name)
       } else {
-        this._connection.sendMsg2(C.TOPIC.RECORD, C.ACTIONS.SUBSCRIBE, this._name, this._version)
+        connection.sendMsg2(C.TOPIC.RECORD, C.ACTIONS.SUBSCRIBE, this._name, this._version)
       }
       this._subscribed = true
     }
@@ -266,6 +269,8 @@ class Record extends EventEmitter {
   _update(path, data) {
     invariant(this._version, this._name + ' missing version')
     invariant(this._data, this._name + ' missing data')
+
+    const connection = this._handler._connection
 
     const prevData = this._data
     const nextData = jsonPath.set(prevData, path, data, true)
@@ -276,7 +281,7 @@ class Record extends EventEmitter {
 
       const update = [this._name, nextVersion, JSON.stringify(nextData), prevVersion]
 
-      this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.UPDATE, update)
+      connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.UPDATE, update)
 
       this._updating ??= new Map()
       this._updating.set(nextVersion, update)
@@ -325,7 +330,7 @@ class Record extends EventEmitter {
       }
 
       this._patches = null
-      this._pending.delete(this)
+      this._handler._pending.delete(this)
     }
 
     if (this._state < Record.STATE.SERVER) {
@@ -342,7 +347,9 @@ class Record extends EventEmitter {
     invariant(this._version, this._name + ' missing version')
     invariant(this._data, this._name + ' missing data')
 
-    const provided = Boolean(message[1] && messageParser.convertTyped(message[1], this._client))
+    const provided = Boolean(
+      message[1] && messageParser.convertTyped(message[1], this._handler._client)
+    )
     const state = provided
       ? Record.STATE.PROVIDER
       : this._version.charAt(0) === 'I'
@@ -356,7 +363,7 @@ class Record extends EventEmitter {
   }
 
   _error(event, msgOrError, data) {
-    this._client._$onError(C.TOPIC.RECORD, event, msgOrError, [
+    this._handler._client._$onError(C.TOPIC.RECORD, event, msgOrError, [
       ...(Array.isArray(data) ? data : []),
       this._name,
       this._version,
@@ -365,7 +372,7 @@ class Record extends EventEmitter {
   }
 
   _makeVersion(start) {
-    let revid = `${xuid()}-${this._client.user || ''}`
+    let revid = `${xuid()}-${this._handler._client.user || ''}`
     if (revid.length === 32 || revid.length === 16) {
       // HACK: https://github.com/apache/couchdb/issues/2015
       revid += '-'
@@ -383,7 +390,7 @@ Record.prototype.destroy = Record.prototype.unref
 // TODO (fix): Remove
 Object.defineProperty(Record.prototype, 'connected', {
   get: function connected() {
-    return this._client.getConnectionState() === C.CONNECTION_STATE.OPEN
+    return this._handler._client.getConnectionState() === C.CONNECTION_STATE.OPEN
   },
 })
 
