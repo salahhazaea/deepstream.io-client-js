@@ -57,7 +57,7 @@ class Record extends EventEmitter {
   set(pathOrData, dataOrNil) {
     invariant(this._usages > 0, this._name + ' missing refs')
 
-    if (this._usages || this._version.charAt(0) === 'I' || this._name.startsWith('_')) {
+    if (this._version.charAt(0) === 'I' || this._name.startsWith('_')) {
       this._error(C.EVENT.USER_ERROR, 'cannot set')
       return
     }
@@ -143,7 +143,7 @@ class Record extends EventEmitter {
   update(pathOrUpdater, updaterOrNil) {
     invariant(this._usages > 0, this._name + ' missing refs')
 
-    if (this._usages || this._version.charAt(0) === 'I') {
+    if (this._version.charAt(0) === 'I') {
       this._client._$onError(C.TOPIC.RECORD, C.EVENT.UPDATE_ERROR, 'cannot update', [
         this._name,
         this._version,
@@ -191,7 +191,7 @@ class Record extends EventEmitter {
     invariant(this._usages > 0, this._name + ' missing refs')
 
     this._usages -= 1
-    if (this._usages) {
+    if (this._usages === 0) {
       this._prune.set(this, this._handler._now)
     }
   }
