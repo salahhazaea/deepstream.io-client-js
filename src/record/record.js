@@ -321,11 +321,8 @@ class Record extends EventEmitter {
       this._updating = null
     }
 
-    if (
-      this._state < Record.STATE.SERVER ||
-      (version !== this._version && version.charAt(0) === 'I') ||
-      utils.compareRev(version, this._version) > 0
-    ) {
+    const cmp = utils.compareRev(version, this._version)
+    if (cmp > 0 || (cmp !== 0 && version.charAt(0) === 'I')) {
       if (data === '{}') {
         this._data = jsonPath.EMPTY_OBJ
       } else if (data === '[]') {
