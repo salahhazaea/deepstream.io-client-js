@@ -250,9 +250,9 @@ class Record extends EventEmitter {
 
     if (this._connection.connected) {
       if (this._patches) {
-        this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.SUBSCRIBE, [this._name])
+        this._connection.sendMsg1(C.TOPIC.RECORD, C.ACTIONS.SUBSCRIBE, this._name)
       } else {
-        this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.SUBSCRIBE, [this._name, this._version])
+        this._connection.sendMsg2(C.TOPIC.RECORD, C.ACTIONS.SUBSCRIBE, this._name, this._version)
       }
     }
   }
