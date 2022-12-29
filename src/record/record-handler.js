@@ -37,8 +37,6 @@ const RecordHandler = function (options, connection, client) {
 
   this._syncEmitter = new EventEmitter()
 
-  this._onConnectionStateChange = this._onConnectionStateChange.bind(this)
-
   this.set = this.set.bind(this)
   this.get = this.get.bind(this)
   this.update = this.update.bind(this)
@@ -50,7 +48,7 @@ const RecordHandler = function (options, connection, client) {
 
   this._schedule = options.schedule ?? utils.schedule
 
-  this._client.on(C.EVENT.CONNECTED, this._onConnectionStateChange)
+  this._client.on(C.EVENT.CONNECTED, this._onConnectionStateChange.bind(this))
 
   const prune = (deadline) => {
     this._pruning = false

@@ -22,13 +22,7 @@ const EventHandler = function (options, connection, client) {
   this.provide = this.provide.bind(this)
   this.emit = this.emit.bind(this)
 
-  this._client.on('connectionStateChanged', (state) => {
-    if (state === C.CONNECTION_STATE.OPEN) {
-      this._onConnectionStateChange(true)
-    } else if (state === C.CONNECTION_STATE.RECONNECTING || state === C.CONNECTION_STATE.CLOSED) {
-      this._onConnectionStateChange(false)
-    }
-  })
+  this._client.on(C.EVENT.CONNECTED, this._onConnectionStateChange.bind(this))
 }
 
 Object.defineProperty(EventHandler.prototype, 'connected', {

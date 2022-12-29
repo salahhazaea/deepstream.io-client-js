@@ -16,13 +16,7 @@ const RpcHandler = function (options, connection, client) {
   this.unprovide = this.unprovide.bind(this)
   this.make = this.make.bind(this)
 
-  this._client.on('connectionStateChanged', (state) => {
-    if (state === C.CONNECTION_STATE.OPEN) {
-      this._onConnectionStateChange(true)
-    } else if (state === C.CONNECTION_STATE.RECONNECTING || state === C.CONNECTION_STATE.CLOSED) {
-      this._onConnectionStateChange(false)
-    }
-  })
+  this._client.on(C.EVENT.CONNECTED, this._onConnectionStateChange.bind(this))
 }
 
 Object.defineProperty(RpcHandler.prototype, 'connected', {
