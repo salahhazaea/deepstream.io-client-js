@@ -284,59 +284,55 @@ class Record extends EventEmitter {
   _onUpdate(message) {
     const [, version, data] = message
 
-    try {
-      if (!version) {
-        throw new Error('missing version')
+    if (!version) {
+      throw new Error('missing version')
+    }
+
+    const prevData = this._data
+    const prevVersion = this._version
+
+    if (this._updating?.delete(version) && this._updating.size === 0) {
+      this._updating = null
+    }
+
+    if (
+      this._state < Record.STATE.SERVER ||
+      version.charAt(0) === 'I' ||
+      utils.compareRev(version, this._version) > 0
+    ) {
+      if (data === '{}') {
+        this._data = jsonPath.EMPTY_OBJ
+      } else if (data === '[]') {
+        this._data = jsonPath.EMPTY_ARR
+      } else {
+        this._data = jsonPath.set(this._data, null, JSON.parse(data), true)
       }
+      this._version = version
+    }
 
-      const prevData = this._data
-      const prevVersion = this._version
+    invariant(this._version, this._name + ' missing version')
+    invariant(this._data, this._name + ' missing data')
 
-      if (this._updating?.delete(version) && this._updating.size === 0) {
-        this._updating = null
-      }
-
-      if (
-        this._state < Record.STATE.SERVER ||
-        version.charAt(0) === 'I' ||
-        utils.compareRev(version, this._version) > 0
-      ) {
-        if (data === '{}') {
-          this._data = jsonPath.EMPTY_OBJ
-        } else if (data === '[]') {
-          this._data = jsonPath.EMPTY_ARR
-        } else {
-          this._data = jsonPath.set(this._data, null, JSON.parse(data), true)
+    if (this._patches) {
+      if (this._version.charAt(0) !== 'I') {
+        for (let i = 0; i < this._patches.length; i += 2) {
+          this._update(this._patches[i + 0], this._patches[i + 1])
         }
-        this._version = version
+      } else if (this._patches.length) {
+        this._error(C.EVENT.USER_ERROR, 'cannot patch provided value')
       }
 
-      invariant(this._version, this._name + ' missing version')
-      invariant(this._data, this._name + ' missing data')
+      this._patches = null
+      this._pending.delete(this)
+    }
 
-      if (this._patches) {
-        if (this._version.charAt(0) !== 'I') {
-          for (let i = 0; i < this._patches.length; i += 2) {
-            this._update(this._patches[i + 0], this._patches[i + 1])
-          }
-        } else if (this._patches.length) {
-          this._error(C.EVENT.USER_ERROR, 'cannot patch provided value')
-        }
+    if (this._state < Record.STATE.SERVER) {
+      this._state = this._version.charAt(0) === 'I' ? Record.STATE.STALE : Record.STATE.SERVER
+      this.emit('ready')
+    }
 
-        this._patches = null
-        this._pending.delete(this)
-      }
-
-      if (this._state < Record.STATE.SERVER) {
-        this._state = this._version.charAt(0) === 'I' ? Record.STATE.STALE : Record.STATE.SERVER
-        this.emit('ready')
-      }
-
-      if (this._version !== prevVersion || this._data !== prevData) {
-        this.emit('update', this)
-      }
-    } catch (err) {
-      this._error(C.EVENT.UPDATE_ERROR, err, message)
+    if (this._version !== prevVersion || this._data !== prevData) {
+      this.emit('update', this)
     }
   }
 
