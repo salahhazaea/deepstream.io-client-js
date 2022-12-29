@@ -6,6 +6,7 @@ const messageParser = require('../message/message-parser')
 const xuid = require('xuid')
 const invariant = require('invariant')
 
+// EventEmitter is compat
 class Record extends EventEmitter {
   static STATE = C.RECORD_STATE
 
@@ -20,6 +21,7 @@ class Record extends EventEmitter {
     this._state = Record.STATE.VOID
     this._refs = 1
     this._subscribed = false
+    this._subscriptions = []
 
     // this._updating = null
     // this._patches = null
@@ -45,6 +47,17 @@ class Record extends EventEmitter {
 
   get refs() {
     return this._refs
+  }
+
+  subscribe(fn) {
+    this._subscriptions.push(fn)
+  }
+
+  unsubscribe(fn) {
+    const idx = this._subscriptions.indexOf(fn)
+    if (idx !== -1) {
+      this._subscriptions.splice(idx, 1)
+    }
   }
 
   get(path) {
@@ -93,7 +106,7 @@ class Record extends EventEmitter {
     }
 
     if (this._data !== prevData || this._version !== prevVersion || this._state !== prevState) {
-      this.emit('update', this)
+      this._emitUpdate()
     }
   }
 
@@ -119,7 +132,7 @@ class Record extends EventEmitter {
 
         // clearTimeout(timeout)
 
-        this.off('update', onUpdate)
+        this.unsubscribe(onUpdate)
         this.unref()
 
         resolve(null)
@@ -133,7 +146,7 @@ class Record extends EventEmitter {
       // }, 2 * 60e3)
 
       this.ref()
-      this.on('update', onUpdate)
+      this.subscribe(onUpdate)
     })
   }
 
@@ -193,6 +206,17 @@ class Record extends EventEmitter {
     }
   }
 
+  _emitUpdate() {
+    // Compat
+    if (this._callbacks) {
+      this.emit('update')
+    }
+
+    for (const fn of this._subscriptions) {
+      fn(this)
+    }
+  }
+
   _$onMessage(message) {
     const connection = this._handler._connection
 
@@ -230,7 +254,7 @@ class Record extends EventEmitter {
       this._state = this._data === jsonPath.EMPTY ? Record.STATE.EMPTY : Record.STATE.CLIENT
     }
 
-    this.emit('update', this)
+    this._emitUpdate()
   }
 
   _$destroy() {
@@ -297,6 +321,7 @@ class Record extends EventEmitter {
 
     const prevData = this._data
     const prevVersion = this._version
+    const prevState = this._state
 
     if (this._updating?.delete(version) && this._updating.size === 0) {
       this._updating = null
@@ -335,11 +360,15 @@ class Record extends EventEmitter {
 
     if (this._state < Record.STATE.SERVER) {
       this._state = this._version.charAt(0) === 'I' ? Record.STATE.STALE : Record.STATE.SERVER
-      this.emit('ready')
+
+      // Compat
+      if (this._callbacks) {
+        this.emit('ready')
+      }
     }
 
-    if (this._version !== prevVersion || this._data !== prevData) {
-      this.emit('update', this)
+    if (this._data !== prevData || this._version !== prevVersion || this._state !== prevState) {
+      this._emitUpdate()
     }
   }
 
@@ -358,7 +387,7 @@ class Record extends EventEmitter {
 
     if (this._state !== state) {
       this._state = state
-      this.emit('update', this)
+      this._emitUpdate()
     }
   }
 

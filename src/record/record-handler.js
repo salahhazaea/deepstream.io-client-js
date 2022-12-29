@@ -381,7 +381,7 @@ RecordHandler.prototype._observe = function (defaults, name, ...args) {
 
     const record = this.getRecord(name)
 
-    record.on('update', onUpdate)
+    record.subscribe(onUpdate)
 
     if (timeout && state && record.state < state) {
       timeoutHandle = setTimeout(() => {
@@ -402,7 +402,7 @@ RecordHandler.prototype._observe = function (defaults, name, ...args) {
     }
 
     return () => {
-      record.off('update', onUpdate)
+      record.unsubscribe(onUpdate)
       record.unref()
     }
   })
