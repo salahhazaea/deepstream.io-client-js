@@ -37,7 +37,7 @@ class Record extends EventEmitter {
   }
 
   get version() {
-    return this._version || null
+    return this._version
   }
 
   get data() {
