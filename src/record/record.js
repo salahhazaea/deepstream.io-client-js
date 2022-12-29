@@ -24,7 +24,7 @@ class Record extends EventEmitter {
     this._version = ''
     this._data = jsonPath.EMPTY
     this._state = Record.STATE.VOID
-    this._usages = 1
+    this._refs = 1
     this._subscribed = false
 
     this._patches = null
@@ -48,12 +48,16 @@ class Record extends EventEmitter {
     return this._state
   }
 
+  get refs() {
+    return this._refs
+  }
+
   get(path) {
     return jsonPath.get(this._data, path)
   }
 
   set(pathOrData, dataOrNil) {
-    invariant(this._usages > 0, this._name + ' missing refs')
+    invariant(this._refs > 0, this._name + ' missing refs')
 
     if (this._version.charAt(0) === 'I' || this._name.startsWith('_')) {
       this._error(C.EVENT.USER_ERROR, 'cannot set')
@@ -99,7 +103,7 @@ class Record extends EventEmitter {
   }
 
   when(stateOrNull) {
-    invariant(this._usages > 0, this._name + ' missing refs')
+    invariant(this._refs > 0, this._name + ' missing refs')
 
     const state = stateOrNull == null ? Record.STATE.SERVER : stateOrNull
 
@@ -139,7 +143,7 @@ class Record extends EventEmitter {
   }
 
   update(pathOrUpdater, updaterOrNil) {
-    invariant(this._usages > 0, this._name + ' missing refs')
+    invariant(this._refs > 0, this._name + ' missing refs')
 
     if (this._version.charAt(0) === 'I') {
       this._client._$onError(C.TOPIC.RECORD, C.EVENT.UPDATE_ERROR, 'cannot update', [
@@ -178,18 +182,18 @@ class Record extends EventEmitter {
   }
 
   ref() {
-    this._usages += 1
-    if (this._usages === 1) {
+    this._refs += 1
+    if (this._refs === 1) {
       this._prune.delete(this)
       this._subscribe()
     }
   }
 
   unref() {
-    invariant(this._usages > 0, this._name + ' missing refs')
+    invariant(this._refs > 0, this._name + ' missing refs')
 
-    this._usages -= 1
-    if (this._usages === 0) {
+    this._refs -= 1
+    if (this._refs === 0) {
       this._prune.set(this, this._handler._now)
     }
   }
@@ -210,7 +214,7 @@ class Record extends EventEmitter {
 
   _$onConnectionStateChange() {
     if (this._connection.connected) {
-      if (this._usages > 0) {
+      if (this._refs > 0) {
         this._subscribe()
       }
 
@@ -231,7 +235,7 @@ class Record extends EventEmitter {
   }
 
   _$destroy() {
-    invariant(!this._usages, this._name + ' must not have refs')
+    invariant(!this._refs, this._name + ' must not have refs')
     invariant(!this._patches, this._name + ' must not have patch queue')
 
     if (this._subscribed && this._connection.connected) {
@@ -247,7 +251,7 @@ class Record extends EventEmitter {
   }
 
   _subscribe() {
-    invariant(this._usages, this._name + ' missing refs')
+    invariant(this._refs, this._name + ' missing refs')
 
     if (!this._subscribed && this._connection.connected) {
       if (this._patches) {
@@ -407,7 +411,7 @@ Object.defineProperty(Record.prototype, 'provided', {
 // TODO (fix): Remove
 Object.defineProperty(Record.prototype, 'usages', {
   get: function usages() {
-    return this._usages
+    return this._refs
   },
 })
 
