@@ -244,10 +244,8 @@ class Record extends EventEmitter {
           connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.UPDATE, update)
         }
       }
-    }
-
-    if (this._state >= Record.STATE.SERVER) {
-      this._state = Record.STATE.EMPTY
+    } else {
+      this._state = Record.STATE.CLIENT
     }
 
     this._emitUpdate()
