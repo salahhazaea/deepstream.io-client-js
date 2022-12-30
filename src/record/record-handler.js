@@ -56,8 +56,7 @@ const RecordHandler = function (options, connection, client) {
         continue
       }
 
-      const ttl =
-        rec.state >= C.RECORD_STATE.PROVIDER || Object.keys(rec.data).length === 0 ? 1e3 : 10e3
+      const ttl = rec.state >= C.RECORD_STATE.PROVIDER || rec.data === jsonPath.EMPTY ? 1e3 : 10e3
 
       if (this._now - timestamp <= ttl) {
         continue
