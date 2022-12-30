@@ -100,7 +100,7 @@ class Record extends EventEmitter {
 
       this._version = this._makeVersion(this._version ? parseInt(this._version) + 1 : 1)
       this._data = jsonPath.set(this._data, path, data, true)
-      this._state = this._data === jsonPath.EMPTY ? Record.STATE.EMPTY : Record.STATE.CLIENT
+      this._state = Record.STATE.CLIENT
     } else {
       this._update(path, jsonPath.jsonClone(data))
     }
@@ -251,7 +251,7 @@ class Record extends EventEmitter {
     }
 
     if (this._state >= Record.STATE.SERVER) {
-      this._state = this._data === jsonPath.EMPTY ? Record.STATE.EMPTY : Record.STATE.CLIENT
+      this._state = Record.STATE.EMPTY
     }
 
     this._emitUpdate()
@@ -268,9 +268,7 @@ class Record extends EventEmitter {
       this._subscribed = false
     }
 
-    if (this._state >= Record.STATE.SERVER) {
-      this._state = this._data === jsonPath.EMPTY ? Record.STATE.EMPTY : Record.STATE.CLIENT
-    }
+    this._state = Record.STATE.CLIENT
 
     return this
   }
