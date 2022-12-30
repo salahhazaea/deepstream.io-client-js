@@ -20,6 +20,7 @@ class Record extends EventEmitter {
     this._data = jsonPath.EMPTY
     this._state = Record.STATE.VOID
     this._refs = 1
+    this._subscribed = false
     this._subscriptions = []
 
     // this._updating = null
@@ -189,7 +190,8 @@ class Record extends EventEmitter {
 
   ref() {
     this._refs += 1
-    if (this._refs === 1 && !this._handler._prune.delete(this)) {
+    if (this._refs === 1) {
+      this._handler._prune.delete(this)
       this._subscribe()
     }
   }
@@ -215,10 +217,6 @@ class Record extends EventEmitter {
   }
 
   _$onMessage(message) {
-    const connection = this._handler._connection
-
-    invariant(connection.connected, this._name + ' must be connected')
-
     if (message.action === C.ACTIONS.UPDATE) {
       this._onUpdate(message.data)
     } else if (message.action === C.ACTIONS.SUBSCRIPTION_HAS_PROVIDER) {
@@ -232,7 +230,6 @@ class Record extends EventEmitter {
 
   _$onConnectionStateChange() {
     const connection = this._handler._connection
-
     if (connection.connected) {
       if (this._refs > 0) {
         this._subscribe()
@@ -245,9 +242,9 @@ class Record extends EventEmitter {
       }
     } else {
       this._state = Record.STATE.CLIENT
+      this._subscribed = false
+      this._emitUpdate()
     }
-
-    this._emitUpdate()
   }
 
   _$destroy() {
@@ -255,12 +252,12 @@ class Record extends EventEmitter {
     invariant(!this._patches, this._name + ' must not have patch queue')
 
     const connection = this._handler._connection
-    if (connection.connected) {
+    if (this._subscribed && connection.connected) {
       connection.sendMsg1(C.TOPIC.RECORD, C.ACTIONS.UNSUBSCRIBE, this._name)
+      this._subscribed = false
     }
 
     this._state = Record.STATE.CLIENT
-    this._handler._prune.delete(this)
 
     return this
   }
@@ -269,8 +266,9 @@ class Record extends EventEmitter {
     invariant(this._refs, this._name + ' missing refs')
 
     const connection = this._handler._connection
-    if (connection.connected) {
+    if (!this._subscribed && connection.connected) {
       connection.sendMsg1(C.TOPIC.RECORD, C.ACTIONS.SUBSCRIBE, this._name)
+      this._subscribed = true
     }
   }
 
