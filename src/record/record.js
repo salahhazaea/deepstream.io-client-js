@@ -118,7 +118,7 @@ class Record extends EventEmitter {
       throw new Error('invalid argument: state')
     }
 
-    return new Promise((resolve, reject) => {
+    return new Promise((resolve) => {
       if (this._state >= state) {
         resolve(null)
         return
@@ -129,20 +129,11 @@ class Record extends EventEmitter {
           return
         }
 
-        // clearTimeout(timeout)
-
         this.unsubscribe(onUpdate)
         this.unref()
 
         resolve(null)
       }
-
-      // const timeout = setTimeout(() => {
-      //   this.off('update', onUpdate)
-      //   this.unref()
-
-      //   reject(new Error('when timeout'))
-      // }, 2 * 60e3)
 
       this.ref()
       this.subscribe(onUpdate)
