@@ -322,7 +322,9 @@ class Record extends EventEmitter {
     }
 
     const cmp = utils.compareRev(version, this._version)
-    if (this._state < Record.STATE.SERVER || cmp > 0 || (cmp < 0 && version.charAt(0) === 'I')) {
+    if (cmp === 0) {
+      // Do nothing...
+    } else if (cmp > 0 || this._patches || version.charAt(0) === 'I') {
       if (!data) {
         return
       }
@@ -334,6 +336,7 @@ class Record extends EventEmitter {
       } else {
         this._data = jsonPath.set(this._data, null, JSON.parse(data), true)
       }
+
       this._version = version
     }
 
