@@ -99,7 +99,6 @@ class Record extends EventEmitter {
 
       this._version = this._makeVersion(this._version ? parseInt(this._version) + 1 : 1)
       this._data = jsonPath.set(this._data, path, data, true)
-      this._state = Record.STATE.CLIENT
     } else {
       this._update(path, jsonPath.jsonClone(data))
     }
