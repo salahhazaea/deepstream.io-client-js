@@ -281,11 +281,7 @@ class Record extends EventEmitter {
     const connection = this._handler._connection
 
     if (!this._subscribed && connection.connected) {
-      if (this._patches) {
-        connection.sendMsg1(C.TOPIC.RECORD, C.ACTIONS.SUBSCRIBE, this._name)
-      } else {
-        connection.sendMsg2(C.TOPIC.RECORD, C.ACTIONS.SUBSCRIBE, this._name, this._version)
-      }
+      connection.sendMsg1(C.TOPIC.RECORD, C.ACTIONS.SUBSCRIBE, this._name)
       this._subscribed = true
     }
   }
@@ -322,10 +318,8 @@ class Record extends EventEmitter {
     }
 
     const cmp = utils.compareRev(version, this._version)
-    if (cmp > 0 || (cmp !== 0 && version.charAt(0) === 'I')) {
-      if (!data) {
-        return
-      } else if (data === '{}') {
+    if (cmp > 0 || (cmp < 0 && version.charAt(0) === 'I')) {
+      if (data === '{}') {
         this._data = jsonPath.EMPTY_OBJ
       } else if (data === '[]') {
         this._data = jsonPath.EMPTY_ARR
