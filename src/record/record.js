@@ -102,7 +102,7 @@ class Record extends EventEmitter {
       this._data = jsonPath.set(this._data, path, data, true)
       this._state = this._data === jsonPath.EMPTY ? Record.STATE.EMPTY : Record.STATE.CLIENT
     } else {
-      this._update(path, data)
+      this._update(path, jsonPath.jsonClone(data))
     }
 
     if (this._data !== prevData || this._version !== prevVersion || this._state !== prevState) {
