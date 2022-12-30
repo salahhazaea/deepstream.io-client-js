@@ -322,9 +322,7 @@ class Record extends EventEmitter {
     }
 
     const cmp = utils.compareRev(version, this._version)
-    if (cmp === 0) {
-      // Do nothing...
-    } else if (cmp > 0 || this._patches || version.charAt(0) === 'I') {
+    if (this._patches || cmp > 0 || (cmp < 0 && version.charAt(0) === 'I')) {
       if (!data) {
         return
       }
