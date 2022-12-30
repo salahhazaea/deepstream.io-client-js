@@ -20,7 +20,6 @@ class Record extends EventEmitter {
     this._data = jsonPath.EMPTY
     this._state = Record.STATE.VOID
     this._refs = 1
-    this._subscribed = false
     this._subscriptions = []
 
     // this._updating = null
@@ -191,8 +190,7 @@ class Record extends EventEmitter {
 
   ref() {
     this._refs += 1
-    if (this._refs === 1) {
-      this._handler._prune.delete(this)
+    if (this._refs === 1 && !this._handler._prune.delete(this)) {
       this._subscribe()
     }
   }
@@ -246,8 +244,6 @@ class Record extends EventEmitter {
           connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.UPDATE, update)
         }
       }
-    } else {
-      this._subscribed = false
     }
 
     if (this._state >= Record.STATE.SERVER) {
@@ -258,17 +254,16 @@ class Record extends EventEmitter {
   }
 
   _$destroy() {
-    const connection = this._handler._connection
-
     invariant(!this._refs, this._name + ' must not have refs')
     invariant(!this._patches, this._name + ' must not have patch queue')
 
-    if (this._subscribed && connection.connected) {
+    const connection = this._handler._connection
+    if (connection.connected) {
       connection.sendMsg1(C.TOPIC.RECORD, C.ACTIONS.UNSUBSCRIBE, this._name)
-      this._subscribed = false
     }
 
     this._state = Record.STATE.CLIENT
+    this._handler._prune.delete(this)
 
     return this
   }
@@ -277,10 +272,8 @@ class Record extends EventEmitter {
     invariant(this._refs, this._name + ' missing refs')
 
     const connection = this._handler._connection
-
-    if (!this._subscribed && connection.connected) {
+    if (connection.connected) {
       connection.sendMsg1(C.TOPIC.RECORD, C.ACTIONS.SUBSCRIBE, this._name)
-      this._subscribed = true
     }
   }
 

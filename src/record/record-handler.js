@@ -61,7 +61,7 @@ const RecordHandler = function (options, connection, client) {
       }
 
       this._records.delete(rec.name)
-      this._prune.delete(rec)
+
       rec._$destroy()
 
       if (n++ > 256) {
