@@ -294,6 +294,7 @@ class Record extends EventEmitter {
 
       this._updating ??= new Map()
       this._updating.set(nextVersion, update)
+      this._handler._stats.updating += 1
     }
   }
 
@@ -302,8 +303,11 @@ class Record extends EventEmitter {
     const prevVersion = this._version
     const prevState = this._state
 
-    if (this._updating?.delete(version) && this._updating.size === 0) {
-      this._updating = null
+    if (this._updating?.delete(version)) {
+      this._handler._stats.updating -= 1
+      if (this._updating.size === 0) {
+        this._updating = null
+      }
     }
 
     const cmp = utils.compareRev(version, this._version)

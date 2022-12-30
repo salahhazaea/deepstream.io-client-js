@@ -28,6 +28,9 @@ const RecordHandler = function (options, connection, client) {
   this._now = Date.now()
   this._pruning = false
   this._connected = 0
+  this._stats = {
+    updating: 0,
+  }
 
   this._syncEmitter = new EventEmitter()
 
@@ -95,6 +98,7 @@ Object.defineProperty(RecordHandler.prototype, 'connected', {
 Object.defineProperty(RecordHandler.prototype, 'stats', {
   get: function stats() {
     return {
+      ...this._stats,
       listeners: this._listeners.size,
       records: this._records.size,
     }
