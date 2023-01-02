@@ -97,7 +97,7 @@ const RecordHandler = function (options, connection, client) {
         return
       }
 
-      if (rec.refs === 0) {
+      if (rec.refs === 0 && !rec._subscribed) {
         this._records.delete(rec.name)
       }
 
