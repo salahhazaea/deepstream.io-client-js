@@ -202,7 +202,7 @@ class Record extends EventEmitter {
       this.emit('update', this)
     }
 
-    for (const fn of this._subscriptions) {
+    for (const fn of this._subscriptions.slice()) {
       fn(this)
     }
   }
