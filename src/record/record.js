@@ -223,8 +223,9 @@ class Record {
         }
       }
     } else {
-      this._state = Record.STATE.CLIENT
       this._subscribed = false
+
+      this._state = Record.STATE.CLIENT
       this._emitUpdate()
     }
   }
@@ -240,7 +241,6 @@ class Record {
     }
 
     this._state = Record.STATE.CLIENT
-
     this._emitUpdate()
 
     return this
