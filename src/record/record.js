@@ -1,18 +1,14 @@
 const jsonPath = require('./json-path')
 const utils = require('../utils/utils')
-const EventEmitter = require('component-emitter2')
 const C = require('../constants/constants')
 const messageParser = require('../message/message-parser')
 const xuid = require('xuid')
 const invariant = require('invariant')
 
-// EventEmitter is compat
-class Record extends EventEmitter {
+class Record {
   static STATE = C.RECORD_STATE
 
   constructor(name, handler) {
-    super()
-
     this._handler = handler
 
     this._name = name
@@ -197,11 +193,6 @@ class Record extends EventEmitter {
   }
 
   _emitUpdate() {
-    // Compat
-    if (this._callbacks) {
-      this.emit('update', this)
-    }
-
     for (const fn of this._subscriptions.slice()) {
       fn(this)
     }
@@ -328,11 +319,6 @@ class Record extends EventEmitter {
 
     if (this._state < Record.STATE.SERVER) {
       this._state = this._version.charAt(0) === 'I' ? Record.STATE.STALE : Record.STATE.SERVER
-
-      // Compat
-      if (this._callbacks) {
-        this.emit('ready')
-      }
     }
 
     if (this._data !== prevData || this._version !== prevVersion || this._state !== prevState) {
