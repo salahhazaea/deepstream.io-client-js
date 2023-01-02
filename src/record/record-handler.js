@@ -51,7 +51,7 @@ const RecordHandler = function (options, connection, client) {
 
   this._client.on(C.EVENT.CONNECTED, this._onConnectionStateChange.bind(this))
 
-  const prune = (deadline) => {
+  const prune = () => {
     const now = this._now
     const it = this._pruning
 
@@ -81,10 +81,6 @@ const RecordHandler = function (options, connection, client) {
       }
 
       this._prune.delete(this)
-
-      if (deadline && !deadline.timeRemaining() && !deadline.didTimeout) {
-        break
-      }
     }
 
     this._schedule(prune)
