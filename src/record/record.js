@@ -250,6 +250,8 @@ class Record extends EventEmitter {
 
     this._state = Record.STATE.CLIENT
 
+    this._emitUpdate()
+
     return this
   }
 

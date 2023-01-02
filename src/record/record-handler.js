@@ -26,7 +26,7 @@ const RecordHandler = function (options, connection, client) {
   this._prune = new Map()
   this._pending = new Set()
   this._now = Date.now()
-  this._pruning = false
+  this._pruning = null
   this._connected = 0
   this._stats = {
     updating: 0,
@@ -48,17 +48,26 @@ const RecordHandler = function (options, connection, client) {
   this._client.on(C.EVENT.CONNECTED, this._onConnectionStateChange.bind(this))
 
   const prune = (deadline) => {
-    this._pruning = false
+    const now = this._now
+    const it = this._pruning
 
-    let n = 0
-    for (const [rec, timestamp] of this._prune) {
+    for (let n = 0; n < 512; n++) {
+      const { done, value } = it.next()
+
+      if (done) {
+        this._pruning = null
+        return
+      }
+
+      const [rec, timestamp] = value
+
       if (!rec.isReady) {
         continue
       }
 
       const ttl = rec.state >= C.RECORD_STATE.PROVIDER || rec.data === jsonPath.EMPTY ? 1e3 : 10e3
 
-      if (this._now - timestamp <= ttl) {
+      if (now - timestamp <= ttl) {
         continue
       }
 
@@ -66,22 +75,18 @@ const RecordHandler = function (options, connection, client) {
       this._prune.delete(rec)
       rec._$destroy()
 
-      if (n++ > 256) {
-        this._schedule(prune)
-        break
-      }
-
       if (deadline && !deadline.timeRemaining() && !deadline.didTimeout) {
-        this._schedule(prune)
         break
       }
     }
+
+    this._schedule(prune)
   }
 
   const pruneInterval = setInterval(() => {
     this._now = Date.now()
     if (!this._pruning) {
-      this._pruning = true
+      this._pruning = this._prune[Symbol.iterator]()
       this._schedule(prune)
     }
   }, 1e3)
