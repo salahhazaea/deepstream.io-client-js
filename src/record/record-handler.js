@@ -76,7 +76,7 @@ const RecordHandler = function (options, connection, client) {
       }
 
       if (rec.refs === 0) {
-        rec._$prune()
+        rec._unsubscribe()
         this._purge.add(this)
       }
 

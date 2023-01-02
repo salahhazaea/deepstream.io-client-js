@@ -228,7 +228,7 @@ class Record {
     }
   }
 
-  _$prune() {
+  _unsubscribe() {
     invariant(!this._refs, this._name + ' must not have refs')
     invariant(!this._patches, this._name + ' must not have patch queue')
 
