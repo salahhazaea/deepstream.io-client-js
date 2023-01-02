@@ -85,7 +85,7 @@ const RecordHandler = function (options, connection, client) {
 
   const pruneInterval = setInterval(() => {
     this._now = Date.now()
-    if (!this._pruning) {
+    if (!this._pruning && this._prune.size) {
       this._pruning = this._prune[Symbol.iterator]()
       this._schedule(prune)
     }
