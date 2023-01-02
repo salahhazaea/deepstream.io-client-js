@@ -45,6 +45,22 @@ class Record {
     return this._refs
   }
 
+  ref() {
+    this._refs += 1
+    if (this._refs === 1) {
+      this._subscribe()
+    }
+  }
+
+  unref() {
+    invariant(this._refs > 0, this._name + ' missing refs')
+
+    this._refs -= 1
+    if (this._refs === 0) {
+      this._handler._prune.set(this, this._handler.now)
+    }
+  }
+
   subscribe(fn) {
     this._subscriptions.push(fn)
   }
@@ -175,23 +191,6 @@ class Record {
       })
   }
 
-  ref() {
-    this._refs += 1
-    if (this._refs === 1) {
-      this._handler._prune.delete(this)
-      this._subscribe()
-    }
-  }
-
-  unref() {
-    invariant(this._refs > 0, this._name + ' missing refs')
-
-    this._refs -= 1
-    if (this._refs === 0) {
-      this._handler._prune.set(this, this._handler._now)
-    }
-  }
-
   _emitUpdate() {
     for (const fn of this._subscriptions.slice()) {
       fn(this)
@@ -224,26 +223,23 @@ class Record {
       }
     } else {
       this._subscribed = false
-
       this._state = Record.STATE.CLIENT
       this._emitUpdate()
     }
   }
 
-  _$destroy() {
+  _$prune() {
     invariant(!this._refs, this._name + ' must not have refs')
     invariant(!this._patches, this._name + ' must not have patch queue')
 
     const connection = this._handler._connection
     if (this._subscribed && connection.connected) {
       connection.sendMsg1(C.TOPIC.RECORD, C.ACTIONS.UNSUBSCRIBE, this._name)
-      this._subscribed = false
     }
 
+    this._subscribed = false
     this._state = Record.STATE.CLIENT
     this._emitUpdate()
-
-    return this
   }
 
   _subscribe() {

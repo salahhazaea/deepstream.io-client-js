@@ -5,7 +5,7 @@ module.exports = {
   maxReconnectAttempts: Infinity,
   maxPacketSize: 512 * 1024,
   batchSize: 4096,
+  cacheSize: 4096,
   schedule: null,
   logger: null,
-  cache: null,
 }

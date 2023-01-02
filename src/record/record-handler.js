@@ -24,13 +24,17 @@ const RecordHandler = function (options, connection, client) {
   this._records = new Map()
   this._listeners = new Map()
   this._prune = new Map()
+  this._purge = new Set()
   this._pending = new Set()
   this._now = Date.now()
   this._pruning = null
+  this._purging = null
   this._connected = 0
   this._stats = {
     updating: 0,
   }
+
+  this._purgeCapacity = options.cacheSize
 
   this._syncEmitter = new EventEmitter()
 
@@ -71,9 +75,12 @@ const RecordHandler = function (options, connection, client) {
         continue
       }
 
-      this._records.delete(rec.name)
-      this._prune.delete(rec)
-      rec._$destroy()
+      if (rec.refs === 0) {
+        rec._$prune()
+        this._purge.add(this)
+      }
+
+      this._prune.delete(this)
 
       if (deadline && !deadline.timeRemaining() && !deadline.didTimeout) {
         break
@@ -83,11 +90,38 @@ const RecordHandler = function (options, connection, client) {
     this._schedule(prune)
   }
 
+  const purge = () => {
+    const it = this._purging
+
+    for (let n = 0; n < 512; n++) {
+      const { done, value: rec } = it.next()
+
+      if (done) {
+        this._purging = null
+        return
+      }
+
+      if (rec.refs === 0) {
+        this._records.delete(rec.name)
+      }
+
+      this._purge.delete(this)
+    }
+
+    this._schedule(purge)
+  }
+
   const pruneInterval = setInterval(() => {
     this._now = Date.now()
-    if (!this._pruning && this._prune.size) {
+
+    if (!this._pruning) {
       this._pruning = this._prune[Symbol.iterator]()
       this._schedule(prune)
+    }
+
+    if (!this._purging) {
+      this._purging = this._purge[Symbol.iterator]()
+      this._schedule(purge)
     }
   }, 1e3)
   pruneInterval.unref?.()
