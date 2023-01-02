@@ -14,15 +14,18 @@ class Listener {
     this._stringify = stringify || JSON.stringify
     this._pipe = rxjs.pipe(
       rx.map((value) => {
-        if (value == null) {
-          throw new Error('invalid value: null')
+        let data
+        if (value && typeof value === 'string') {
+          if (value.charAt(0) !== '{' && value.charAt(0) !== '[') {
+            throw new Error(`invalid value: ${value}`)
+          }
+          data = value
+        } else if (value && typeof value === 'object') {
+          data = this._stringify(value)
+        } else {
+          throw new Error(`invalid value: ${value}`)
         }
 
-        if (typeof value !== 'object' && typeof value !== 'string') {
-          throw new Error(`invalid value: ${typeof value}`)
-        }
-
-        const data = typeof value !== 'string' ? this._stringify(value) : value
         const hash = this._connection.hasher.h64ToString(data)
 
         return { data, hash }
