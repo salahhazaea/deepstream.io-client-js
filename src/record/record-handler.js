@@ -13,10 +13,11 @@ const xuid = require('xuid')
 const kEmpty = Symbol('kEmpty')
 
 class RecordHandler {
-  static STATE = C.RECORD_STATE
-  static JSON = jsonPath
-
   constructor(options, connection, client) {
+    this.JSON = jsonPath
+    this.STATE = C.RECORD_STATE
+    Object.assign(this, C.RECORD_STATE)
+
     this._options = options
     this._connection = connection
     this._client = client
@@ -487,7 +488,5 @@ class RecordHandler {
     }
   }
 }
-
-Object.assign(this, C.RECORD_STATE)
 
 module.exports = RecordHandler
