@@ -25,7 +25,7 @@ class RecordHandler {
     this._listeners = new Map()
     this._prune = new Map()
     this._purge = new Set()
-    this._pending = new Set()
+    this._patch = new Set()
     this._now = Date.now()
     this._pruning = false
     this._purging = false
@@ -189,7 +189,7 @@ class RecordHandler {
 
       const timeoutValue = 2 * 60e3
       const signal = options?.signal
-      const records = [...this._pending]
+      const records = [...this._patch]
 
       const onDone = (val) => {
         if (done) {

@@ -107,7 +107,7 @@ class Record {
     if (this._state < Record.STATE.SERVER) {
       this._patches = this._patches && path ? this._patches : []
       this._patches.push(path, jsonPath.jsonClone(data))
-      this._handler._pending.add(this)
+      this._handler._patch.add(this)
 
       this._version = this._makeVersion(this._version ? parseInt(this._version) + 1 : 1)
       this._data = jsonPath.set(this._data, path, data, true)
@@ -306,7 +306,7 @@ class Record {
       }
 
       this._patches = null
-      this._handler._pending.delete(this)
+      this._handler._patch.delete(this)
     }
 
     if (this._state < Record.STATE.SERVER) {
