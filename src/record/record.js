@@ -19,8 +19,8 @@ class Record {
     this._subscribed = false
     this._subscriptions = []
 
-    // this._updating = null
-    // this._patches = null
+    this._updating = null
+    this._patches = null
 
     this._subscribe()
   }
@@ -46,19 +46,18 @@ class Record {
   }
 
   ref() {
-    this._refs += 1
-    if (this._refs === 1) {
+    if (this._refs === 0) {
       this._subscribe()
     }
+    this._refs += 1
+    this._handler.onRef(this)
   }
 
   unref() {
     invariant(this._refs > 0, this._name + ' missing refs')
 
     this._refs -= 1
-    if (this._refs === 0) {
-      this._handler._prune.set(this, this._handler.now)
-    }
+    this._handler.onRef(this)
   }
 
   subscribe(fn) {
@@ -282,9 +281,6 @@ class Record {
 
     if (this._updating?.delete(version)) {
       this._handler._stats.updating -= 1
-      if (this._updating.size === 0) {
-        this._updating = null
-      }
     }
 
     const cmp = utils.compareRev(version, this._version)

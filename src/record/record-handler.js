@@ -26,8 +26,8 @@ class RecordHandler {
     this._purge = new Set()
     this._pending = new Set()
     this._now = Date.now()
-    this._pruning = null
-    this._purging = null
+    this._pruning = false
+    this._purging = false
     this._connected = 0
     this._stats = {
       updating: 0,
@@ -51,75 +51,70 @@ class RecordHandler {
     this._client.on(C.EVENT.CONNECTED, this._onConnectionStateChange.bind(this))
 
     const prune = () => {
-      const now = this._now
-      const it = this._pruning
+      this._pruning = false
 
-      for (let n = 0; n < 512; n++) {
-        const { done, value } = it.next()
-
-        if (done) {
-          this._pruning = null
+      let counter = 0
+      for (const [rec, timestamp] of this._prune) {
+        if (counter++ > 1024) {
+          this._pruning = true
+          this._schedule(prune)
           return
         }
 
-        const [rec, timestamp] = value
-
-        if (!rec.isReady) {
-          continue
+        if (this._now - timestamp < 1e3) {
+          return
         }
 
-        const ttl = rec.state >= C.RECORD_STATE.PROVIDER || rec.data === jsonPath.EMPTY ? 1e3 : 10e3
-
-        if (now - timestamp <= ttl) {
-          continue
-        }
-
-        if (rec.refs === 0) {
-          rec._unsubscribe()
+        if (rec.isReady) {
           this._purge.add(this)
+          this._prune.delete(this)
         }
-
-        this._prune.delete(this)
       }
-
-      this._schedule(prune)
     }
 
     const purge = () => {
-      const it = this._purging
+      this._purging = false
 
-      for (let n = 0; n < 512; n++) {
-        const { done, value: rec } = it.next()
-
-        if (done) {
-          this._purging = null
+      let counter = 0
+      for (const rec of this._purge) {
+        if (counter++ > 1024) {
+          this._purging = true
+          this._schedule(purge)
           return
         }
 
-        if (rec.refs === 0 && !rec._subscribed) {
-          this._records.delete(rec.name)
+        if (this._purge.size < this._purgeCapacity) {
+          return
         }
 
+        this._records.delete(rec.name)
         this._purge.delete(this)
       }
-
-      this._schedule(purge)
     }
 
     const pruneInterval = setInterval(() => {
       this._now = Date.now()
 
       if (!this._pruning) {
-        this._pruning = this._prune[Symbol.iterator]()
+        this._pruning = true
         this._schedule(prune)
       }
 
       if (!this._purging) {
-        this._purging = this._purge[Symbol.iterator]()
+        this._purging = true
         this._schedule(purge)
       }
     }, 1e3)
     pruneInterval.unref?.()
+  }
+
+  _onRef(rec) {
+    if (rec.refs === 0) {
+      this._prune.set(rec, this._now)
+    } else if (rec.refs === 1) {
+      this._purge.delete(rec)
+      this._prune.delete(rec)
+    }
   }
 
   get connected() {
