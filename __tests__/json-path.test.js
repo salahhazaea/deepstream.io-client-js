@@ -80,6 +80,11 @@ describe('set', () => {
     const res = jsonPath.set({}, null, [])
     expect(res).toEqual([])
   })
+
+  it('set array on object plainJSON', () => {
+    const res = jsonPath.set({}, null, [], true)
+    expect(res).toEqual([])
+  })
 })
 
 describe('order', () => {

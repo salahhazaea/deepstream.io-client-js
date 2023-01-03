@@ -34,7 +34,7 @@ module.exports.splitRev = function (s) {
 
 module.exports.isPlainObject = function (value, isPlainJSON) {
   if (isPlainJSON) {
-    return value && typeof value === 'object'
+    return value && typeof value === 'object' && !Array.isArray(value)
   }
   if (
     typeof value !== 'object' ||
