@@ -47,10 +47,10 @@ class Record {
 
   ref() {
     this._refs += 1
+    this._handler._onRef(this)
     if (this._refs === 1) {
       this._subscribe()
     }
-    this._handler._onRef(this)
   }
 
   unref() {
