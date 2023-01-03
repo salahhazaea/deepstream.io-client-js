@@ -56,19 +56,23 @@ class RecordHandler {
 
       let counter = 0
       for (const [rec, timestamp] of this._prune) {
-        if (counter++ > 1024) {
-          this._pruning = true
-          this._schedule(prune)
-          return
-        }
-
         if (this._now - timestamp < 1e3) {
           return
         }
 
-        if (rec.isReady) {
-          this._purge.add(rec)
-          this._prune.delete(rec)
+        if (!rec.isReady) {
+          continue
+        }
+
+        rec._unsubscribe()
+
+        this._purge.add(rec)
+        this._prune.delete(rec)
+
+        if (counter++ > 1024) {
+          this._pruning = true
+          this._schedule(prune)
+          return
         }
       }
     }
@@ -78,18 +82,18 @@ class RecordHandler {
 
       let counter = 0
       for (const rec of this._purge) {
-        if (counter++ > 1024) {
-          this._purging = true
-          this._schedule(purge)
-          return
-        }
-
         if (this._purge.size < this._purgeCapacity) {
           return
         }
 
         this._records.delete(rec.name)
         this._purge.delete(rec)
+
+        if (counter++ > 1024) {
+          this._purging = true
+          this._schedule(purge)
+          return
+        }
       }
     }
 
