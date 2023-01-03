@@ -60,9 +60,12 @@ class RecordHandler {
           return
         }
 
-        if (!rec.isReady) {
+        if (rec._state >= C.RECORD_STATE.SERVER) {
           continue
         }
+
+        invariant(rec._refs === 0, 'record must have no refs')
+        invariant(rec._subscribed, 'record must be subscribed')
 
         rec._unsubscribe()
 
@@ -85,6 +88,9 @@ class RecordHandler {
         if (this._purge.size < this._purgeCapacity) {
           return
         }
+
+        invariant(rec._refs === 0, 'record must have no refs')
+        invariant(!rec._subscribed, 'record must not be suscribed')
 
         this._records.delete(rec.name)
         this._purge.delete(rec)
