@@ -46,10 +46,10 @@ class Record {
   }
 
   ref() {
+    this._refs += 1
     if (this._refs === 0) {
       this._subscribe()
     }
-    this._refs += 1
     this._handler.onRef(this)
   }
 
