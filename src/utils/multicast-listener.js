@@ -110,7 +110,7 @@ class Listener {
 
         if (Boolean(provider.value$) !== Boolean(value$) && !provider.sending) {
           provider.sending = true
-          process.nextTick(provider.send)
+          queueMicrotask(provider.send)
         }
 
         provider.value$ = value$
