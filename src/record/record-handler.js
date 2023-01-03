@@ -54,6 +54,10 @@ class RecordHandler {
     const prune = () => {
       this._pruning = false
 
+      if (!this._connected) {
+        return
+      }
+
       let counter = 0
       for (const [rec, timestamp] of this._prune) {
         if (this._now - timestamp < 1e3) {
@@ -83,6 +87,10 @@ class RecordHandler {
     const purge = () => {
       this._purging = false
 
+      if (!this._connected) {
+        return
+      }
+
       let counter = 0
       for (const rec of this._purge) {
         if (this._purge.size < this._purgeCapacity) {
@@ -90,7 +98,7 @@ class RecordHandler {
         }
 
         invariant(rec._refs === 0, 'record must have no refs')
-        invariant(!rec._subscribed, 'record must not be suscribed')
+        invariant(!rec._subscribed, 'record must not be subscribed')
 
         this._records.delete(rec.name)
         this._purge.delete(rec)
