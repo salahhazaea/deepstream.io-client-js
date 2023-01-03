@@ -127,6 +127,8 @@ class RecordHandler {
       ...this._stats,
       listeners: this._listeners.size,
       records: this._records.size,
+      pruning: this._prune.size,
+      purging: this._purge.size,
     }
   }
 
