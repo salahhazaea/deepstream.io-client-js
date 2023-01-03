@@ -209,6 +209,8 @@ class Record {
   }
 
   _$onConnectionStateChange() {
+    const prevState = this._state
+
     const connection = this._handler._connection
     if (connection.connected) {
       if (this._refs > 0) {
@@ -223,6 +225,9 @@ class Record {
     } else {
       this._subscribed = false
       this._state = Record.STATE.CLIENT
+    }
+
+    if (this._state !== prevState) {
       this._emitUpdate()
     }
   }
@@ -231,6 +236,8 @@ class Record {
     invariant(!this._refs, this._name + ' must not have refs')
     invariant(!this._patches, this._name + ' must not have patch queue')
 
+    const prevState = this._state
+
     const connection = this._handler._connection
     if (this._subscribed && connection.connected) {
       connection.sendMsg1(C.TOPIC.RECORD, C.ACTIONS.UNSUBSCRIBE, this._name)
@@ -238,7 +245,10 @@ class Record {
 
     this._subscribed = false
     this._state = Record.STATE.CLIENT
-    this._emitUpdate()
+
+    if (this._state !== prevState) {
+      this._emitUpdate()
+    }
   }
 
   _subscribe() {
