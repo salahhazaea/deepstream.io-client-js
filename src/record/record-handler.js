@@ -67,8 +67,8 @@ class RecordHandler {
         }
 
         if (rec.isReady) {
-          this._purge.add(this)
-          this._prune.delete(this)
+          this._purge.add(rec)
+          this._prune.delete(rec)
         }
       }
     }
@@ -89,7 +89,7 @@ class RecordHandler {
         }
 
         this._records.delete(rec.name)
-        this._purge.delete(this)
+        this._purge.delete(rec)
       }
     }
 
