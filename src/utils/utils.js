@@ -32,7 +32,10 @@ module.exports.splitRev = function (s) {
   return [ver.charAt(0) === 'I' ? Infinity : parseInt(ver, 10), s.slice(i + 1)]
 }
 
-module.exports.isPlainObject = function (value) {
+module.exports.isPlainObject = function (value, isPlainJSON) {
+  if (isPlainJSON) {
+    return value && typeof value === 'object'
+  }
   if (
     typeof value !== 'object' ||
     value == null ||

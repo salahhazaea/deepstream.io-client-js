@@ -95,7 +95,7 @@ function patch(oldValue, newValue, isPlainJSON) {
     }
 
     return arr || oldValue
-  } else if (utils.isPlainObject(oldValue) && utils.isPlainObject(newValue)) {
+  } else if (utils.isPlainObject(oldValue, true) && utils.isPlainObject(newValue, isPlainJSON)) {
     const newKeys = Object.keys(newValue).filter((key) => newValue[key] !== undefined)
     const oldKeys = Object.keys(oldValue)
 
