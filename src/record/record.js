@@ -112,7 +112,7 @@ class Record {
       this._version = this._makeVersion(this._version ? parseInt(this._version) + 1 : 1)
       this._data = jsonPath.set(this._data, path, data, true)
     } else {
-      this._update(path, jsonPath.jsonClone(data))
+      this._update(path, jsonPath.jsonClone(data), false)
     }
 
     if (this._data !== prevData || this._version !== prevVersion || this._state !== prevState) {
@@ -261,7 +261,7 @@ class Record {
     }
   }
 
-  _update(path, data) {
+  _update(path, data, force) {
     invariant(this._version, this._name + ' missing version')
     invariant(this._data, this._name + ' missing data')
 
@@ -270,7 +270,7 @@ class Record {
     const prevData = this._data
     const nextData = jsonPath.set(prevData, path, data, true)
 
-    if (nextData !== prevData) {
+    if (force || nextData !== prevData) {
       const prevVersion = this._version
       const nextVersion = this._makeVersion(parseInt(prevVersion) + 1)
 
@@ -295,23 +295,13 @@ class Record {
       this._handler._stats.updating -= 1
     }
 
-    const cmp = utils.compareRev(version, this._version)
-    if (this._patches || cmp > 0 || (cmp !== 0 && version.charAt(0) === 'I')) {
-      if (data === '{}') {
-        this._data = jsonPath.EMPTY_OBJ
-      } else if (data === '[]') {
-        this._data = jsonPath.EMPTY_ARR
-      } else {
-        this._data = jsonPath.set(this._data, null, JSON.parse(data), true)
-      }
-
-      this._version = version
-    }
-
     if (this._patches) {
+      this._data = jsonPath.set(this._data, null, data)
+      this._version = version
+
       if (this._version.charAt(0) !== 'I') {
         for (let i = 0; i < this._patches.length; i += 2) {
-          this._update(this._patches[i + 0], this._patches[i + 1])
+          this._update(this._patches[i + 0], this._patches[i + 1], true)
         }
       } else if (this._patches.length) {
         this._error(C.EVENT.USER_ERROR, 'cannot patch provided value')
@@ -319,6 +309,9 @@ class Record {
 
       this._patches = null
       this._handler._patch.delete(this)
+    } else if (version.charAt(0) === 'I' || utils.compareRev(version, this._version) > 0) {
+      this._data = jsonPath.set(this._data, null, data)
+      this._version = version
     }
 
     if (this._state < Record.STATE.SERVER) {

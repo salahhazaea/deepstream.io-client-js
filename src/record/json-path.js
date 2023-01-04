@@ -29,6 +29,17 @@ function get(data, path) {
 function set(data, path, value, isPlainJSON) {
   data = data || EMPTY
 
+  if (typeof value === 'string') {
+    if (value === '{}') {
+      value = EMPTY_OBJ
+    } else if (data === '[]') {
+      value = EMPTY_ARR
+    } else {
+      value = JSON.parse(data)
+    }
+    isPlainJSON = true
+  }
+
   if (!path) {
     return patch(data, value, isPlainJSON)
   }
