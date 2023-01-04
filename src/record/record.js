@@ -112,7 +112,7 @@ class Record {
       this._version = this._makeVersion(this._version ? parseInt(this._version) + 1 : 1)
       this._data = jsonPath.set(this._data, path, data, true)
     } else {
-      this._update(path, jsonPath.jsonClone(data), true)
+      this._update(path, jsonPath.jsonClone(data), false)
     }
 
     if (this._data !== prevData || this._version !== prevVersion || this._state !== prevState) {
@@ -279,6 +279,7 @@ class Record {
       connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.UPDATE, update)
 
       this._version = nextVersion
+      this._data = nextData
 
       this._updating ??= new Map()
       this._updating.set(nextVersion, update)
