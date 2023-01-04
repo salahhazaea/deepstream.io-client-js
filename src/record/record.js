@@ -268,7 +268,7 @@ class Record {
     const connection = this._handler._connection
 
     const prevData = this._data
-    const nextData = jsonPath.set(prevData, path, data)
+    const nextData = jsonPath.set(prevData, path, data, true)
 
     if (force || nextData !== prevData) {
       const prevVersion = this._version
@@ -297,7 +297,7 @@ class Record {
     }
 
     if (this._patches) {
-      this._data = jsonPath.set(this._data, null, data)
+      this._data = jsonPath.set(this._data, null, jsonPath.parse(data), true)
       this._version = version
 
       if (this._version.charAt(0) !== 'I') {
@@ -311,7 +311,7 @@ class Record {
       this._patches = null
       this._handler._patch.delete(this)
     } else if (version.charAt(0) === 'I' || utils.compareRev(version, this._version) > 0) {
-      this._data = jsonPath.set(this._data, null, data)
+      this._data = jsonPath.set(this._data, null, jsonPath.parse(data), true)
       this._version = version
     }
 

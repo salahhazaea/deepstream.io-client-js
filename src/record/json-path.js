@@ -26,19 +26,18 @@ function get(data, path) {
   return data
 }
 
+function parse(value) {
+  if (value === '{}') {
+    return EMPTY_OBJ
+  } else if (value === '[]') {
+    return EMPTY_ARR
+  } else {
+    return JSON.parse(value)
+  }
+}
+
 function set(data, path, value, isPlainJSON = false) {
   data = data || EMPTY
-
-  if (typeof value === 'string') {
-    if (value === '{}') {
-      value = EMPTY_OBJ
-    } else if (data === '[]') {
-      value = EMPTY_ARR
-    } else {
-      value = JSON.parse(value)
-    }
-    isPlainJSON = true
-  }
 
   if (!path) {
     return patch(data, value, isPlainJSON)
@@ -174,6 +173,7 @@ module.exports = {
   EMPTY,
   EMPTY_OBJ,
   EMPTY_ARR,
+  parse,
   get,
   set,
   jsonClone,
