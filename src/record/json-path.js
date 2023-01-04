@@ -27,17 +27,17 @@ function get(data, path) {
 }
 
 function set(data, path, value, isPlainJSON = false) {
+  data = data || EMPTY
+
   if (typeof value === 'string') {
     if (value === '{}') {
-      data = EMPTY_OBJ
+      value = EMPTY_OBJ
     } else if (data === '[]') {
-      data = EMPTY_ARR
+      value = EMPTY_ARR
     } else {
-      data = JSON.parse(value)
+      value = JSON.parse(value)
     }
     isPlainJSON = true
-  } else {
-    data = data || EMPTY
   }
 
   if (!path) {
