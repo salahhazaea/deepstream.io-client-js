@@ -278,6 +278,8 @@ class Record {
 
       connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.UPDATE, update)
 
+      this._version = nextVersion
+
       this._updating ??= new Map()
       this._updating.set(nextVersion, update)
       this._handler._stats.updating += 1
