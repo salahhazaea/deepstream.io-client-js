@@ -26,18 +26,18 @@ function get(data, path) {
   return data
 }
 
-function set(data, path, value, isPlainJSON) {
-  data = data || EMPTY
-
+function set(data, path, value, isPlainJSON = false) {
   if (typeof value === 'string') {
     if (value === '{}') {
-      value = EMPTY_OBJ
+      data = EMPTY_OBJ
     } else if (data === '[]') {
-      value = EMPTY_ARR
+      data = EMPTY_ARR
     } else {
-      value = JSON.parse(data)
+      data = JSON.parse(value)
     }
     isPlainJSON = true
+  } else {
+    data = data || EMPTY
   }
 
   if (!path) {
@@ -75,6 +75,13 @@ function jsonClone(o) {
   if (o == null || typeof o === 'string') {
     return o
   }
+
+  if (Array.isArray(o) && o.length === 0) {
+    return EMPTY_ARR
+  } else if (typeof o === 'object' && Object.keys(o).length === 0) {
+    return EMPTY_OBJ
+  }
+
   return JSON.parse(JSON.stringify(o))
 }
 

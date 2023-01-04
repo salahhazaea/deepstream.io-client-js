@@ -112,7 +112,7 @@ class Record {
       this._version = this._makeVersion(this._version ? parseInt(this._version) + 1 : 1)
       this._data = jsonPath.set(this._data, path, data, true)
     } else {
-      this._update(path, jsonPath.jsonClone(data), false)
+      this._update(path, jsonPath.jsonClone(data), true)
     }
 
     if (this._data !== prevData || this._version !== prevVersion || this._state !== prevState) {
@@ -268,7 +268,7 @@ class Record {
     const connection = this._handler._connection
 
     const prevData = this._data
-    const nextData = jsonPath.set(prevData, path, data, true)
+    const nextData = jsonPath.set(prevData, path, data)
 
     if (force || nextData !== prevData) {
       const prevVersion = this._version
