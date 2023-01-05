@@ -102,11 +102,11 @@ class Record {
       return
     }
 
-    this._emitUpdate()
-
     if (this._state < Record.STATE.SERVER) {
       this._handler._patch.add(this)
     }
+
+    this._emitUpdate()
   }
 
   when(stateOrNull) {
