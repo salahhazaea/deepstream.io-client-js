@@ -266,7 +266,7 @@ class Record {
       const nextVersion = this._makeVersion(parseInt(prevVersion) + 1)
       this._version = nextVersion
 
-      const update = [this._name, nextVersion, jsonPath.stringify(data), prevVersion]
+      const update = [this._name, nextVersion, jsonPath.stringify(nextData), prevVersion]
       this._updating ??= new Map()
       this._updating.set(nextVersion, update)
       this._handler._stats.updating += 1
