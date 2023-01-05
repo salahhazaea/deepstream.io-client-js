@@ -254,23 +254,23 @@ class Record {
     const prevVersion = this._version
     const prevData = this._data
 
-    const nextVersion = this._makeVersion(parseInt(prevVersion) + 1)
-    const nextData = jsonPath.set(this._data, path, data, isPlainObject)
+    const nextVersion = this._makeVersion(parseInt(prevVersion || '0') + 1)
+    const nextData = jsonPath.set(prevData, path, data, isPlainObject)
 
     if (nextData === prevData) {
       return false
     }
 
-    const update = [this._name, nextVersion, jsonPath.stringify(data), prevVersion]
-
-    this._handler._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.UPDATE, update)
-
     this._version = nextVersion
     this._data = nextData
 
-    this._updating ??= new Map()
-    this._updating.set(nextVersion, update)
-    this._handler._stats.updating += 1
+    if (this._state >= Record.STATE.SERVER) {
+      const update = [this._name, nextVersion, jsonPath.stringify(data), prevVersion]
+      this._handler._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.UPDATE, update)
+      this._updating ??= new Map()
+      this._updating.set(nextVersion, update)
+      this._handler._stats.updating += 1
+    }
 
     return true
   }
