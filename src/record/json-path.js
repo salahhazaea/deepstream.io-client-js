@@ -36,6 +36,16 @@ function parse(value) {
   }
 }
 
+function stringify(value) {
+  if (value === EMPTY_OBJ) {
+    return '{}'
+  } else if (value === EMPTY_ARR) {
+    return '[]'
+  } else {
+    return JSON.stringify(value)
+  }
+}
+
 function set(data, path, value, isPlainJSON = false) {
   data = data || EMPTY
 
@@ -174,6 +184,7 @@ module.exports = {
   EMPTY_OBJ,
   EMPTY_ARR,
   parse,
+  stringify,
   get,
   set,
   jsonClone,
