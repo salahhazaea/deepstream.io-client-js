@@ -19,6 +19,7 @@ class Record {
     this._subscribed = false
     this._subscriptions = []
     this._updating = null
+    this._patches = null
 
     this._subscribe()
   }
@@ -98,15 +99,15 @@ class Record {
       throw new Error('invalid argument: path')
     }
 
-    if (!this._update(path, data, false)) {
-      return
-    }
-
-    if (this._state < Record.STATE.SERVER) {
+    if (!this._version) {
+      this._patches = path && this._patches ? this._patches : []
+      this._patches.push(path, jsonPath.jsonClone(data))
       this._handler._patch.add(this)
     }
 
-    this._emitUpdate()
+    if (this._update(path, data, false)) {
+      this._emitUpdate()
+    }
   }
 
   when(stateOrNull) {
@@ -266,10 +267,14 @@ class Record {
       this._version = nextVersion
 
       const update = [this._name, nextVersion, jsonPath.stringify(data), prevVersion]
-      this._handler._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.UPDATE, update)
       this._updating ??= new Map()
       this._updating.set(nextVersion, update)
       this._handler._stats.updating += 1
+
+      const connection = this._handler._connection
+      if (connection.connected) {
+        connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.UPDATE, update)
+      }
     }
 
     return true
@@ -284,20 +289,24 @@ class Record {
       this._handler._stats.updating -= 1
     }
 
-    if (!this._version) {
+    if (this._patches) {
       this._version = version
       this._data = jsonPath.parse(data)
 
       if (this._version.charAt(0) !== 'I') {
-        this._update(null, prevData, true)
+        for (let n = 0; n < this._patches.length; n += 2) {
+          this._update(this._patches[n + 0], this._patches[n + 1], true)
+        }
       }
+
+      this._patches = null
+      this._handler._patch.delete(this)
     } else if (version.charAt(0) === 'I' || utils.compareRev(version, this._version) > 0) {
       this._version = version
       this._data = jsonPath.set(this._data, null, jsonPath.parse(data), true)
     }
 
     if (this._state < Record.STATE.SERVER) {
-      this._handler._patch.delete(this)
       this._state = this._version.charAt(0) === 'I' ? Record.STATE.STALE : Record.STATE.SERVER
     }
 
