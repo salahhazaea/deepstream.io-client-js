@@ -102,7 +102,6 @@ class Record {
 
     const prevData = this._data
     const prevVersion = this._version
-    const prevState = this._state
 
     if (this._state < Record.STATE.SERVER) {
       this._patches = this._patches && path ? this._patches : []
@@ -115,7 +114,7 @@ class Record {
       this._update(path, jsonPath.jsonClone(data), false)
     }
 
-    if (this._data !== prevData || this._version !== prevVersion || this._state !== prevState) {
+    if (this._data !== prevData || this._version !== prevVersion) {
       this._emitUpdate()
     }
   }
