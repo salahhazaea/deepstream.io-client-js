@@ -101,13 +101,11 @@ class Record {
 
     if (!this._version) {
       this._patches = path && this._patches ? this._patches : []
-      this._patches.push(path, jsonPath.jsonClone(data))
+      this._patches.push(path, jsonPath.stringify(data))
       this._handler._patch.add(this)
     }
 
-    if (this._update(path, data, false)) {
-      this._emitUpdate()
-    }
+    if (this._update(jsonPath.set(this._data, path, data, false))) this._emitUpdate()
   }
 
   when(stateOrNull) {
@@ -251,11 +249,8 @@ class Record {
     }
   }
 
-  _update(path, data, isPlainObject) {
-    const prevData = this._data
-    const nextData = jsonPath.set(prevData, path, data, isPlainObject)
-
-    if (nextData === prevData) {
+  _update(nextData) {
+    if (nextData === this._data) {
       return false
     }
 
@@ -294,9 +289,16 @@ class Record {
       this._data = jsonPath.parse(data)
 
       if (this._version.charAt(0) !== 'I') {
+        let patchData = this._data
         for (let n = 0; n < this._patches.length; n += 2) {
-          this._update(this._patches[n + 0], this._patches[n + 1], true)
+          patchData = jsonPath.set(
+            patchData,
+            this._patches[n + 0],
+            jsonPath.parse(this._patches[n + 1]),
+            true
+          )
         }
+        this._update(patchData)
       }
 
       this._patches = null
