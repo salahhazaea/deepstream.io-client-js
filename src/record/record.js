@@ -101,22 +101,24 @@ class Record {
     }
 
     const prevData = this._data
-    const prevVersion = this._version
+    const nextData = jsonPath.set(this._data, path, data, false)
+
+    if (prevData === nextData) {
+      return
+    }
 
     if (this._state < Record.STATE.SERVER) {
-      this._patches = this._patches && path ? this._patches : []
+      this._version = this._makeVersion(this._version ? parseInt(this._version) + 1 : 1)
+      this._data = nextData
+
+      this._patches = this._patches || []
       this._patches.push(path, jsonPath.jsonClone(data))
       this._handler._patch.add(this)
-
-      this._version = this._makeVersion(this._version ? parseInt(this._version) + 1 : 1)
-      this._data = jsonPath.set(this._data, path, data, true)
     } else {
-      this._update(path, jsonPath.jsonClone(data), false)
+      this._sendUpdate(nextData)
     }
 
-    if (this._data !== prevData || this._version !== prevVersion) {
-      this._emitUpdate()
-    }
+    this._emitUpdate()
   }
 
   when(stateOrNull) {
@@ -260,30 +262,25 @@ class Record {
     }
   }
 
-  _update(path, data, force) {
+  _sendUpdate(data) {
     invariant(this._version, this._name + ' missing version')
     invariant(this._data, this._name + ' missing data')
 
     const connection = this._handler._connection
 
-    const prevData = this._data
-    const nextData = jsonPath.set(prevData, path, data, true)
+    const prevVersion = this._version
+    const nextVersion = this._makeVersion(parseInt(prevVersion) + 1)
 
-    if (force || nextData !== prevData) {
-      const prevVersion = this._version
-      const nextVersion = this._makeVersion(parseInt(prevVersion) + 1)
+    const update = [this._name, nextVersion, JSON.stringify(data), prevVersion]
 
-      const update = [this._name, nextVersion, JSON.stringify(nextData), prevVersion]
+    connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.UPDATE, update)
 
-      connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.UPDATE, update)
+    this._version = nextVersion
+    this._data = data
 
-      this._version = nextVersion
-      this._data = nextData
-
-      this._updating ??= new Map()
-      this._updating.set(nextVersion, update)
-      this._handler._stats.updating += 1
-    }
+    this._updating ??= new Map()
+    this._updating.set(nextVersion, update)
+    this._handler._stats.updating += 1
   }
 
   _onUpdate([, version, data]) {
@@ -296,12 +293,14 @@ class Record {
     }
 
     if (this._patches) {
-      this._data = jsonPath.set(this._data, null, jsonPath.parse(data), true)
       this._version = version
+      this._data = jsonPath.set(this._data, null, jsonPath.parse(data), true)
 
       if (this._version.charAt(0) !== 'I') {
         for (let i = 0; i < this._patches.length; i += 2) {
-          this._update(this._patches[i + 0], this._patches[i + 1], true)
+          this._sendUpdate(
+            jsonPath.set(this._data, this._patches[i + 0], this._patches[i + 1], true)
+          )
         }
       } else if (this._patches.length) {
         this._error(C.EVENT.USER_ERROR, 'cannot patch provided value')
@@ -310,8 +309,8 @@ class Record {
       this._patches = null
       this._handler._patch.delete(this)
     } else if (version.charAt(0) === 'I' || utils.compareRev(version, this._version) > 0) {
-      this._data = jsonPath.set(this._data, null, jsonPath.parse(data), true)
       this._version = version
+      this._data = jsonPath.set(this._data, null, jsonPath.parse(data), true)
     }
 
     if (this._state < Record.STATE.SERVER) {
