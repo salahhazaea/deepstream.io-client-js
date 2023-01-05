@@ -105,7 +105,9 @@ class Record {
       this._handler._patch.add(this)
     }
 
-    if (this._update(jsonPath.set(this._data, path, data, false))) this._emitUpdate()
+    if (this._update(jsonPath.set(this._data, path, data, false))) {
+      this._emitUpdate()
+    }
   }
 
   when(stateOrNull) {
