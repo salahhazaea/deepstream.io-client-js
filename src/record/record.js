@@ -251,20 +251,20 @@ class Record {
   }
 
   _update(path, data, isPlainObject) {
-    const prevVersion = this._version
     const prevData = this._data
-
-    const nextVersion = this._makeVersion(parseInt(prevVersion || '0') + 1)
     const nextData = jsonPath.set(prevData, path, data, isPlainObject)
 
     if (nextData === prevData) {
       return false
     }
 
-    this._version = nextVersion
     this._data = nextData
 
-    if (this._state >= Record.STATE.SERVER) {
+    if (this._version) {
+      const prevVersion = this._version
+      const nextVersion = this._makeVersion(parseInt(prevVersion) + 1)
+      this._version = nextVersion
+
       const update = [this._name, nextVersion, jsonPath.stringify(data), prevVersion]
       this._handler._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.UPDATE, update)
       this._updating ??= new Map()
