@@ -87,7 +87,7 @@ function jsonClone(o) {
 
   if (Array.isArray(o) && o.length === 0) {
     return EMPTY_ARR
-  } else if (typeof o === 'object' && Object.keys(o).length === 0) {
+  } else if (utils.isPlainObject(o) && Object.keys(o).length === 0) {
     return EMPTY_OBJ
   }
 

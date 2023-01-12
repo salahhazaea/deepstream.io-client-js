@@ -326,4 +326,20 @@ describe('plain JSON', () => {
     expect(res).toBe(jsonPath.EMPTY)
     expect(res).toEqual({})
   })
+
+  it('stringify date', () => {
+    const y = {
+      time: {},
+    }
+    const date = new Date()
+    const res = jsonPath.set(
+      y,
+      null,
+      {
+        date,
+      },
+      false
+    )
+    expect(res.date).toEqual(date.toISOString())
+  })
 })
