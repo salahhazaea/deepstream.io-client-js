@@ -22,8 +22,6 @@ class Listener {
           data = value
         } else if (value && typeof value === 'object') {
           data = this._stringify(value)
-        } else if (data == null) {
-          data = null
         } else {
           throw new Error(`invalid value: ${value}`)
         }
@@ -77,11 +75,7 @@ class Listener {
       if (value$) {
         const subscription = value$.pipe(this._pipe).subscribe({
           next: ({ data, hash }) => {
-            if (data == null) {
-              this._connection.sendMsg(this._topic, C.ACTIONS.LISTEN_REJECT, [this._pattern, name])
-            } else {
-              this._connection.sendMsg(this._topic, C.ACTIONS.UPDATE, [name, `INF-${hash}`, data])
-            }
+            this._connection.sendMsg(this._topic, C.ACTIONS.UPDATE, [name, `INF-${hash}`, data])
           },
           error: (err) => {
             this._error(name, err)
