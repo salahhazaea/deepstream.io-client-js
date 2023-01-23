@@ -71,7 +71,11 @@ Client.prototype.getConnectionState = function () {
 
 Client.prototype._$onMessage = function (message) {
   if (this._messageCallbacks[message.topic]) {
-    this._messageCallbacks[message.topic](message)
+    try {
+      this._messageCallbacks[message.topic](message)
+    } catch (err) {
+      this._$onError(message.topic, null, err, message.data.slice(0))
+    }
   } else {
     message.processedError = true
     this._$onError(
@@ -94,7 +98,9 @@ Client.prototype._$onError = function (topic, event, msgOrError, data) {
 
   if (this.hasListeners('error')) {
     this.emit('error', error)
-    this.emit(event, error)
+    if (event) {
+      this.emit(event, error)
+    }
   } else {
     console.log('--- You can catch all deepstream errors by subscribing to the error event ---')
 
