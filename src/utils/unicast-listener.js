@@ -87,6 +87,9 @@ class Listener {
             this._error(name, err)
             this._connection.sendMsg(this._topic, C.ACTIONS.LISTEN_REJECT, [this._pattern, name])
           },
+          complete: () => {
+            this._connection.sendMsg(this._topic, C.ACTIONS.LISTEN_REJECT, [this._pattern, name])
+          },
         })
         this._subscriptions.set(name, subscription)
       } else {
