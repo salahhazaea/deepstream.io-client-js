@@ -1,6 +1,6 @@
 {
   "name": "@nxtedition/deepstream.io-client-js",
-  "version": "23.3.3",
+  "version": "23.3.4",
   "description": "the javascript client for deepstream.io",
   "homepage": "http://deepstream.io",
   "bugs": {
