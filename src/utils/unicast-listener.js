@@ -71,7 +71,13 @@ class Listener {
         return
       }
 
-      const value$ = this._callback(name)
+      let value$
+      try {
+        value$ = this._callback(name)
+      } catch (err) {
+        value$ = rxjs.throwError(() => err)
+      }
+
       if (value$) {
         const subscription = value$.pipe(this._pipe).subscribe({
           next: ({ data, hash }) => {
