@@ -202,8 +202,7 @@ Connection.prototype._sendAuthParams = function () {
 Connection.prototype._checkHeartBeat = function () {
   const heartBeatTolerance = this._options.heartbeatInterval * 3
 
-  if (Date.now() - this._lastHeartBeat > heartBeatTolerance) {
-    clearInterval(this._heartbeatInterval)
+  if (this._lastHeartBeat && Date.now() - this._lastHeartBeat > heartBeatTolerance) {
     this._endpoint.close()
     const err = new Error(`heartbeat not received in the last ${heartBeatTolerance} milliseconds`)
     this._client._$onError(C.TOPIC.CONNECTION, C.EVENT.CONNECTION_ERROR, err)
@@ -306,8 +305,10 @@ Connection.prototype._recvMessages = function (deadline) {
 }
 
 Connection.prototype._reset = function () {
-  clearInterval(this._heartbeatInterval)
-  this._heartbeatInterval = null
+  if (this._heartbeatInterval) {
+    clearInterval(this._heartbeatInterval)
+    this._heartbeatInterval = null
+  }
   this._lastHeartBeat = null
 
   this._recvQueue = new FixedQueue()
@@ -394,13 +395,10 @@ Connection.prototype._tryReconnect = function () {
 
   if (this._reconnectionAttempt < this._options.maxReconnectAttempts) {
     this._setState(C.CONNECTION_STATE.RECONNECTING)
-    this._reconnectTimeout = setTimeout(
-      this._tryOpen.bind(this),
-      Math.min(
-        this._options.maxReconnectInterval,
-        this._options.reconnectIntervalIncrement * this._reconnectionAttempt
-      )
-    )
+    this._reconnectTimeout = setTimeout(() => {
+      this._reconnectTimeout = null
+      this._createEndpoint()
+    }, Math.min(this._options.maxReconnectInterval, this._options.reconnectIntervalIncrement * this._reconnectionAttempt))
     this._reconnectionAttempt++
   } else {
     this._clearReconnect()
@@ -409,14 +407,11 @@ Connection.prototype._tryReconnect = function () {
   }
 }
 
-Connection.prototype._tryOpen = function () {
-  this._createEndpoint()
-  this._reconnectTimeout = null
-}
-
 Connection.prototype._clearReconnect = function () {
-  clearTimeout(this._reconnectTimeout)
-  this._reconnectTimeout = null
+  if (this._reconnectTimeout) {
+    clearTimeout(this._reconnectTimeout)
+    this._reconnectTimeout = null
+  }
   this._reconnectionAttempt = 0
 }
 
