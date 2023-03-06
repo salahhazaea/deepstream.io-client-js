@@ -96,7 +96,7 @@ Connection.prototype.sendMsg2 = function (topic, action, p0, p1) {
 }
 
 Connection.prototype.close = function () {
-  while (this._sendQueue.length) {
+  while (!this._sendQueue.isEmpty()) {
     this._submit(this._sendQueue.shift())
   }
   this._reset()
