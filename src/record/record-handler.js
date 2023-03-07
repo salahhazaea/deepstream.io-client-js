@@ -383,6 +383,7 @@ class RecordHandler {
       const record = this.getRecord(name)
 
       record.subscribe(onUpdate)
+      record.unref()
 
       if (timeout && state && record.state < state) {
         timeoutHandle = setTimeout(() => {
@@ -404,7 +405,6 @@ class RecordHandler {
 
       return () => {
         record.unsubscribe(onUpdate)
-        record.unref()
       }
     })
 

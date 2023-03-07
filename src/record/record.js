@@ -61,12 +61,14 @@ class Record {
 
   subscribe(fn) {
     this._subscriptions.push(fn)
+    this.ref()
   }
 
   unsubscribe(fn) {
     const idx = this._subscriptions.indexOf(fn)
     if (idx !== -1) {
       this._subscriptions.splice(idx, 1)
+      this.unref()
     }
   }
 
@@ -131,12 +133,10 @@ class Record {
         }
 
         this.unsubscribe(onUpdate)
-        this.unref()
 
         resolve(null)
       }
 
-      this.ref()
       this.subscribe(onUpdate)
     })
   }
