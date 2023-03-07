@@ -32,8 +32,6 @@ const Connection = function (client, url, options) {
   this._reconnectTimeout = null
   this._reconnectionAttempt = 0
   this._endpoint = null
-  this._lastHeartBeat = null
-  this._heartbeatInterval = null
 
   this._processingRecv = false
   this._recvMessages = this._recvMessages.bind(this)
@@ -199,26 +197,8 @@ Connection.prototype._sendAuthParams = function () {
   this._submit(authMessage)
 }
 
-Connection.prototype._checkHeartBeat = function () {
-  const heartBeatTolerance = this._options.heartbeatInterval * 3
-
-  if (this._lastHeartBeat && Date.now() - this._lastHeartBeat > heartBeatTolerance) {
-    this._endpoint.close()
-    const err = new Error(`heartbeat not received in the last ${heartBeatTolerance} milliseconds`)
-    this._client._$onError(C.TOPIC.CONNECTION, C.EVENT.CONNECTION_ERROR, err)
-  } else {
-    this._submit(messageBuilder.getMsg(C.TOPIC.CONNECTION, C.ACTIONS.PING))
-  }
-}
-
 Connection.prototype._onOpen = function () {
   this._clearReconnect()
-  this._lastHeartBeat = Date.now()
-  this._heartbeatInterval = setInterval(
-    this._checkHeartBeat.bind(this),
-    this._options.heartbeatInterval
-  )
-  this._heartbeatInterval.unref?.()
   this._setState(C.CONNECTION_STATE.AWAITING_CONNECTION)
 }
 
@@ -305,22 +285,13 @@ Connection.prototype._recvMessages = function (deadline) {
 }
 
 Connection.prototype._reset = function () {
-  if (this._heartbeatInterval) {
-    clearInterval(this._heartbeatInterval)
-    this._heartbeatInterval = null
-  }
-  this._lastHeartBeat = null
-
   this._recvQueue = new FixedQueue()
   this._sendQueue = new FixedQueue()
 }
 
 Connection.prototype._handleConnectionResponse = function (message) {
   if (message.action === C.ACTIONS.PING) {
-    this._lastHeartBeat = Date.now()
     this._submit(messageBuilder.getMsg(C.TOPIC.CONNECTION, C.ACTIONS.PONG))
-  } else if (message.action === C.ACTIONS.PONG) {
-    this._lastHeartBeat = Date.now()
   } else if (message.action === C.ACTIONS.ACK) {
     this._setState(C.CONNECTION_STATE.AWAITING_AUTHENTICATION)
     if (this._authParams) {
