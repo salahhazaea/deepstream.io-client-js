@@ -24,7 +24,6 @@ class RecordHandler {
     this._records = new Map()
     this._listeners = new Map()
     this._prune = new Map()
-    this._purge = new Set()
     this._patch = new Set()
     this._now = Date.now()
     this._pruning = false
@@ -33,8 +32,6 @@ class RecordHandler {
     this._stats = {
       updating: 0,
     }
-
-    this._purgeCapacity = options.cacheSize
 
     this._syncEmitter = new EventEmitter()
 
@@ -52,8 +49,6 @@ class RecordHandler {
     this._client.on(C.EVENT.CONNECTED, this._onConnectionStateChange.bind(this))
 
     const prune = () => {
-      this._pruning = false
-
       let counter = 0
       for (const [rec, timestamp] of this._prune) {
         if (this._now - timestamp < 1e3) {
@@ -64,58 +59,25 @@ class RecordHandler {
           continue
         }
 
-        invariant(rec._refs === 0, 'record must have no refs')
-
         rec._unsubscribe()
 
-        this._purge.add(rec)
+        this._records.delete(rec.name)
         this._prune.delete(rec)
 
         if (counter++ > 1024) {
-          this._pruning = true
           this._schedule(prune)
           return
         }
       }
-    }
 
-    const purge = () => {
-      this._purging = false
-
-      if (!this._connected) {
-        return
-      }
-
-      let counter = 0
-      for (const rec of this._purge) {
-        if (this._purge.size < this._purgeCapacity) {
-          return
-        }
-
-        invariant(rec._refs === 0, 'record must have no refs')
-
-        this._records.delete(rec.name)
-        this._purge.delete(rec)
-
-        if (counter++ > 1024) {
-          this._purging = true
-          this._schedule(purge)
-          return
-        }
-      }
+      this._pruning = false
     }
 
     const pruneInterval = setInterval(() => {
       this._now = Date.now()
-
       if (!this._pruning) {
         this._pruning = true
         this._schedule(prune)
-      }
-
-      if (!this._purging) {
-        this._purging = true
-        this._schedule(purge)
       }
     }, 1e3)
     pruneInterval.unref?.()
@@ -125,7 +87,6 @@ class RecordHandler {
     if (rec.refs === 0) {
       this._prune.set(rec, this._now)
     } else if (rec.refs === 1) {
-      this._purge.delete(rec)
       this._prune.delete(rec)
     }
   }
@@ -140,7 +101,6 @@ class RecordHandler {
       listeners: this._listeners.size,
       records: this._records.size,
       pruning: this._prune.size,
-      purging: this._purge.size,
     }
   }
 
