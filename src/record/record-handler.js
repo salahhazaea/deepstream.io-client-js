@@ -154,13 +154,19 @@ class RecordHandler {
   }
 
   sync(options) {
-    return new Promise((resolve) => {
+    return new Promise((resolve, reject) => {
+      const timeoutValue = options?.timeout ?? 2 * 60e3
+      const signal = options?.signal
+
+      if (signal?.aborted) {
+        reject(new utils.AbortError())
+        return
+      }
+
       let done = false
       let token
-      let timeout
+      let timeoutHandle
 
-      const timeoutValue = 2 * 60e3
-      const signal = options?.signal
       const records = [...this._patch]
 
       const onDone = (val) => {
@@ -172,9 +178,9 @@ class RecordHandler {
 
         signal?.removeEventListener('abort', onAbort)
 
-        if (timeout) {
-          clearTimeout(timeout)
-          timeout = null
+        if (timeoutHandle) {
+          clearTimeout(timeoutHandle)
+          timeoutHandle = null
         }
 
         if (token) {
@@ -200,8 +206,8 @@ class RecordHandler {
       const onTimeout = () => {
         const elapsed = Date.now() - this._connected
         if (elapsed < timeoutValue) {
-          timeout = setTimeout(onTimeout, timeoutValue - elapsed)
-          timeout.unref?.()
+          timeoutHandle = setTimeout(onTimeout, timeoutValue - elapsed)
+          timeoutHandle.unref?.()
         } else {
           for (const rec of records.filter((rec) => !rec.isReady)) {
             this._client._$onError(C.TOPIC.RECORD, C.EVENT.TIMEOUT, 'record timeout', [
@@ -222,8 +228,10 @@ class RecordHandler {
         rec.ref()
       }
 
-      timeout = setTimeout(onTimeout, 2 * 60e3)
-      timeout.unref?.()
+      if (timeoutValue) {
+        timeoutHandle = setTimeout(onTimeout, timeoutValue)
+        timeoutHandle.unref?.()
+      }
 
       signal?.addEventListener('abort', onAbort)
 
