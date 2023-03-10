@@ -73,7 +73,7 @@ class Record {
   }
 
   get(path) {
-    return jsonPath.get(this._data, path)
+    return path ? jsonPath.get(this._data, path) : this._data
   }
 
   set(pathOrData, dataOrNil) {

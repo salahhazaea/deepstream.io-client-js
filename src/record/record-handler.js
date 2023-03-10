@@ -305,7 +305,7 @@ class RecordHandler {
     let path
     let state = defaults ? defaults.state : undefined
     let signal
-    let timeout = defaults ? defaults.timeout : undefined
+    let timeoutValue = defaults ? defaults.timeout : undefined
     let dataOnly = defaults ? defaults.dataOnly : undefined
 
     let idx = 0
@@ -324,7 +324,7 @@ class RecordHandler {
       signal = options.signal
 
       if (options.timeout != null) {
-        timeout = options.timeout
+        timeoutValue = options.timeout
       }
 
       if (options.path != null) {
@@ -358,7 +358,11 @@ class RecordHandler {
       )
     }
 
-    let x$ = new rxjs.Observable((o) => {
+    if (signal?.aborted) {
+      return rxjs.throwError(() => new utils.AbortError())
+    }
+
+    return new rxjs.Observable((o) => {
       let timeoutHandle
       let prevData = kEmpty
 
@@ -372,8 +376,9 @@ class RecordHandler {
           timeoutHandle = null
         }
 
+        const nextData = path ? record.get(path) : record.data
+
         if (dataOnly) {
-          const nextData = record.get(path)
           if (nextData !== prevData) {
             prevData = nextData
             o.next(nextData)
@@ -382,7 +387,7 @@ class RecordHandler {
           o.next({
             name: record.name,
             version: record.version,
-            data: record.get(path),
+            data: nextData,
             state: record.state,
           })
         }
@@ -393,17 +398,17 @@ class RecordHandler {
       record.subscribe(onUpdate)
       record.unref()
 
-      if (timeout && state && record.state < state) {
+      if (timeoutValue && state && record.state < state) {
         timeoutHandle = setTimeout(() => {
           const expected = C.RECORD_STATE_NAME[state]
           const current = C.RECORD_STATE_NAME[record.state]
           o.error(
             Object.assign(
-              new Error(`timeout after ${timeout / 1e3}s: ${name} [${current}<${expected}]`),
+              new Error(`timeout after ${timeoutValue / 1e3}s: ${name} [${current}<${expected}]`),
               { code: 'ETIMEDOUT' }
             )
           )
-        }, timeout)
+        }, timeoutValue)
         timeoutHandle.unref?.()
       }
 
@@ -411,18 +416,17 @@ class RecordHandler {
         onUpdate(record)
       }
 
+      const abort = () => {
+        o.error(new utils.AbortError())
+      }
+
+      signal?.addEventListener('abort', abort)
+
       return () => {
         record.unsubscribe(onUpdate)
+        signal?.removeEventListener('abort', abort)
       }
     })
-
-    if (signal != null) {
-      // TODO (perf): This a slow way to implement.
-      x$ = signal.aborted ? rxjs.EMPTY : x$.pipe(rx.takeUntil(rxjs.fromEvent(signal, 'abort')))
-      x$ = x$.pipe(rx.throwIfEmpty(() => new utils.AbortError()))
-    }
-
-    return x$
   }
 
   _$handle(message) {
