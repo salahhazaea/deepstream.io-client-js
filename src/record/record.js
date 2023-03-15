@@ -46,16 +46,18 @@ class Record {
 
   ref() {
     this._refs += 1
-    this._handler._onRef(this)
     if (this._refs === 1) {
       this._subscribe()
     }
+
+    this._handler._onRef(this)
   }
 
   unref() {
     invariant(this._refs > 0, this._name + ' missing refs')
 
     this._refs -= 1
+
     this._handler._onRef(this)
   }
 
