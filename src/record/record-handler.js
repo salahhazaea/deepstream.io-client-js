@@ -393,10 +393,7 @@ class RecordHandler {
         }
       }
 
-      const record = this.getRecord(name)
-
-      record.subscribe(onUpdate)
-      record.unref()
+      const record = this.getRecord(name).subscribe(onUpdate)
 
       if (timeoutValue && state && record.state < state) {
         timeoutHandle = setTimeout(() => {
@@ -423,7 +420,7 @@ class RecordHandler {
       signal?.addEventListener('abort', abort)
 
       return () => {
-        record.unsubscribe(onUpdate)
+        record.unsubscribe(onUpdate).unref()
         signal?.removeEventListener('abort', abort)
       }
     })

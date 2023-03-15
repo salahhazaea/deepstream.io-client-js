@@ -51,6 +51,8 @@ class Record {
     }
 
     this._handler._onRef(this)
+
+    return this
   }
 
   unref() {
@@ -59,19 +61,23 @@ class Record {
     this._refs -= 1
 
     this._handler._onRef(this)
+
+    return this
   }
 
   subscribe(fn) {
     this._subscriptions.push(fn)
-    this.ref()
+
+    return this
   }
 
   unsubscribe(fn) {
     const idx = this._subscriptions.indexOf(fn)
     if (idx !== -1) {
       this._subscriptions.splice(idx, 1)
-      this.unref()
     }
+
+    return this
   }
 
   get(path) {
@@ -114,6 +120,7 @@ class Record {
     }
   }
 
+  // TODO (fix): timeout + signal
   when(stateOrNull) {
     invariant(this._refs > 0, this._name + ' missing refs')
 
@@ -134,11 +141,13 @@ class Record {
           return
         }
 
+        this.unref()
         this.unsubscribe(onUpdate)
 
         resolve(null)
       }
 
+      this.ref()
       this.subscribe(onUpdate)
     })
   }
