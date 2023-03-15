@@ -48,7 +48,17 @@ class RecordHandler {
 
     this._client.on(C.EVENT.CONNECTED, this._onConnectionStateChange.bind(this))
 
+    const _prune = () => {
+      if (!this._pruning) {
+        this._pruning = true
+        this._schedule(prune)
+      }
+    }
+
     const prune = () => {
+      this._now = Date.now()
+      this._pruning = false
+
       let counter = 0
       for (const [rec, timestamp] of this._prune) {
         if (this._now - timestamp < 1e3) {
@@ -65,22 +75,13 @@ class RecordHandler {
         this._prune.delete(rec)
 
         if (counter++ > 1024) {
-          this._schedule(prune)
-          return
+          _prune()
         }
       }
-
-      this._pruning = false
     }
 
-    const pruneInterval = setInterval(() => {
-      this._now = Date.now()
-      if (!this._pruning) {
-        this._pruning = true
-        this._schedule(prune)
-      }
-    }, 1e3)
-    pruneInterval.unref?.()
+    this._pruneInterval = setInterval(_prune, 1e3)
+    this._pruneInterval.unref?.()
   }
 
   _onRef(rec) {
