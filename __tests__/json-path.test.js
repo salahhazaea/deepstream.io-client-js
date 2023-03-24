@@ -342,4 +342,12 @@ describe('plain JSON', () => {
     )
     expect(res.date).toEqual(date.toISOString())
   })
+
+  it('remove property on undefined', () => {
+    const y = {
+      time: {},
+    }
+    const res = jsonPath.set(y, 'time', undefined)
+    expect(Object.keys(res)).toEqual([])
+  })
 })

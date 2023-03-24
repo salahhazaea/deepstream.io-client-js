@@ -68,7 +68,11 @@ function set(data, path, value, isPlainJSON = false) {
   for (let i = 0; i < tokens.length; i++) {
     const token = tokens[i]
     if (i === tokens.length - 1) {
-      node[token] = newValue
+      if (newValue !== undefined) {
+        node[token] = newValue
+      } else {
+        delete node[token]
+      }
     } else if (node[token] != null && typeof node[token] === 'object') {
       node = node[token] = utils.shallowCopy(node[token])
     } else if (tokens[i + 1] && !isNaN(tokens[i + 1])) {
@@ -77,6 +81,7 @@ function set(data, path, value, isPlainJSON = false) {
       node = node[token] = {}
     }
   }
+
   return result
 }
 
@@ -144,7 +149,10 @@ function patch(oldValue, newValue, isPlainJSON) {
           obj[newKeys[j]] = oldValue[newKeys[j]]
         }
       }
-      obj[key] = val
+
+      if (val !== undefined) {
+        obj[key] = val
+      }
     }
 
     return obj || oldValue
