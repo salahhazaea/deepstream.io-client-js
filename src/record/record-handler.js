@@ -9,6 +9,7 @@ const jsonPath = require('./json-path')
 const utils = require('../utils/utils')
 const rx = require('rxjs/operators')
 const xuid = require('xuid')
+const timers = require('../utils/timers')
 
 const kEmpty = Symbol('kEmpty')
 
@@ -180,7 +181,7 @@ class RecordHandler {
         signal?.removeEventListener('abort', onAbort)
 
         if (timeoutHandle) {
-          clearTimeout(timeoutHandle)
+          timers.clearTimeout(timeoutHandle)
           timeoutHandle = null
         }
 
@@ -207,8 +208,7 @@ class RecordHandler {
       const onTimeout = () => {
         const elapsed = Date.now() - this._connected
         if (elapsed < timeoutValue) {
-          timeoutHandle = setTimeout(onTimeout, timeoutValue - elapsed)
-          timeoutHandle.unref?.()
+          timeoutHandle = timers.setTimeout(onTimeout, timeoutValue - elapsed)
         } else {
           for (const rec of records.filter((rec) => !rec.isReady)) {
             this._client._$onError(C.TOPIC.RECORD, C.EVENT.TIMEOUT, 'record timeout', [
@@ -230,8 +230,7 @@ class RecordHandler {
       }
 
       if (timeoutValue) {
-        timeoutHandle = setTimeout(onTimeout, timeoutValue)
-        timeoutHandle.unref?.()
+        timeoutHandle = timers.setTimeout(onTimeout, timeoutValue)
       }
 
       signal?.addEventListener('abort', onAbort)
@@ -373,7 +372,7 @@ class RecordHandler {
         }
 
         if (timeoutHandle) {
-          clearTimeout(timeoutHandle)
+          timers.clearTimeout(timeoutHandle)
           timeoutHandle = null
         }
 
@@ -397,7 +396,7 @@ class RecordHandler {
       const record = this.getRecord(name).subscribe(onUpdate)
 
       if (timeoutValue && state && record.state < state) {
-        timeoutHandle = setTimeout(() => {
+        timeoutHandle = timers.setTimeout(() => {
           const expected = C.RECORD_STATE_NAME[state]
           const current = C.RECORD_STATE_NAME[record.state]
           o.error(
@@ -407,7 +406,6 @@ class RecordHandler {
             )
           )
         }, timeoutValue)
-        timeoutHandle.unref?.()
       }
 
       if (record.version) {
