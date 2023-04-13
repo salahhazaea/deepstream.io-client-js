@@ -1,4 +1,4 @@
-const jsonPath = require('./json-path')
+const jsonPath = require('@nxtedition/json-path')
 const utils = require('../utils/utils')
 const C = require('../constants/constants')
 const messageParser = require('../message/message-parser')
