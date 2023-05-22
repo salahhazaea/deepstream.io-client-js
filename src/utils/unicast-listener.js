@@ -1,5 +1,4 @@
 const C = require('../constants/constants')
-const rx = require('rxjs/operators')
 const rxjs = require('rxjs')
 
 class Listener {
@@ -12,26 +11,7 @@ class Listener {
     this._connection = this._handler._connection
     this._subscriptions = new Map()
     this._stringify = stringify || JSON.stringify
-    this._pipe = rxjs.pipe(
-      rx.map((value) => {
-        let data
-        if (value && typeof value === 'string') {
-          if (value.charAt(0) !== '{' && value.charAt(0) !== '[') {
-            throw new Error(`invalid value: ${value}`)
-          }
-          data = value
-        } else if (value && typeof value === 'object') {
-          data = this._stringify(value)
-        } else {
-          throw new Error(`invalid value: ${value}`)
-        }
-
-        const hash = this._connection.hasher.h64ToString(data)
-
-        return { data, hash }
-      }),
-      rx.distinctUntilKeyChanged('hash')
-    )
+    this._value = null
 
     this._$onConnectionStateChange()
 
@@ -79,9 +59,30 @@ class Listener {
       }
 
       if (value$) {
-        const subscription = value$.pipe(this._pipe).subscribe({
-          next: ({ data, hash }) => {
-            this._connection.sendMsg(this._topic, C.ACTIONS.UPDATE, [name, `INF-${hash}`, data])
+        const subscription = value$.subscribe({
+          next: (value) => {
+            let data
+            if (value && typeof value === 'string') {
+              if (value.charAt(0) !== '{' && value.charAt(0) !== '[') {
+                throw new Error(`invalid value: ${value}`)
+              }
+              data = value
+            } else if (value && typeof value === 'object') {
+              data = this._stringify(value)
+            } else {
+              throw new Error(`invalid value: ${value}`)
+            }
+
+            if (value === this._value) {
+              return
+            }
+
+            this._value = value
+            this._connection.sendMsg(this._topic, C.ACTIONS.UPDATE, [
+              name,
+              `INF-${this._connection.hasher.h64ToString(data)}`,
+              data,
+            ])
           },
           error: (err) => {
             this._error(name, err)
