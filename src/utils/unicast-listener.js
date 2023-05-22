@@ -11,7 +11,8 @@ class Listener {
     this._connection = this._handler._connection
     this._subscriptions = new Map()
     this._stringify = stringify || JSON.stringify
-    this._value = null
+    this._data = ''
+    this._version = ''
 
     this._$onConnectionStateChange()
 
@@ -73,15 +74,16 @@ class Listener {
               throw new Error(`invalid value: ${value}`)
             }
 
-            if (value === this._value) {
+            if (data === this._data) {
               return
             }
 
-            this._value = value
+            this._data = data
+            this._version = `INF-${this._connection.hasher.h64ToString(data)}`
             this._connection.sendMsg(this._topic, C.ACTIONS.UPDATE, [
               name,
-              `INF-${this._connection.hasher.h64ToString(data)}`,
-              data,
+              this._version,
+              this._data,
             ])
           },
           error: (err) => {
