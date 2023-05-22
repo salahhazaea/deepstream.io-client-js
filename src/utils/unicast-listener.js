@@ -71,11 +71,12 @@ class Listener {
                 data = value
               } else if (value && typeof value === 'object') {
                 data = this._stringify(value)
+              } else {
+                throw new Error(`invalid value: ${value}`)
               }
 
               return data
-            }),
-            rxjs.takeWhile(Boolean)
+            })
           )
           .subscribe({
             next: (data) => {
