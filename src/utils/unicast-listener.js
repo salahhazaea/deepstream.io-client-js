@@ -60,37 +60,45 @@ class Listener {
       }
 
       if (value$) {
-        const subscription = value$.subscribe({
-          next: (value) => {
-            let data
-            if (value && typeof value === 'string') {
-              if (value.charAt(0) !== '{' && value.charAt(0) !== '[') {
-                throw new Error(`invalid value: ${value}`)
+        const subscription = value$
+          .pipe(
+            rxjs.map((value) => {
+              let data
+              if (value && typeof value === 'string') {
+                if (value.charAt(0) !== '{' && value.charAt(0) !== '[') {
+                  throw new Error(`invalid value: ${value}`)
+                }
+                data = value
+              } else if (value && typeof value === 'object') {
+                data = this._stringify(value)
               }
-              data = value
-            } else if (value && typeof value === 'object') {
-              data = this._stringify(value)
-            } else {
-              throw new Error(`invalid value: ${value}`)
-            }
 
-            if (data === this._data) {
-              return
-            }
+              return data
+            }),
+            rxjs.takeWhile(Boolean)
+          )
+          .subscribe({
+            next: (data) => {
+              if (data === this._data) {
+                return
+              }
 
-            this._data = data
-            this._version = `INF-${this._connection.hasher.h64ToString(data)}`
-            this._connection.sendMsg(this._topic, C.ACTIONS.UPDATE, [
-              name,
-              this._version,
-              this._data,
-            ])
-          },
-          error: (err) => {
-            this._error(name, err)
-            this._connection.sendMsg(this._topic, C.ACTIONS.LISTEN_REJECT, [this._pattern, name])
-          },
-        })
+              this._data = data
+              this._version = `INF-${this._connection.hasher.h64ToString(data)}`
+              this._connection.sendMsg(this._topic, C.ACTIONS.UPDATE, [
+                name,
+                this._version,
+                this._data,
+              ])
+            },
+            error: (err) => {
+              this._error(name, err)
+              this._connection.sendMsg(this._topic, C.ACTIONS.LISTEN_REJECT, [this._pattern, name])
+            },
+            complete: () => {
+              this._connection.sendMsg(this._topic, C.ACTIONS.LISTEN_REJECT, [this._pattern, name])
+            },
+          })
         this._subscriptions.set(name, subscription)
       } else {
         this._connection.sendMsg(this._topic, C.ACTIONS.LISTEN_REJECT, [this._pattern, name])
