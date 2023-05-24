@@ -35,6 +35,7 @@ class RecordHandler {
     }
 
     this._syncEmitter = new EventEmitter()
+    this._syncQueue = null
 
     this.set = this.set.bind(this)
     this.get = this.get.bind(this)
@@ -83,6 +84,8 @@ class RecordHandler {
 
     this._pruneInterval = setInterval(_prune, 1e3)
     this._pruneInterval.unref?.()
+
+    this._syncAll = this._syncAll.bind(this)
   }
 
   _onRef(rec) {
@@ -241,16 +244,36 @@ class RecordHandler {
             return
           }
 
-          token = xuid()
-          this._syncEmitter.once(token, onToken)
-
-          if (this._connected) {
-            this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.SYNC, [token])
+          if (!this._syncQueue) {
+            this._syncQueue = []
+            queueMicrotask(this._syncAll)
           }
+
+          this._syncQueue.push(onToken)
         },
         (err) => onDone(Promise.reject(err))
       )
     })
+  }
+
+  _syncAll() {
+    if (!this._syncQueue) {
+      return
+    }
+
+    const syncQueue = this._syncQueue
+    const token = xuid()
+
+    this._syncQueue = null
+    this._syncEmitter.once(token, () => {
+      for (const callback of syncQueue) {
+        callback()
+      }
+    })
+
+    if (this._connected) {
+      this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.SYNC, [token])
+    }
   }
 
   set(name, ...args) {
