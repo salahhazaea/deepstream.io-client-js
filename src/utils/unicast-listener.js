@@ -11,8 +11,6 @@ class Listener {
     this._connection = this._handler._connection
     this._subscriptions = new Map()
     this._stringify = stringify || JSON.stringify
-    this._data = ''
-    this._version = ''
 
     this._$onConnectionStateChange()
 
@@ -76,21 +74,13 @@ class Listener {
               }
 
               return data
-            })
+            }),
+            rxjs.distinctUntilChanged()
           )
           .subscribe({
             next: (data) => {
-              if (data === this._data) {
-                return
-              }
-
-              this._data = data
-              this._version = `INF-${this._connection.hasher.h64ToString(data)}`
-              this._connection.sendMsg(this._topic, C.ACTIONS.UPDATE, [
-                name,
-                this._version,
-                this._data,
-              ])
+              const version = `INF-${this._connection.hasher.h64ToString(data)}`
+              this._connection.sendMsg(this._topic, C.ACTIONS.UPDATE, [name, version, data])
             },
             error: (err) => {
               this._error(name, err)
