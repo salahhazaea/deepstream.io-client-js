@@ -4,6 +4,7 @@ const C = require('../constants/constants')
 const messageParser = require('../message/message-parser')
 const xuid = require('xuid')
 const invariant = require('invariant')
+const cloneDeep = require('lodash.clonedeep')
 
 class Record {
   static STATE = C.RECORD_STATE
@@ -111,7 +112,7 @@ class Record {
 
     if (!this._version) {
       this._patches = path && this._patches ? this._patches : []
-      this._patches.push(path, jsonPath.jsonClone(data))
+      this._patches.push(path, cloneDeep(data))
       this._handler._patch.add(this)
     }
 
@@ -304,7 +305,7 @@ class Record {
       if (this._version.charAt(0) !== 'I') {
         let patchData = this._data
         for (let n = 0; n < this._patches.length; n += 2) {
-          patchData = jsonPath.set(patchData, this._patches[n + 0], this._patches[n + 1], true)
+          patchData = jsonPath.set(patchData, this._patches[n + 0], this._patches[n + 1], false)
         }
         this._update(patchData)
       }
