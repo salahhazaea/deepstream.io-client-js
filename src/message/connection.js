@@ -136,10 +136,17 @@ Connection.prototype.send = function (message) {
     return
   }
 
-  this._sendQueue.push(message)
-  if (!this._processingSend) {
+  if (this._processingSend) {
+    this._sendQueue.push(message)
+  } else if (
+    this._state === C.CONNECTION_STATE.OPEN &&
+    this._endpoint.readyState === this._endpoint.OPEN
+  ) {
+    this._submit(message)
+  } else {
+    this._sendQueue.push(message)
     this._processingSend = true
-    this._schedule(this._sendMessages)
+    this._sendMessages()
   }
 }
 
