@@ -67,7 +67,7 @@ class RecordHandler {
           return
         }
 
-        if (!rec.pending) {
+        if (rec.pending) {
           continue
         }
 
