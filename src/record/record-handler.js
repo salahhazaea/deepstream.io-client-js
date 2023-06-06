@@ -78,6 +78,7 @@ class RecordHandler {
 
         if (counter++ > 1024) {
           _prune()
+          return
         }
       }
     }
