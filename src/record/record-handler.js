@@ -67,7 +67,7 @@ class RecordHandler {
           return
         }
 
-        if (rec._state < C.RECORD_STATE.SERVER) {
+        if (!rec.pending) {
           continue
         }
 

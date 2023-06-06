@@ -45,6 +45,10 @@ class Record {
     return this._refs
   }
 
+  get pending() {
+    return this._patches ? this._patches.length / 2 : 0
+  }
+
   ref() {
     this._refs += 1
     if (this._refs === 1) {
