@@ -240,7 +240,7 @@ class Record {
 
   _unsubscribe() {
     invariant(!this._refs, this._name + ' must not have refs')
-    invariant(this._version, this._name + ' must have version')
+    invariant(!this.pending, this._name + ' must not have pending')
 
     const prevState = this._state
 
