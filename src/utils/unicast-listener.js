@@ -1,5 +1,6 @@
 const C = require('../constants/constants')
 const rxjs = require('rxjs')
+const rx = require('rxjs/operators')
 
 class Listener {
   constructor(topic, pattern, callback, handler, { stringify = null, recursive = false } = {}) {
@@ -60,7 +61,7 @@ class Listener {
       if (value$) {
         const subscription = value$
           .pipe(
-            rxjs.map((value) => {
+            rx.map((value) => {
               let data
               if (value && typeof value === 'string') {
                 if (value.charAt(0) !== '{' && value.charAt(0) !== '[') {
@@ -75,7 +76,7 @@ class Listener {
 
               return data
             }),
-            rxjs.distinctUntilChanged()
+            rx.distinctUntilChanged()
           )
           .subscribe({
             next: (data) => {
