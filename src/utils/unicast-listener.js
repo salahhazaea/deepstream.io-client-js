@@ -78,7 +78,7 @@ class Listener {
       }
 
       if (value$) {
-        const subscription = value$.subscribe({
+        const subscription = value$.pipe(this._pipe).subscribe({
           next: (data) => {
             const version = `INF-${this._connection.hasher.h64ToString(data)}`
             this._connection.sendMsg(this._topic, C.ACTIONS.UPDATE, [name, version, data])
