@@ -1,6 +1,6 @@
 const C = require('../constants/constants')
-const rxjs = require('rxjs')
 const rx = require('rxjs/operators')
+const rxjs = require('rxjs')
 
 class Listener {
   constructor(topic, pattern, callback, handler, { stringify = null, recursive = false } = {}) {
@@ -12,6 +12,25 @@ class Listener {
     this._connection = this._handler._connection
     this._subscriptions = new Map()
     this._stringify = stringify || JSON.stringify
+
+    this._pipe = rxjs.pipe(
+      rx.map((value) => {
+        let data
+        if (value && typeof value === 'string') {
+          if (value.charAt(0) !== '{' && value.charAt(0) !== '[') {
+            throw new Error(`invalid value: ${value}`)
+          }
+          data = value
+        } else if (value && typeof value === 'object') {
+          data = this._stringify(value)
+        } else {
+          throw new Error(`invalid value: ${value}`)
+        }
+
+        return data
+      }),
+      rx.distinctUntilChanged()
+    )
 
     this._$onConnectionStateChange()
 
@@ -59,38 +78,16 @@ class Listener {
       }
 
       if (value$) {
-        const subscription = value$
-          .pipe(
-            rx.map((value) => {
-              let data
-              if (value && typeof value === 'string') {
-                if (value.charAt(0) !== '{' && value.charAt(0) !== '[') {
-                  throw new Error(`invalid value: ${value}`)
-                }
-                data = value
-              } else if (value && typeof value === 'object') {
-                data = this._stringify(value)
-              } else {
-                throw new Error(`invalid value: ${value}`)
-              }
-
-              return data
-            }),
-            rx.distinctUntilChanged()
-          )
-          .subscribe({
-            next: (data) => {
-              const version = `INF-${this._connection.hasher.h64ToString(data)}`
-              this._connection.sendMsg(this._topic, C.ACTIONS.UPDATE, [name, version, data])
-            },
-            error: (err) => {
-              this._error(name, err)
-              this._connection.sendMsg(this._topic, C.ACTIONS.LISTEN_REJECT, [this._pattern, name])
-            },
-            complete: () => {
-              this._connection.sendMsg(this._topic, C.ACTIONS.LISTEN_REJECT, [this._pattern, name])
-            },
-          })
+        const subscription = value$.subscribe({
+          next: (data) => {
+            const version = `INF-${this._connection.hasher.h64ToString(data)}`
+            this._connection.sendMsg(this._topic, C.ACTIONS.UPDATE, [name, version, data])
+          },
+          error: (err) => {
+            this._error(name, err)
+            this._connection.sendMsg(this._topic, C.ACTIONS.LISTEN_REJECT, [this._pattern, name])
+          },
+        })
         this._subscriptions.set(name, subscription)
       } else {
         this._connection.sendMsg(this._topic, C.ACTIONS.LISTEN_REJECT, [this._pattern, name])
