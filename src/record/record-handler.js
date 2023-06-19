@@ -345,7 +345,9 @@ class RecordHandler {
     if (idx < args.length && (args[idx] == null || typeof args[idx] === 'object')) {
       const options = args[idx++] || {}
 
-      signal = options.signal
+      if (options.signal != null) {
+        signal = options.signal
+      }
 
       if (options.timeout != null) {
         timeoutValue = options.timeout
