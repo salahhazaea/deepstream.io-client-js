@@ -395,6 +395,7 @@ class RecordHandler {
       const onUpdate = (record) => {
         if (signal?.aborted) {
           o.error(new utils.AbortError())
+          return
         }
 
         if (state && record.state < state) {
