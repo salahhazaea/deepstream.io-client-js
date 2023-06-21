@@ -393,11 +393,6 @@ class RecordHandler {
       let prevData = kEmpty
 
       const onUpdate = (record) => {
-        if (signal?.aborted) {
-          o.error(new utils.AbortError())
-          return
-        }
-
         if (state && record.state < state) {
           return
         }
@@ -443,8 +438,15 @@ class RecordHandler {
         onUpdate(record)
       }
 
+      const abort = () => {
+        o.error(new utils.AbortError())
+      }
+
+      signal?.addEventListener('abort', abort)
+
       return () => {
         record.unsubscribe(onUpdate).unref()
+        signal?.removeEventListener('abort', abort)
       }
     })
   }
