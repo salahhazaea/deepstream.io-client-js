@@ -438,15 +438,13 @@ class RecordHandler {
         onUpdate(record)
       }
 
-      const abort = () => {
-        o.error(new utils.AbortError())
-      }
+      const abort = signal ? () => o.error(new utils.AbortError()) : null
 
-      signal?.addEventListener('abort', abort)
+      utils.addAbortListener(signal, abort)
 
       return () => {
         record.unsubscribe(onUpdate).unref()
-        signal?.removeEventListener('abort', abort)
+        utils.removeAbortListener(signal, abort)
       }
     })
   }

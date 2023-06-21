@@ -127,3 +127,45 @@ module.exports.AbortError = class AbortError extends Error {
 }
 
 module.exports.schedule = isNode ? setImmediate : window.requestIdleCallback
+
+const abortSignals = new WeakMap()
+const onAbort = function () {
+  const handlers = abortSignals.get(this)
+  if (handlers) {
+    for (const handler of handlers) {
+      handler()
+    }
+  }
+}
+
+module.exports.addAbortListener = function addAbortListener(signal, handler) {
+  if (!signal) {
+    return
+  }
+
+  let handlers = abortSignals.get(signal)
+  if (!handlers) {
+    handlers = []
+    abortSignals.set(signal, handlers)
+    signal.addEventListener('abort', onAbort)
+  }
+  handlers.push(handler)
+}
+
+module.exports.removeAbortListener = function removeAbortListener(signal, handler) {
+  if (!signal) {
+    return
+  }
+
+  const handlers = abortSignals.get(signal)
+  if (handlers) {
+    const index = handlers.indexOf(handler)
+    if (index !== -1) {
+      handlers.splice(index, 1)
+      if (handlers.length === 0) {
+        abortSignals.delete(signal)
+        signal.removeEventListener('abort', onAbort)
+      }
+    }
+  }
+}
