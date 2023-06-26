@@ -303,7 +303,7 @@ class RecordHandler {
     return this._observe(
       {
         state: C.RECORD_STATE.SERVER,
-        timeout: 2 * 60e3,
+        timeout: 10 * 60e3,
         dataOnly: true,
       },
       ...args
