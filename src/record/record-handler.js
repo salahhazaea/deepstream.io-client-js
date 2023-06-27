@@ -53,6 +53,11 @@ class RecordHandler {
     const _prune = () => {
       let counter = 0
       for (const [rec, timestamp] of this._prune) {
+        if (rec.refs > 0) {
+          this._prune.delete(rec)
+          continue
+        }
+
         if (rec.pending) {
           continue
         }
@@ -90,8 +95,6 @@ class RecordHandler {
   _onRef(rec) {
     if (rec.refs === 0) {
       this._prune.set(rec, this._now)
-    } else if (rec.refs === 1) {
-      this._prune.delete(rec)
     }
   }
 
