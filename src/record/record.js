@@ -232,8 +232,6 @@ class Record {
   }
 
   _$onConnectionStateChange() {
-    const prevState = this._state
-
     const connection = this._handler._connection
     if (connection.connected) {
       if (this._refs > 0) {
@@ -250,33 +248,8 @@ class Record {
       if (this._state > Record.STATE.CLIENT) {
         this._state = Record.STATE.CLIENT
         this._handler._onPending(this)
+        this._emitUpdate()
       }
-    }
-
-    if (this._state !== prevState) {
-      this._emitUpdate()
-    }
-  }
-
-  _unsubscribe() {
-    invariant(!this._refs, this._name + ' must not have refs')
-    invariant(!this._patches, this._name + ' must not have patches')
-
-    const prevState = this._state
-
-    const connection = this._handler._connection
-    if (this._subscribed && connection.connected) {
-      connection.sendMsg1(C.TOPIC.RECORD, C.ACTIONS.UNSUBSCRIBE, this._name)
-    }
-
-    this._subscribed = false
-    if (this._state > Record.STATE.CLIENT) {
-      this._state = Record.STATE.CLIENT
-      this._handler._onPending(this)
-    }
-
-    if (this._state !== prevState) {
-      this._emitUpdate()
     }
   }
 
@@ -287,6 +260,23 @@ class Record {
     if (!this._subscribed && connection.connected) {
       connection.sendMsg1(C.TOPIC.RECORD, C.ACTIONS.SUBSCRIBE, this._name)
       this._subscribed = true
+    }
+  }
+
+  _unsubscribe() {
+    invariant(!this._refs, this._name + ' must not have refs')
+    invariant(!this._patches, this._name + ' must not have patches')
+
+    const connection = this._handler._connection
+    if (this._subscribed && connection.connected) {
+      connection.sendMsg1(C.TOPIC.RECORD, C.ACTIONS.UNSUBSCRIBE, this._name)
+    }
+
+    this._subscribed = false
+    if (this._state > Record.STATE.CLIENT) {
+      this._state = Record.STATE.CLIENT
+      this._handler._onPending(this)
+      this._emitUpdate()
     }
   }
 
@@ -319,36 +309,36 @@ class Record {
   _onUpdate([, version, data]) {
     const prevData = this._data
     const prevVersion = this._version
-    const prevState = this._state
 
     if (this._updating?.delete(version)) {
       this._handler._stats.updating -= 1
     }
 
-    if (this._patches) {
-      this._version = version
-      this._data = jsonPath.parse(data)
-
-      if (this._version.charAt(0) !== 'I') {
-        let patchData = this._data
-        for (let n = 0; n < this._patches.length; n += 2) {
-          patchData = jsonPath.set(patchData, this._patches[n + 0], this._patches[n + 1], false)
-        }
-        this._update(patchData)
-      }
-
-      this._patches = null
-    } else if (version.charAt(0) === 'I' || utils.compareRev(version, this._version) > 0) {
-      this._version = version
+    if (
+      (version.charAt(0) === 'I' && this._version !== version) ||
+      utils.compareRev(version, this._version) > 0
+    ) {
       this._data = jsonPath.set(this._data, null, jsonPath.parse(data), true)
+      this._version = version
     }
+
+    invariant(this._version, 'must have version')
+    invariant(this._data, 'must have data')
+
+    if (this._patches && this._version.charAt(0) !== 'I') {
+      let patchData = this._data
+      for (let n = 0; n < this._patches.length; n += 2) {
+        patchData = jsonPath.set(patchData, this._patches[n + 0], this._patches[n + 1], false)
+      }
+      this._update(patchData)
+    }
+    this._patches = null
 
     if (this._state < Record.STATE.SERVER) {
       this._state = this._version.charAt(0) === 'I' ? Record.STATE.STALE : Record.STATE.SERVER
       this._handler._onPending(this)
-    }
-
-    if (this._data !== prevData || this._version !== prevVersion || this._state !== prevState) {
+      this._emitUpdate()
+    } else if (this._data !== prevData || this._version !== prevVersion) {
       this._emitUpdate()
     }
   }
