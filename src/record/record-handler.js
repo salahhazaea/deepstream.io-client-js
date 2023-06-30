@@ -124,7 +124,7 @@ class RecordHandler {
     if (!record) {
       record = new Record(name, this)
       this._records.set(name, record)
-      this._stats.destroyed--
+      this._stats.created++
     } else {
       record.ref()
     }
