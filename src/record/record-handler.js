@@ -24,8 +24,8 @@ class RecordHandler {
     this._client = client
     this._records = new Map()
     this._listeners = new Map()
-    this._patch = new Set()
-    this._prune = new Set()
+    this._pending = new Set()
+    this._pruning = new Set()
 
     this._connected = 0
     this._stats = {
@@ -48,13 +48,13 @@ class RecordHandler {
 
     this._client.on(C.EVENT.CONNECTED, this._onConnectionStateChange.bind(this))
 
-    this._pruneTimeout = null
+    this._pruningTimeout = null
 
     // TODO (perf): schedule & yield to avoid blocking event loop?
-    const _pruneSome = () => {
-      const prune = this._prune
+    const _prune = () => {
+      const prune = this._pruning
 
-      this._prune = new Set()
+      this._pruning = new Set()
       for (const rec of prune) {
         invariant(!rec.pending && !rec.ref, 'cannot prune pending or referenced record')
         rec._unsubscribe()
@@ -62,39 +62,39 @@ class RecordHandler {
         this._stats.destroyed++
       }
 
-      if (this._pruneTimeout && this._pruneTimeout.refresh) {
-        this._pruneTimeout.refresh()
+      if (this._pruningTimeout && this._pruningTimeout.refresh) {
+        this._pruningTimeout.refresh()
       } else {
-        this._pruneTimeout = setTimeout(_pruneSome, 1e3)
-        if (this._pruneTimeout.unref) {
-          this._pruneTimeout.unref()
+        this._pruningTimeout = setTimeout(_prune, 1e3)
+        if (this._pruningTimeout.unref) {
+          this._pruningTimeout.unref()
         }
       }
     }
 
-    _pruneSome()
+    _prune()
 
     this._syncAll = this._syncAll.bind(this)
   }
 
   _onRef(rec) {
     if (rec.refs === 0 && !rec.pending) {
-      this._prune.add(rec)
+      this._pruning.add(rec)
     } else if (rec.refs === 1) {
-      this._prune.delete(rec)
+      this._pruning.delete(rec)
     }
   }
 
   _onPending(rec) {
     if (!rec.pending) {
-      this._patch.delete(rec)
+      this._pending.delete(rec)
       if (rec.refs === 0) {
-        this._prune.add(rec)
+        this._pruning.add(rec)
       }
     } else {
-      this._patch.add(rec)
+      this._pending.add(rec)
       if (rec.refs === 0) {
-        this._prune.delete(rec)
+        this._pruning.delete(rec)
       }
     }
   }
@@ -108,8 +108,8 @@ class RecordHandler {
       ...this._stats,
       listeners: this._listeners.size,
       records: this._records.size,
-      pruning: this._prune.size,
-      pending: this._patch.size,
+      pruning: this._pruning.size,
+      pending: this._pending.size,
     }
   }
 
@@ -177,7 +177,7 @@ class RecordHandler {
       let token
       let timeoutHandle
 
-      const records = [...this._patch]
+      const records = [...this._pending]
 
       const onDone = (val) => {
         if (done) {
