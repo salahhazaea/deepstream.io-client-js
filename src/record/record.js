@@ -21,7 +21,7 @@ class Record {
     this._subscriptions = []
     this._updating = null
     this._patches = null
-    this._pruning = false
+    this._pending = false
 
     this._subscribe()
   }
@@ -47,7 +47,7 @@ class Record {
   }
 
   get pending() {
-    return this._patches ? this._patches.length / 2 : 0
+    return this._pending
   }
 
   ref() {
@@ -243,7 +243,7 @@ class Record {
 
   _unsubscribe() {
     invariant(!this._refs, this._name + ' must not have refs')
-    invariant(!this.pending, this._name + ' must not have pending')
+    invariant(!this._patches, this._name + ' must not have patches')
 
     const prevState = this._state
 
@@ -262,6 +262,11 @@ class Record {
 
   _subscribe() {
     invariant(this._refs, this._name + ' missing refs')
+
+    if (!this._pending) {
+      this._pending = true
+      this._handler._onPending(this)
+    }
 
     const connection = this._handler._connection
     if (!this._subscribed && connection.connected) {
@@ -318,10 +323,14 @@ class Record {
       }
 
       this._patches = null
-      this._handler._onPending(this)
     } else if (version.charAt(0) === 'I' || utils.compareRev(version, this._version) > 0) {
       this._version = version
       this._data = jsonPath.set(this._data, null, jsonPath.parse(data), true)
+    }
+
+    if (this._pending) {
+      this._pending = false
+      this._handler._onPending(this)
     }
 
     if (this._state < Record.STATE.SERVER) {
