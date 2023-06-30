@@ -65,7 +65,7 @@ class RecordHandler {
       if (this._pruneTimeout && this._pruneTimeout.refresh) {
         this._pruneTimeout.refresh()
       } else {
-        this._prunetimeout = setTimeout(_pruneSome, 1e3)
+        this._pruneTimeout = setTimeout(_pruneSome, 1e3)
         if (this._pruneTimeout.unref) {
           this._pruneTimeout.unref()
         }
