@@ -57,7 +57,7 @@ class RecordHandler {
         this._records.delete(rec.name)
       }
 
-      const prunetimeout = utils.setTimeout(() => _pruneSome, 1e3)
+      const prunetimeout = utils.setTimeout(_pruneSome, 1e3)
       prunetimeout.unref?.()
     }
 
