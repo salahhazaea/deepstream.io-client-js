@@ -178,6 +178,9 @@ class RecordHandler {
       let timeoutHandle
 
       const records = [...this._pending]
+      for (const rec of records) {
+        rec.ref()
+      }
 
       const onDone = (val) => {
         if (done) {
@@ -231,10 +234,6 @@ class RecordHandler {
 
           onDone(false)
         }
-      }
-
-      for (const rec of records) {
-        rec.ref()
       }
 
       if (timeoutValue) {
