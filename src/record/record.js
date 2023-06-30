@@ -315,8 +315,9 @@ class Record {
     }
 
     if (
-      (version.charAt(0) === 'I' && this._version !== version) ||
-      utils.compareRev(version, this._version) > 0
+      version.charAt(0) === 'I'
+        ? this._version !== version
+        : utils.compareRev(version, this._version) > 0
     ) {
       this._data = jsonPath.set(this._data, null, jsonPath.parse(data), true)
       this._version = version
