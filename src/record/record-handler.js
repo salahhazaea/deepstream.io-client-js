@@ -30,6 +30,8 @@ class RecordHandler {
     this._connected = 0
     this._stats = {
       updating: 0,
+      created: 0,
+      destroyed: 0,
     }
 
     this._syncEmitter = new EventEmitter()
@@ -57,12 +59,13 @@ class RecordHandler {
         invariant(rec.pending === false && rec.refs === 0)
         rec._unsubscribe()
         this._records.delete(rec.name)
+        this._stats.destroyed++
       }
 
       if (this._pruneTimeout && this._pruneTimeout.refresh) {
         this._pruneTimeout.refresh()
       } else {
-        this._prunetimeout = utils.setTimeout(_pruneSome, 1e3)
+        this._prunetimeout = setTimeout(_pruneSome, 1e3)
         if (this._pruneTimeout.unref) {
           this._pruneTimeout.unref()
         }
@@ -106,6 +109,7 @@ class RecordHandler {
       listeners: this._listeners.size,
       records: this._records.size,
       pruning: this._prune.size,
+      pending: this._patch.size,
     }
   }
 
@@ -120,6 +124,7 @@ class RecordHandler {
     if (!record) {
       record = new Record(name, this)
       this._records.set(name, record)
+      this._stats.destroyed--
     } else {
       record.ref()
     }
