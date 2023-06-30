@@ -163,121 +163,55 @@ class RecordHandler {
     }
   }
 
-  sync(options) {
-    return new Promise((resolve, reject) => {
-      const timeoutValue = options?.timeout ?? 2 * 60e3
-      const signal = options?.signal
+  sync() {
+    return new Promise((resolve) => {
+      let counter = 0
 
-      if (signal?.aborted) {
-        reject(new utils.AbortError())
-        return
-      }
-
-      let done = false
-      let token
-      let timeoutHandle
-
-      const records = [...this._pending]
-      for (const rec of records) {
-        rec.ref()
-      }
-
-      const onDone = (val) => {
-        if (done) {
+      const onUpdate = (rec) => {
+        if (rec.pending) {
           return
         }
 
-        done = true
+        rec.unsubscribe(onUpdate)
+        rec.unref()
+        counter -= 1
 
-        signal?.removeEventListener('abort', onAbort)
-
-        if (timeoutHandle) {
-          timers.clearTimeout(timeoutHandle)
-          timeoutHandle = null
+        if (counter > 0) {
+          return
         }
 
-        if (token) {
-          this._syncEmitter.off(token, onToken)
-          token = null
+        if (!this._syncQueue) {
+          this._syncQueue = []
+          queueMicrotask(() => {
+            const syncQueue = this._syncQueue
+            if (!syncQueue) {
+              return
+            }
+
+            const token = xuid()
+
+            this._syncQueue = null
+            this._syncEmitter.once(token, () => {
+              for (const callback of syncQueue) {
+                callback()
+              }
+            })
+
+            if (this._connected) {
+              this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.SYNC, [token])
+            }
+          })
         }
 
-        for (const rec of records) {
-          rec.unref()
-        }
-
-        resolve(val)
+        this._syncQueue.push(resolve)
       }
 
-      const onToken = () => {
-        onDone(true)
-      }
-
-      const onAbort = () => {
-        onDone(Promise.reject(new utils.AbortError()))
-      }
-
-      const onTimeout = () => {
-        const elapsed = Date.now() - this._connected
-        if (elapsed < timeoutValue) {
-          timeoutHandle = timers.setTimeout(onTimeout, timeoutValue - elapsed)
-        } else {
-          for (const rec of records.filter((rec) => !rec.isReady)) {
-            this._client._$onError(C.TOPIC.RECORD, C.EVENT.TIMEOUT, 'record timeout', [
-              rec.name,
-              rec.version,
-              rec.state,
-              ...(rec._entry ?? []),
-            ])
-          }
-
-          this._client._$onError(C.TOPIC.RECORD, C.EVENT.TIMEOUT, 'sync timeout', [token])
-
-          onDone(false)
-        }
-      }
-
-      if (timeoutValue) {
-        timeoutHandle = timers.setTimeout(onTimeout, timeoutValue)
-      }
-
-      signal?.addEventListener('abort', onAbort)
-
-      Promise.all(records.map((rec) => rec.when())).then(
-        () => {
-          if (done) {
-            return
-          }
-
-          if (!this._syncQueue) {
-            this._syncQueue = []
-            queueMicrotask(this._syncAll)
-          }
-
-          this._syncQueue.push(onToken)
-        },
-        (err) => onDone(Promise.reject(err))
-      )
-    })
-  }
-
-  _syncAll() {
-    if (!this._syncQueue) {
-      return
-    }
-
-    const syncQueue = this._syncQueue
-    const token = xuid()
-
-    this._syncQueue = null
-    this._syncEmitter.once(token, () => {
-      for (const callback of syncQueue) {
-        callback()
+      for (const rec of this._pending) {
+        rec.ref()
+        rec.subscribe(onUpdate)
+        counter += 1
       }
     })
-
-    if (this._connected) {
-      this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.SYNC, [token])
-    }
   }
 
   set(name, ...args) {

@@ -282,6 +282,7 @@ class Record {
     if (!this._pending) {
       this._pending = true
       this._handler._onPending(this)
+      this._emitUpdate()
     }
 
     const connection = this._handler._connection
@@ -321,6 +322,7 @@ class Record {
     const prevData = this._data
     const prevVersion = this._version
     const prevState = this._state
+    const prevPending = this._pending
 
     if (this._updating?.delete(version)) {
       this._handler._stats.updating -= 1
@@ -353,7 +355,12 @@ class Record {
       this._state = this._version.charAt(0) === 'I' ? Record.STATE.STALE : Record.STATE.SERVER
     }
 
-    if (this._data !== prevData || this._version !== prevVersion || this._state !== prevState) {
+    if (
+      this._data !== prevData ||
+      this._version !== prevVersion ||
+      this._state !== prevState ||
+      this._pending !== prevPending
+    ) {
       this._emitUpdate()
     }
   }
