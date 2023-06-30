@@ -46,6 +46,8 @@ class RecordHandler {
 
     this._client.on(C.EVENT.CONNECTED, this._onConnectionStateChange.bind(this))
 
+    this._pruneTimeout = null
+
     // TODO (perf): schedule & yield to avoid blocking event loop?
     const _pruneSome = () => {
       const prune = this._prune
@@ -57,8 +59,14 @@ class RecordHandler {
         this._records.delete(rec.name)
       }
 
-      const prunetimeout = utils.setTimeout(_pruneSome, 1e3)
-      prunetimeout.unref?.()
+      if (this._pruneTimeout && this._pruneTimeout.refresh) {
+        this._pruneTimeout.refresh()
+      } else {
+        this._prunetimeout = utils.setTimeout(_pruneSome, 1e3)
+        if (this._pruneTimeout.unref) {
+          this._pruneTimeout.unref()
+        }
+      }
     }
 
     _pruneSome()
