@@ -127,9 +127,6 @@ class Record {
     }
 
     if (!this._version) {
-      if (!this._patches) {
-        this._handler._onPending(this)
-      }
       this._patches = path && this._patches ? this._patches : []
       this._patches.push(path, cloneDeep(data))
     }
