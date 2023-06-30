@@ -56,7 +56,10 @@ class RecordHandler {
 
       this._prune = new Set()
       for (const rec of prune) {
-        invariant(rec.pending === false && rec.refs === 0)
+        invariant(
+          rec.pending === false && rec.refs === 0,
+          'cannot prune pending or referenced record'
+        )
         rec._unsubscribe()
         this._records.delete(rec.name)
         this._stats.destroyed++
