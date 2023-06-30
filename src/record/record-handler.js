@@ -24,11 +24,9 @@ class RecordHandler {
     this._client = client
     this._records = new Map()
     this._listeners = new Map()
-    this._prune = new Map()
     this._patch = new Set()
-    this._now = Date.now()
-    this._pruning = false
-    this._purging = false
+    this._prune = new Set()
+
     this._connected = 0
     this._stats = {
       updating: 0,
@@ -46,55 +44,47 @@ class RecordHandler {
     this.provide = this.provide.bind(this)
     this.getRecord = this.getRecord.bind(this)
 
-    this._schedule = options.schedule ?? utils.schedule
-
     this._client.on(C.EVENT.CONNECTED, this._onConnectionStateChange.bind(this))
 
-    const _prune = () => {
-      let counter = 0
-      for (const [rec, timestamp] of this._prune) {
-        if (rec.refs > 0) {
-          this._prune.delete(rec)
-          continue
-        }
+    // TODO (perf): schedule & yield to avoid blocking event loop?
+    const _pruneSome = () => {
+      const prune = this._prune
 
-        if (rec.pending) {
-          continue
-        }
-
-        if (this._now - timestamp < 1e3) {
-          return
-        }
-
+      this._prune = new Set()
+      for (const rec of prune) {
+        invariant(rec.pending === false && rec.refs === 0)
         rec._unsubscribe()
-
         this._records.delete(rec.name)
-        this._prune.delete(rec)
-
-        if (counter++ > 2048) {
-          this._schedule(_prune)
-          return
-        }
       }
 
-      this._pruning = false
-      this._now = Date.now()
+      const prunetimeout = utils.setTimeout(() => _pruneSome, 1e3)
+      prunetimeout.unref?.()
     }
 
-    this._pruneInterval = utils.setInterval(() => {
-      if (!this._pruning) {
-        this._pruning = true
-        this._schedule(_prune)
-      }
-    }, 1e3)
-    this._pruneInterval.unref?.()
+    _pruneSome()
 
     this._syncAll = this._syncAll.bind(this)
   }
 
   _onRef(rec) {
-    if (rec.refs === 0) {
-      this._prune.set(rec, this._now)
+    if (rec.refs === 0 && !rec.pending) {
+      this._prune.add(rec)
+    } else if (rec.refs === 1) {
+      this._prune.delete(rec)
+    }
+  }
+
+  _onPending(rec) {
+    if (!rec.pending) {
+      this._patch.delete(rec)
+      if (rec.refs === 0) {
+        this._prune.add(rec)
+      }
+    } else {
+      this._patch.add(rec)
+      if (rec.refs === 0) {
+        this._prune.delete(rec)
+      }
     }
   }
 

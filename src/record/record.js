@@ -21,6 +21,7 @@ class Record {
     this._subscriptions = []
     this._updating = null
     this._patches = null
+    this._pruning = false
 
     this._subscribe()
   }
@@ -115,9 +116,11 @@ class Record {
     }
 
     if (!this._version) {
+      if (!this._patches) {
+        this._handler._onPending(this)
+      }
       this._patches = path && this._patches ? this._patches : []
       this._patches.push(path, cloneDeep(data))
-      this._handler._patch.add(this)
     }
 
     if (this._update(jsonPath.set(this._data, path, data, false))) {
@@ -315,7 +318,7 @@ class Record {
       }
 
       this._patches = null
-      this._handler._patch.delete(this)
+      this._handler._onPending(this)
     } else if (version.charAt(0) === 'I' || utils.compareRev(version, this._version) > 0) {
       this._version = version
       this._data = jsonPath.set(this._data, null, jsonPath.parse(data), true)
