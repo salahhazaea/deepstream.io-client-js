@@ -73,8 +73,6 @@ class RecordHandler {
     }
 
     _prune()
-
-    this._syncAll = this._syncAll.bind(this)
   }
 
   _onRef(rec) {
