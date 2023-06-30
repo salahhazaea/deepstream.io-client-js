@@ -247,8 +247,10 @@ class Record {
       }
     } else {
       this._subscribed = false
-      this._state = Record.STATE.CLIENT
-      this._handler._onPending(this)
+      if (this._state > Record.STATE.CLIENT) {
+        this._state = Record.STATE.CLIENT
+        this._handler._onPending(this)
+      }
     }
 
     if (this._state !== prevState) {
@@ -268,7 +270,10 @@ class Record {
     }
 
     this._subscribed = false
-    this._state = Record.STATE.CLIENT
+    if (this._state > Record.STATE.CLIENT) {
+      this._state = Record.STATE.CLIENT
+      this._handler._onPending(this)
+    }
 
     if (this._state !== prevState) {
       this._emitUpdate()
