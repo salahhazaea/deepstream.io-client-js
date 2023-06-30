@@ -19,6 +19,7 @@ class Record {
     this._refs = 1
     this._subscribed = false
     this._subscriptions = []
+    this._subscriptionsEmitting = false
     this._updating = null
     this._patches = null
     this._pending = false
@@ -72,12 +73,22 @@ class Record {
   }
 
   subscribe(fn) {
+    if (this._subscriptionsEmitting) {
+      this._subscriptions = this._subscriptions.slice()
+      this._subscriptionsEmitting = false
+    }
+
     this._subscriptions.push(fn)
 
     return this
   }
 
   unsubscribe(fn) {
+    if (this._subscriptionsEmitting) {
+      this._subscriptions = this._subscriptions.slice()
+      this._subscriptionsEmitting = false
+    }
+
     const idx = this._subscriptions.indexOf(fn)
     if (idx !== -1) {
       this._subscriptions.splice(idx, 1)
@@ -200,8 +211,13 @@ class Record {
   }
 
   _emitUpdate() {
-    for (const fn of this._subscriptions.slice()) {
-      fn(this)
+    try {
+      this._subscriptionsEmitting = true
+      for (const fn of this._subscriptions) {
+        fn(this)
+      }
+    } finally {
+      this._subscriptionsEmitting = false
     }
   }
 
