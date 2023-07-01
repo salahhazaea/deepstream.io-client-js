@@ -51,10 +51,10 @@ class RecordHandler {
 
     // TODO (perf): schedule & yield to avoid blocking event loop?
     const _prune = () => {
-      const prune = this._pruning
+      const pruning = this._pruning
 
       this._pruning = new Set()
-      for (const rec of prune) {
+      for (const rec of pruning) {
         invariant(!rec.pending && !rec.refs, 'cannot prune pending or referenced record')
         rec._unsubscribe()
         this._records.delete(rec.name)
