@@ -130,12 +130,15 @@ Connection.prototype.send = function (message) {
   }
 
   if (
-    this._state === C.CONNECTION_STATE.OPEN &&
-    this._endpoint.readyState === this._endpoint.OPEN
+    this._state !== C.CONNECTION_STATE.OPEN ||
+    this._endpoint.readyState !== this._endpoint.OPEN
   ) {
-    this.emit('send', message)
-    this._endpoint.send(message)
+    return false
   }
+
+  this.emit('send', message)
+  this._endpoint.send(message)
+  return true
 }
 
 Connection.prototype._submit = function (message) {
