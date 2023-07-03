@@ -138,6 +138,7 @@ Connection.prototype.send = function (message) {
 
   this.emit('send', message)
   this._endpoint.send(message)
+
   return true
 }
 
@@ -301,8 +302,6 @@ Connection.prototype._handleAuthResponse = function (message) {
     if (this._authCallback) {
       this._authCallback(true, this._getAuthData(message.data[0]))
     }
-
-    this._sendMessages()
   }
 }
 
