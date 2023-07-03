@@ -325,7 +325,7 @@ class RecordHandler {
       const record = this.getRecord(name).subscribe(onUpdate)
 
       if (timeoutValue && state && record.state < state) {
-        timeoutHandle = timers.timers.setTimeout(() => {
+        timeoutHandle = timers.setTimeout(() => {
           const expected = C.RECORD_STATE_NAME[state]
           const current = C.RECORD_STATE_NAME[record.state]
           o.error(
