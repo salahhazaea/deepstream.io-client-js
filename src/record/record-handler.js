@@ -58,7 +58,7 @@ class RecordHandler {
         invariant(rec.refs === 0, 'cannot prune referenced record')
         invariant(!this._pending.has(rec), 'cannot prune pending record')
 
-        rec._unsubscribe()
+        rec._$dispose()
         this._records.delete(rec.name)
         this._stats.destroyed++
       }
@@ -76,25 +76,27 @@ class RecordHandler {
     _prune()
   }
 
-  _onRef(rec) {
-    if (rec.refs === 0 && !this._pending.has(rec)) {
+  _onRef(rec, prevRefs) {
+    const curr = rec.refs === 0
+    const prev = prevRefs === 0
+
+    if (curr && !prev) {
       this._pruning.add(rec)
-    } else if (rec.refs === 1) {
+    } else if (!curr && prev) {
       this._pruning.delete(rec)
     }
   }
 
-  _onPending(rec) {
-    if (rec.state > C.RECORD_STATE.PENDING) {
-      this._pending.delete(rec)
-      if (rec.refs === 0) {
-        this._pruning.add(rec)
-      }
-    } else {
+  _onState(rec, prevState) {
+    const curr = rec.state < C.RECORD_STATE.SERVER
+    const prev = prevState < C.RECORD_STATE.SERVER
+
+    if (curr && !prev) {
       this._pending.add(rec)
-      if (rec.refs === 0) {
-        this._pruning.delete(rec)
-      }
+      rec.ref()
+    } else if (!curr && prev) {
+      this._pending.delete(rec)
+      rec.unref()
     }
   }
 

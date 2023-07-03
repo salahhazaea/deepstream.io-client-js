@@ -23,9 +23,7 @@ class Record {
     this._updating = null
     this._patches = null
 
-    this._handler._onPending(this)
-
-    this._subscribe()
+    this._mutate(() => this._subscribe())
   }
 
   get name() {
@@ -49,12 +47,14 @@ class Record {
   }
 
   ref() {
+    const prevRefs = this._refs
+
     this._refs += 1
     if (this._refs === 1) {
-      this._subscribe()
+      this._mutate(() => this._subscribe())
     }
 
-    this._handler._onRef(this)
+    this._handler._onRef(this, prevRefs)
 
     return this
   }
@@ -62,9 +62,11 @@ class Record {
   unref() {
     invariant(this._refs > 0, this._name + ' missing refs')
 
+    const prevRefs = this._refs
+
     this._refs -= 1
 
-    this._handler._onRef(this)
+    this._handler._onRef(this, prevRefs)
 
     return this
   }
@@ -99,39 +101,39 @@ class Record {
   }
 
   set(pathOrData, dataOrNil) {
-    invariant(this._refs > 0, this._name + ' missing refs')
+    return this._mutate(() => {
+      invariant(this._refs > 0, this._name + ' missing refs')
 
-    if (this._version.charAt(0) === 'I' || this._name.startsWith('_')) {
-      this._error(C.EVENT.USER_ERROR, 'cannot set')
-      return
-    }
+      if (this._version.charAt(0) === 'I' || this._name.startsWith('_')) {
+        this._error(C.EVENT.USER_ERROR, 'cannot set')
+        return
+      }
 
-    const path = arguments.length === 1 ? undefined : pathOrData
-    const data = arguments.length === 1 ? pathOrData : dataOrNil
+      const path = arguments.length === 1 ? undefined : pathOrData
+      const data = arguments.length === 1 ? pathOrData : dataOrNil
 
-    if (path === undefined && !utils.isPlainObject(data)) {
-      throw new Error('invalid argument: data')
-    }
-    if (path === undefined && Object.keys(data).some((prop) => prop.startsWith('_'))) {
-      throw new Error('invalid argument: data')
-    }
-    if (
-      path !== undefined &&
-      (typeof path !== 'string' || path.length === 0 || path.startsWith('_')) &&
-      (!Array.isArray(path) || path.length === 0 || path[0].startsWith('_'))
-    ) {
-      throw new Error('invalid argument: path')
-    }
+      if (path === undefined && !utils.isPlainObject(data)) {
+        throw new Error('invalid argument: data')
+      }
+      if (path === undefined && Object.keys(data).some((prop) => prop.startsWith('_'))) {
+        throw new Error('invalid argument: data')
+      }
+      if (
+        path !== undefined &&
+        (typeof path !== 'string' || path.length === 0 || path.startsWith('_')) &&
+        (!Array.isArray(path) || path.length === 0 || path[0].startsWith('_'))
+      ) {
+        throw new Error('invalid argument: path')
+      }
 
-    if (this._state < Record.STATE.SERVER) {
-      this._patches = path && this._patches ? this._patches : []
-      this._patches.push(path, cloneDeep(data))
-      this._state = Record.STATE.PENDING
-    }
+      if (this._state < Record.STATE.SERVER) {
+        this._patches = path && this._patches ? this._patches : []
+        this._patches.push(path, cloneDeep(data))
+        this._state = Record.STATE.PENDING
+      }
 
-    if (this._update(jsonPath.set(this._data, path, data, false))) {
-      this._emitUpdate()
-    }
+      this._update(jsonPath.set(this._data, path, data, false))
+    })
   }
 
   // TODO (fix): timeout + signal
@@ -205,22 +207,11 @@ class Record {
       })
   }
 
-  _emitUpdate() {
-    try {
-      this._subscriptionsEmitting = true
-      for (const fn of this._subscriptions) {
-        fn(this)
-      }
-    } finally {
-      this._subscriptionsEmitting = false
-    }
-  }
-
   _$onMessage(message) {
     if (message.action === C.ACTIONS.UPDATE) {
-      this._onUpdate(message.data)
+      this._mutate(() => this._onUpdate(message.data))
     } else if (message.action === C.ACTIONS.SUBSCRIPTION_HAS_PROVIDER) {
-      this._onSubscriptionHasProvider(message.data)
+      this._mutate(() => this._onSubscriptionHasProvider(message.data))
     } else {
       return false
     }
@@ -229,25 +220,29 @@ class Record {
   }
 
   _$onConnectionStateChange() {
-    const connection = this._handler._connection
-    if (connection.connected) {
-      if (this._refs > 0) {
-        this._subscribe()
-      }
+    return this._mutate(() => {
+      const connection = this._handler._connection
+      if (connection.connected) {
+        if (this._refs > 0) {
+          this._subscribe()
+        }
 
-      if (this._updating) {
-        for (const update of this._updating.values()) {
-          connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.UPDATE, update)
+        if (this._updating) {
+          for (const update of this._updating.values()) {
+            connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.UPDATE, update)
+          }
+        }
+      } else {
+        this._subscribed = false
+        if (this._state > Record.STATE.CLIENT) {
+          this._state = Record.STATE.CLIENT
         }
       }
-    } else {
-      this._subscribed = false
-      if (this._state > Record.STATE.CLIENT) {
-        this._state = Record.STATE.CLIENT
-        this._handler._onPending(this)
-        this._emitUpdate()
-      }
-    }
+    })
+  }
+
+  _$dispose() {
+    this._mutate(() => this._unsubscribe())
   }
 
   _subscribe() {
@@ -272,8 +267,6 @@ class Record {
     this._subscribed = false
     if (this._state > Record.STATE.CLIENT) {
       this._state = Record.STATE.CLIENT
-      this._handler._onPending(this)
-      this._emitUpdate()
     }
   }
 
@@ -304,9 +297,6 @@ class Record {
   }
 
   _onUpdate([, version, data]) {
-    const prevData = this._data
-    const prevVersion = this._version
-
     if (this._updating?.delete(version)) {
       this._handler._stats.updating -= 1
     }
@@ -334,29 +324,18 @@ class Record {
 
     if (this._state < Record.STATE.SERVER) {
       this._state = this._version.charAt(0) === 'I' ? Record.STATE.STALE : Record.STATE.SERVER
-      this._handler._onPending(this)
-      this._emitUpdate()
-    } else if (this._data !== prevData || this._version !== prevVersion) {
-      this._emitUpdate()
     }
   }
 
   _onSubscriptionHasProvider([, hasProvider]) {
-    if (this._state < Record.STATE.SERVER) {
-      return
-    }
-
-    const provided = hasProvider && messageParser.convertTyped(hasProvider, this._handler._client)
-    const state = provided
-      ? Record.STATE.PROVIDER
-      : this._version.charAt(0) === 'I'
-      ? Record.STATE.STALE
-      : Record.STATE.SERVER
-
-    if (this._state !== state) {
-      this._state = state
-      this._emitUpdate()
-    }
+    this._state =
+      hasProvider &&
+      messageParser.convertTyped(hasProvider, this._handler._client) &&
+      this._state >= Record.STATE.SERVER
+        ? Record.STATE.PROVIDER
+        : this._version.charAt(0) === 'I'
+        ? Record.STATE.STALE
+        : Record.STATE.SERVER
   }
 
   _error(event, msgOrError, data) {
@@ -375,6 +354,32 @@ class Record {
       revid += '-'
     }
     return `${start}-${revid}`
+  }
+
+  _mutate(fn) {
+    const prevState = this._state
+    const prevData = this._data
+    const prevVersion = this._version
+
+    const ret = fn()
+
+    if (this._state !== prevState || this._data !== prevData || this._version !== prevVersion) {
+      try {
+        this._subscriptionsEmitting = true
+
+        if (this._state !== prevState) {
+          this._handler.onState(this, prevState)
+        }
+
+        for (const fn of this._subscriptions) {
+          fn(this)
+        }
+      } finally {
+        this._subscriptionsEmitting = false
+      }
+    }
+
+    return ret
   }
 }
 
