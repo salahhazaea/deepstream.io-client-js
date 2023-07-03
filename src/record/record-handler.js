@@ -24,7 +24,7 @@ class RecordHandler {
     this._client = client
     this._records = new Map()
     this._listeners = new Map()
-    this._pending = new Set()
+    this._pending = new Map()
     this._pruning = new Set()
 
     this._connected = 0
@@ -35,7 +35,7 @@ class RecordHandler {
     }
 
     this._syncEmitter = new EventEmitter()
-    this._pendingEmitter = new EventEmitter()
+    this._readyEmitter = new EventEmitter()
 
     this.set = this.set.bind(this)
     this.get = this.get.bind(this)
@@ -80,11 +80,13 @@ class RecordHandler {
 
   _onPending(rec, isPending) {
     if (isPending) {
-      this._pending.add(rec)
+      this._pending.set(rec, [])
     } else {
+      for (const callback of this._pending.get(rec)) {
+        callback()
+      }
       this._pending.delete(rec)
     }
-    this._pendingEmitter.emit(rec.name, isPending)
   }
 
   get connected() {
@@ -153,9 +155,10 @@ class RecordHandler {
 
   sync() {
     return new Promise((resolve) => {
-      let counter = this._pending.size
+      let counter = this._pending.size + 1
 
       const maybeSync = () => {
+        counter -= 1
         if (counter > 0) {
           return
         }
@@ -165,12 +168,8 @@ class RecordHandler {
         this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.SYNC, [token])
       }
 
-      for (const rec of this._pending) {
-        this._pendingEmitter.once(rec.name, (isPending) => {
-          invariant(!isPending, 'unexpected pending state')
-          counter -= 1
-          maybeSync()
-        })
+      for (const callbacks of this._pending.values()) {
+        callbacks.push(maybeSync)
       }
 
       maybeSync()
