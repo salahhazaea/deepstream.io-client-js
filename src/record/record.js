@@ -123,7 +123,7 @@ class Record {
       throw new Error('invalid argument: path')
     }
 
-    if (!this._version) {
+    if (this._state < Record.STATE.SERVER) {
       this._patches = path && this._patches ? this._patches : []
       this._patches.push(path, cloneDeep(data))
       this._state = Record.STATE.PATCH
