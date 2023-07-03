@@ -165,7 +165,11 @@ class RecordHandler {
     return new Promise((resolve) => {
       let counter = 0
 
-      const doSync = () => {
+      const maybeSync = () => {
+        if (counter > 0) {
+          return
+        }
+
         const token = xuid()
         this._syncEmitter.once(token, resolve)
 
@@ -175,7 +179,7 @@ class RecordHandler {
       }
 
       const onUpdate = (rec) => {
-        if (rec.pending) {
+        if (rec.state < C.RECORD_STATE.SERVER) {
           return
         }
 
@@ -183,22 +187,18 @@ class RecordHandler {
         rec.unref()
         counter -= 1
 
-        if (counter > 0) {
-          return
-        }
-
-        doSync()
+        maybeSync()
       }
 
-      if (this._pending.size > 0) {
-        for (const rec of this._pending) {
+      for (const rec of this._pending) {
+        if (rec.state < C.RECORD_STATE.SERVER) {
           rec.ref()
           rec.subscribe(onUpdate)
           counter += 1
         }
-      } else {
-        doSync()
       }
+
+      maybeSync()
     })
   }
 
