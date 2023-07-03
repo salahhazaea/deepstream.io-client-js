@@ -60,11 +60,12 @@ class RecordHandler {
 
       for (const rec of pruning) {
         rec._$dispose()
-
-        this._stats.records -= 1
-        this._stats.destroyed += 1
         this._records.delete(rec.name)
       }
+
+      this._stats.pruning -= pruning.size
+      this._stats.records -= pruning.size
+      this._stats.destroyed += pruning.size
 
       if (this._pruningTimeout) {
         this._pruningTimeout.refresh()

@@ -17,7 +17,7 @@
     "ws": false
   },
   "scripts": {
-    "postinstall": "husky install",
+    "_postinstall": "husky install",
     "prepublishOnly": "pinst --disable",
     "postpublish": "pinst --enable"
   },
