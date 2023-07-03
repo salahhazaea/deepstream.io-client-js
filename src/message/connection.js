@@ -129,7 +129,13 @@ Connection.prototype.send = function (message) {
     return false
   }
 
-  return this._submit(message)
+  if (
+    this._state === C.CONNECTION_STATE.OPEN &&
+    this._endpoint.readyState === this._endpoint.OPEN
+  ) {
+    this.emit('send', message)
+    this._endpoint.send(message)
+  }
 }
 
 Connection.prototype._submit = function (message) {
@@ -139,10 +145,7 @@ Connection.prototype._submit = function (message) {
     const err = new Error(`Packet to big: ${message.length} > ${maxPacketSize}`)
     this._client._$onError(C.TOPIC.CONNECTION, C.EVENT.CONNECTION_ERROR, err)
     return false
-  } else if (
-    this._state === C.CONNECTION_STATE.OPEN &&
-    this._endpoint.readyState === this._endpoint.OPEN
-  ) {
+  } else if (this._endpoint.readyState === this._endpoint.OPEN) {
     this.emit('send', message)
     this._endpoint.send(message)
     return true
