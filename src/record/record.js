@@ -16,7 +16,7 @@ class Record {
     this._version = ''
     this._data = jsonPath.EMPTY
     this._state = Record.STATE.VOID
-    this._refs = 1
+    this._refs = 0
     this._subscriptions = []
     this._emitting = false
     this._updating = null
