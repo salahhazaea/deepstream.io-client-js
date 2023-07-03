@@ -175,14 +175,10 @@ class RecordHandler {
         }
       }
 
-      const xs = new Set()
-
       const onUpdate = (rec) => {
         if (rec.state < C.RECORD_STATE.SERVER) {
           return
         }
-
-        xs.delete(rec.name)
 
         rec.unsubscribe(onUpdate)
         rec.unref()
@@ -193,7 +189,6 @@ class RecordHandler {
 
       for (const rec of this._pending) {
         if (rec.state < C.RECORD_STATE.SERVER) {
-          xs.add(rec.name)
           rec.subscribe(onUpdate)
           rec.ref()
           counter += 1
