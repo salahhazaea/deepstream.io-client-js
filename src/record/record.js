@@ -51,10 +51,7 @@ class Record {
     this._refs += 1
     if (this._refs === 1) {
       this._handler._onPruning(this, false)
-    }
-
-    if (!this._subscribed) {
-      this._subscribed = this._sendMsg1(C.ACTIONS.SUBSCRIBE, this._name)
+      this._subscribed = this._subscribed || this._sendMsg1(C.ACTIONS.SUBSCRIBE, this._name)
     }
 
     return this
