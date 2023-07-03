@@ -12,9 +12,10 @@ module.exports.CONNECTION_STATE.RECONNECTING = 'RECONNECTING'
 module.exports.RECORD_STATE = {}
 module.exports.RECORD_STATE.VOID = 0
 module.exports.RECORD_STATE.CLIENT = 1
-module.exports.RECORD_STATE.SERVER = 2
-module.exports.RECORD_STATE.STALE = 3
-module.exports.RECORD_STATE.PROVIDER = 4
+module.exports.RECORD_STATE.PATCH = 3
+module.exports.RECORD_STATE.SERVER = 4
+module.exports.RECORD_STATE.STALE = 5
+module.exports.RECORD_STATE.PROVIDER = 6
 
 module.exports.RECORD_STATE_NAME = []
 for (const [key, val] of Object.entries(module.exports.RECORD_STATE)) {

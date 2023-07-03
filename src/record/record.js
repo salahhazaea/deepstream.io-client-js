@@ -48,10 +48,6 @@ class Record {
     return this._refs
   }
 
-  get pending() {
-    return this._state < Record.STATE.SERVER
-  }
-
   ref() {
     this._refs += 1
     if (this._refs === 1) {
@@ -130,6 +126,7 @@ class Record {
     if (!this._version) {
       this._patches = path && this._patches ? this._patches : []
       this._patches.push(path, cloneDeep(data))
+      this._state = Record.STATE.PATCH
     }
 
     if (this._update(jsonPath.set(this._data, path, data, false))) {

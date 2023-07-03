@@ -75,7 +75,7 @@ class RecordHandler {
   }
 
   _onRef(rec) {
-    if (rec.refs === 0 && !rec.pending) {
+    if (rec.refs === 0 && rec.state > C.RECORD_STATE.PATCH) {
       this._pruning.add(rec)
     } else if (rec.refs === 1) {
       this._pruning.delete(rec)
@@ -83,7 +83,7 @@ class RecordHandler {
   }
 
   _onPending(rec) {
-    if (!rec.pending) {
+    if (rec.state > C.RECORD_STATE.PATCH) {
       this._pending.delete(rec)
       if (rec.refs === 0) {
         this._pruning.add(rec)
