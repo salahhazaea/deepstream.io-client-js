@@ -76,26 +76,20 @@ class RecordHandler {
     _prune()
   }
 
-  _onRef(rec, prevRefs) {
-    const curr = rec.refs === 0
-    const prev = prevRefs === 0
-
-    if (curr && !prev) {
+  _onRef(rec) {
+    if (rec.refs === 0) {
       this._pruning.add(rec)
-    } else if (!curr && prev) {
+    } else if (rec.refs === 1) {
       this._pruning.delete(rec)
     }
   }
 
   _onState(rec, prevState) {
-    const curr = rec.state < C.RECORD_STATE.SERVER
-    const prev = prevState < C.RECORD_STATE.SERVER
-
-    if (curr && !prev) {
+    // TODO (perf): avoid pending.has
+    if (rec.state < Record.STATE.SERVER && !this._pending.has(rec)) {
       this._pending.add(rec)
       rec.ref()
-    } else if (!curr && prev) {
-      this._pending.delete(rec)
+    } else if (this._pending.delete(rec)) {
       rec.unref()
     }
   }
@@ -181,10 +175,14 @@ class RecordHandler {
         }
       }
 
+      const xs = new Set()
+
       const onUpdate = (rec) => {
         if (rec.state < C.RECORD_STATE.SERVER) {
           return
         }
+
+        xs.delete(rec.name)
 
         rec.unsubscribe(onUpdate)
         rec.unref()
@@ -195,8 +193,9 @@ class RecordHandler {
 
       for (const rec of this._pending) {
         if (rec.state < C.RECORD_STATE.SERVER) {
-          rec.ref()
+          xs.add(rec.name)
           rec.subscribe(onUpdate)
+          rec.ref()
           counter += 1
         }
       }

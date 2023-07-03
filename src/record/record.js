@@ -23,7 +23,9 @@ class Record {
     this._updating = null
     this._patches = null
 
-    this._mutate(() => this._subscribe())
+    this._handler._onState(this, Record.STATE.INIT)
+
+    this._subscribe()
   }
 
   get name() {
@@ -50,8 +52,8 @@ class Record {
     const prevRefs = this._refs
 
     this._refs += 1
-    if (this._refs === 1) {
-      this._mutate(() => this._subscribe())
+    if (this._refs === 1 && !this._subscribed) {
+      this._subscribe()
     }
 
     this._handler._onRef(this, prevRefs)
@@ -60,7 +62,7 @@ class Record {
   }
 
   unref() {
-    invariant(this._refs > 0, this._name + ' missing refs')
+    invariant(this._refs > 0, 'missing refs')
 
     const prevRefs = this._refs
 
@@ -101,44 +103,50 @@ class Record {
   }
 
   set(pathOrData, dataOrNil) {
-    return this._mutate(() => {
-      invariant(this._refs > 0, this._name + ' missing refs')
+    const prevState = this._state
+    const prevData = this._data
+    const prevVersion = this._version
 
-      if (this._version.charAt(0) === 'I' || this._name.startsWith('_')) {
-        this._error(C.EVENT.USER_ERROR, 'cannot set')
-        return
-      }
+    invariant(this._refs > 0, 'missing refs')
 
-      const path = arguments.length === 1 ? undefined : pathOrData
-      const data = arguments.length === 1 ? pathOrData : dataOrNil
+    if (this._version.charAt(0) === 'I' || this._name.startsWith('_')) {
+      this._error(C.EVENT.USER_ERROR, 'cannot set')
+      return
+    }
 
-      if (path === undefined && !utils.isPlainObject(data)) {
-        throw new Error('invalid argument: data')
-      }
-      if (path === undefined && Object.keys(data).some((prop) => prop.startsWith('_'))) {
-        throw new Error('invalid argument: data')
-      }
-      if (
-        path !== undefined &&
-        (typeof path !== 'string' || path.length === 0 || path.startsWith('_')) &&
-        (!Array.isArray(path) || path.length === 0 || path[0].startsWith('_'))
-      ) {
-        throw new Error('invalid argument: path')
-      }
+    const path = arguments.length === 1 ? undefined : pathOrData
+    const data = arguments.length === 1 ? pathOrData : dataOrNil
 
-      if (this._state < Record.STATE.SERVER) {
-        this._patches = path && this._patches ? this._patches : []
-        this._patches.push(path, cloneDeep(data))
-        this._state = Record.STATE.PENDING
-      }
+    if (path === undefined && !utils.isPlainObject(data)) {
+      throw new Error('invalid argument: data')
+    }
+    if (path === undefined && Object.keys(data).some((prop) => prop.startsWith('_'))) {
+      throw new Error('invalid argument: data')
+    }
+    if (
+      path !== undefined &&
+      (typeof path !== 'string' || path.length === 0 || path.startsWith('_')) &&
+      (!Array.isArray(path) || path.length === 0 || path[0].startsWith('_'))
+    ) {
+      throw new Error('invalid argument: path')
+    }
 
-      this._update(jsonPath.set(this._data, path, data, false))
-    })
+    this._update(jsonPath.set(this._data, path, data, false))
+
+    if (this._state < Record.STATE.SERVER) {
+      this._patches = path && this._patches ? this._patches : []
+      this._patches.push(path, cloneDeep(data))
+      this._state = Record.STATE.PENDING
+      this._handler._onState(this, prevState)
+      this._emitUpdate()
+    } else if (this._data !== prevData || this._version !== prevVersion) {
+      this._emitUpdate()
+    }
   }
 
   // TODO (fix): timeout + signal
   when(stateOrNull) {
-    invariant(this._refs > 0, this._name + ' missing refs')
+    invariant(this._refs > 0, 'missing refs')
 
     const state = stateOrNull == null ? Record.STATE.SERVER : stateOrNull
 
@@ -169,7 +177,7 @@ class Record {
   }
 
   update(pathOrUpdater, updaterOrNil) {
-    invariant(this._refs > 0, this._name + ' missing refs')
+    invariant(this._refs > 0, 'missing refs')
 
     if (this._version.charAt(0) === 'I') {
       this._handler._client._$onError(C.TOPIC.RECORD, C.EVENT.UPDATE_ERROR, 'cannot update', [
@@ -209,9 +217,9 @@ class Record {
 
   _$onMessage(message) {
     if (message.action === C.ACTIONS.UPDATE) {
-      this._mutate(() => this._onUpdate(message.data))
+      this._onUpdate(message.data)
     } else if (message.action === C.ACTIONS.SUBSCRIPTION_HAS_PROVIDER) {
-      this._mutate(() => this._onSubscriptionHasProvider(message.data))
+      this._onSubscriptionHasProvider(message.data)
     } else {
       return false
     }
@@ -220,35 +228,34 @@ class Record {
   }
 
   _$onConnectionStateChange() {
-    return this._mutate(() => {
-      const connection = this._handler._connection
-      if (connection.connected) {
-        if (this._refs > 0) {
-          this._subscribe()
-        }
+    const connection = this._handler._connection
+    if (connection.connected) {
+      invariant(!this._subscribed, 'must not be subscribed')
 
-        if (this._updating) {
-          for (const update of this._updating.values()) {
-            connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.UPDATE, update)
-          }
-        }
-      } else {
-        this._subscribed = false
-        if (this._state > Record.STATE.CLIENT) {
-          this._state = Record.STATE.CLIENT
+      if (this._refs > 0) {
+        this._subscribe()
+      }
+
+      if (this._updating) {
+        for (const update of this._updating.values()) {
+          connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.UPDATE, update)
         }
       }
-    })
+    } else {
+      this._unsubscribe()
+    }
   }
 
   _$dispose() {
-    this._mutate(() => this._unsubscribe())
+    this._unsubscribe()
   }
 
   _subscribe() {
-    invariant(this._refs, this._name + ' missing refs')
-
     const connection = this._handler._connection
+
+    invariant(this._refs, 'missing refs')
+    invariant(!this._subscribed, 'must not be subscribed')
+
     if (!this._subscribed && connection.connected) {
       connection.sendMsg1(C.TOPIC.RECORD, C.ACTIONS.SUBSCRIBE, this._name)
       this._subscribed = true
@@ -256,17 +263,22 @@ class Record {
   }
 
   _unsubscribe() {
-    invariant(!this._refs, this._name + ' must not have refs')
-    invariant(!this._patches, this._name + ' must not have patches')
-
+    const prevState = this._state
     const connection = this._handler._connection
+
+    invariant(!connection.connected || !this._refs, 'must not have refs')
+    invariant(!connection.connected || !this._patches, 'must not have patches')
+    invariant(!connection.connected || this._subscribed, 'must be subscribed')
+
     if (this._subscribed && connection.connected) {
       connection.sendMsg1(C.TOPIC.RECORD, C.ACTIONS.UNSUBSCRIBE, this._name)
+      this._subscribed = false
     }
 
-    this._subscribed = false
     if (this._state > Record.STATE.CLIENT) {
       this._state = Record.STATE.CLIENT
+      this._handler._onState(this, prevState)
+      this._emitUpdate()
     }
   }
 
@@ -297,6 +309,10 @@ class Record {
   }
 
   _onUpdate([, version, data]) {
+    const prevState = this._state
+    const prevData = this._data
+    const prevVersion = this._version
+
     if (this._updating?.delete(version)) {
       this._handler._stats.updating -= 1
     }
@@ -324,10 +340,16 @@ class Record {
 
     if (this._state < Record.STATE.SERVER) {
       this._state = this._version.charAt(0) === 'I' ? Record.STATE.STALE : Record.STATE.SERVER
+      this._handler._onState(this, prevState)
+      this._emitUpdate()
+    } else if (this._data !== prevData || this._version !== prevVersion) {
+      this._emitUpdate()
     }
   }
 
   _onSubscriptionHasProvider([, hasProvider]) {
+    const prevState = this._state
+
     this._state =
       hasProvider &&
       messageParser.convertTyped(hasProvider, this._handler._client) &&
@@ -336,6 +358,11 @@ class Record {
         : this._version.charAt(0) === 'I'
         ? Record.STATE.STALE
         : Record.STATE.SERVER
+
+    if (this._state !== prevState) {
+      this._handler._onState(this, prevState)
+      this._emitUpdate()
+    }
   }
 
   _error(event, msgOrError, data) {
@@ -356,30 +383,15 @@ class Record {
     return `${start}-${revid}`
   }
 
-  _mutate(fn) {
-    const prevState = this._state
-    const prevData = this._data
-    const prevVersion = this._version
-
-    const ret = fn()
-
-    if (this._state !== prevState || this._data !== prevData || this._version !== prevVersion) {
-      try {
-        this._subscriptionsEmitting = true
-
-        if (this._state !== prevState) {
-          this._handler.onState(this, prevState)
-        }
-
-        for (const fn of this._subscriptions) {
-          fn(this)
-        }
-      } finally {
-        this._subscriptionsEmitting = false
+  _emitUpdate() {
+    this._subscriptionsEmitting = true
+    try {
+      for (const fn of this._subscriptions) {
+        fn(this)
       }
+    } finally {
+      this._subscriptionsEmitting = false
     }
-
-    return ret
   }
 }
 

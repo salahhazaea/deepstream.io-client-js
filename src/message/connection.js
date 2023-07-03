@@ -363,6 +363,7 @@ Connection.prototype._setState = function (state) {
     this._client.emit(C.EVENT.CONNECTED, true)
   } else if (state === C.CONNECTION_STATE.RECONNECTING || state === C.CONNECTION_STATE.CLOSED) {
     this._client.emit(C.EVENT.CONNECTED, false)
+    this._reset()
   }
 }
 
