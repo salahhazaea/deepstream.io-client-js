@@ -59,8 +59,8 @@ class Record {
 
   unref() {
     invariant(this._refs > 0, 'missing refs')
-    invariant(this._refs > 1 || !this._patches, 'must not have patches')
-    invariant(this._refs > 1 || this._state >= Record.STATE.SERVER, 'must be ready')
+    invariant(this._refs > 0 || !this._patches, 'must not have patches')
+    invariant(this._refs > 0 || this._state >= Record.STATE.SERVER, 'must be ready')
 
     this._refs -= 1
     if (this._refs === 0) {
