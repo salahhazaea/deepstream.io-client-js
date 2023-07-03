@@ -162,10 +162,7 @@ class RecordHandler {
 
         const token = xuid()
         this._syncEmitter.once(token, resolve)
-
-        if (this._connected) {
-          this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.SYNC, [token])
-        }
+        this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.SYNC, [token])
       }
 
       for (const rec of this._pending) {

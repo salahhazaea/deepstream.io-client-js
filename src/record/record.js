@@ -22,11 +22,9 @@ class Record {
     this._updating = null
     this._patching = null
     this._pending = false
-    this._subscribed = false
+    this._subscribed = this._sendMsg1(C.ACTIONS.SUBSCRIBE, this._name)
 
     this._onPending(true)
-
-    this._subscribe()
   }
 
   get name() {
@@ -56,7 +54,7 @@ class Record {
     }
 
     if (!this._subscribed) {
-      this._subscribe()
+      this._subscribed = this._sendMsg1(C.ACTIONS.SUBSCRIBE, this._name)
     }
 
     return this
@@ -235,13 +233,11 @@ class Record {
 
   _$onConnectionStateChange(connected) {
     if (connected) {
-      if (this._refs > 0) {
-        this._subscribe()
-      }
+      this._subscribed = this._refs > 0 && this._sendMsg1(C.ACTIONS.SUBSCRIBE, this._name)
 
       if (this._updating) {
         for (const update of this._updating.values()) {
-          this._handler._connection.connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.UPDATE, update)
+          this._sendMsg1(C.ACTIONS.UPDATE, update)
         }
       }
     } else {
@@ -258,29 +254,14 @@ class Record {
     }
   }
 
-  _subscribe() {
-    if (!this._handler._connection.connected) {
-      return
-    }
-
-    invariant(this._handler._connection.connected, 'must be connected')
-
-    this._handler._connection.sendMsg1(C.TOPIC.RECORD, C.ACTIONS.SUBSCRIBE, this._name)
-    this._subscribed = true
-  }
-
   _$dispose() {
     invariant(!this._refs, 'must not have refs')
     invariant(!this._patching, 'must not have patches')
     invariant(!this._updating, 'must not have updates')
     invariant(!this._pending, 'must not be pending')
-    invariant(
-      !this._subscribed || this._handler._connection.connected,
-      'must be unsubscribed or connected'
-    )
 
     if (this._subscribed) {
-      this._handler._connection.sendMsg1(C.TOPIC.RECORD, C.ACTIONS.UNSUBSCRIBE, this._name)
+      this._sendMsg1(C.ACTIONS.UNSUBSCRIBE, this._name)
       this._subscribed = false
     }
 
@@ -292,6 +273,8 @@ class Record {
 
   _update(nextData) {
     invariant(this._version, 'must have version')
+
+    const connection = this._handler._connection
 
     if (nextData === this._data) {
       return
@@ -310,10 +293,7 @@ class Record {
     this._updating.set(nextVersion, update)
     this._handler._stats.updating += 1
 
-    const connection = this._handler._connection
-    if (connection.connected) {
-      connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.UPDATE, update)
-    }
+    connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.UPDATE, update)
 
     this._data = nextData
     this._version = nextVersion
@@ -402,6 +382,10 @@ class Record {
     if (this._state !== prevState) {
       this._emitUpdate()
     }
+  }
+
+  _sendMsg1(action, data) {
+    return this._handler._connection.sendMsg1(C.TOPIC.RECORD, action, data)
   }
 
   _error(event, msgOrError, data) {

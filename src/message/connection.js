@@ -21,7 +21,6 @@ const Connection = function (client, url, options) {
   this._tooManyAuthAttempts = false
   this._connectionAuthenticationTimeout = false
   this._challengeDenied = false
-  this._sendQueue = new FixedQueue()
   this._message = {
     raw: null,
     topic: null,
@@ -35,8 +34,6 @@ const Connection = function (client, url, options) {
 
   this._processingRecv = false
   this._recvMessages = this._recvMessages.bind(this)
-  this._processingSend = false
-  this._sendMessages = this._sendMessages.bind(this)
 
   this._url = new URL(url)
 
@@ -82,22 +79,18 @@ Connection.prototype.authenticate = function (authParams, callback) {
 }
 
 Connection.prototype.sendMsg = function (topic, action, data) {
-  this.send(messageBuilder.getMsg(topic, action, data))
+  return this.send(messageBuilder.getMsg(topic, action, data))
 }
 
 Connection.prototype.sendMsg1 = function (topic, action, p0) {
-  this.send(messageBuilder.getMsg1(topic, action, p0))
+  return this.send(messageBuilder.getMsg1(topic, action, p0))
 }
 
 Connection.prototype.sendMsg2 = function (topic, action, p0, p1) {
-  this.send(messageBuilder.getMsg2(topic, action, p0, p1))
+  return this.send(messageBuilder.getMsg2(topic, action, p0, p1))
 }
 
 Connection.prototype.close = function () {
-  while (!this._sendQueue.isEmpty()) {
-    this._submit(this._sendQueue.shift())
-  }
-  this._reset()
   this._deliberateClose = true
   this._endpoint?.close()
 
@@ -133,48 +126,10 @@ Connection.prototype.send = function (message) {
       err,
       message.split(C.MESSAGE_PART_SEPERATOR).map((x) => x.slice(0, 256))
     )
-    return
+    return false
   }
 
-  if (this._processingSend) {
-    this._sendQueue.push(message)
-  } else if (
-    this._state === C.CONNECTION_STATE.OPEN &&
-    this._endpoint.readyState === this._endpoint.OPEN
-  ) {
-    this._submit(message)
-  } else {
-    this._sendQueue.push(message)
-    this._processingSend = true
-    this._sendMessages()
-  }
-}
-
-Connection.prototype._sendMessages = function (deadline) {
-  if (
-    this._state !== C.CONNECTION_STATE.OPEN ||
-    this._endpoint.readyState !== this._endpoint.OPEN
-  ) {
-    this._processingSend = false
-    return
-  }
-
-  for (
-    let n = 0;
-    // eslint-disable-next-line no-unmodified-loop-condition
-    n < this._batchSize && (!deadline || deadline.timeRemaining() || deadline.didTimeout);
-    ++n
-  ) {
-    const message = this._sendQueue.shift()
-    if (!message) {
-      this._processingSend = false
-      return
-    }
-
-    this._submit(message)
-  }
-
-  this._schedule(this._sendMessages)
+  return this._submit(message)
 }
 
 Connection.prototype._submit = function (message) {
@@ -183,12 +138,18 @@ Connection.prototype._submit = function (message) {
   if (message.length > maxPacketSize) {
     const err = new Error(`Packet to big: ${message.length} > ${maxPacketSize}`)
     this._client._$onError(C.TOPIC.CONNECTION, C.EVENT.CONNECTION_ERROR, err)
-  } else if (this._endpoint.readyState === this._endpoint.OPEN) {
+    return false
+  } else if (
+    this._state === C.CONNECTION_STATE.OPEN &&
+    this._endpoint.readyState === this._endpoint.OPEN
+  ) {
     this.emit('send', message)
     this._endpoint.send(message)
+    return true
   } else {
     const err = new Error('Tried to send message on a closed websocket connection')
     this._client._$onError(C.TOPIC.CONNECTION, C.EVENT.CONNECTION_ERROR, err)
+    return false
   }
 }
 
@@ -210,7 +171,7 @@ Connection.prototype._onOpen = function () {
 }
 
 Connection.prototype._onError = function (err) {
-  this._reset()
+  this._recvMessages()
 
   if (err.error) {
     const { message, error } = err
@@ -232,7 +193,7 @@ Connection.prototype._onError = function (err) {
 }
 
 Connection.prototype._onClose = function () {
-  this._reset()
+  this._recvMessages()
 
   if (this._deliberateClose === true) {
     this._setState(C.CONNECTION_STATE.CLOSED)
@@ -289,11 +250,6 @@ Connection.prototype._recvMessages = function (deadline) {
   }
 
   this._schedule(this._recvMessages)
-}
-
-Connection.prototype._reset = function () {
-  this._recvQueue = new FixedQueue()
-  this._sendQueue = new FixedQueue()
 }
 
 Connection.prototype._handleConnectionResponse = function (message) {
@@ -363,7 +319,6 @@ Connection.prototype._setState = function (state) {
     this._client.emit(C.EVENT.CONNECTED, true)
   } else if (state === C.CONNECTION_STATE.RECONNECTING || state === C.CONNECTION_STATE.CLOSED) {
     this._client.emit(C.EVENT.CONNECTED, false)
-    this._reset()
   }
 }
 
