@@ -35,6 +35,7 @@ class RecordHandler {
     }
 
     this._syncEmitter = new EventEmitter()
+    this._pendingEmitter = new EventEmitter()
 
     this.set = this.set.bind(this)
     this.get = this.get.bind(this)
@@ -49,52 +50,41 @@ class RecordHandler {
 
     this._pruningTimeout = null
 
-    // TODO (perf): schedule & yield to avoid blocking event loop?
     const _prune = () => {
       const pruning = this._pruning
-
       this._pruning = new Set()
-      for (const rec of pruning) {
-        invariant(rec.refs === 0, 'cannot prune referenced record')
-        invariant(!this._pending.has(rec), 'cannot prune pending record')
 
+      for (const rec of pruning) {
         rec._$dispose()
         this._records.delete(rec.name)
         this._stats.destroyed++
       }
 
-      if (this._pruningTimeout && this._pruningTimeout.refresh) {
+      if (this._pruningTimeout) {
         this._pruningTimeout.refresh()
       } else {
-        this._pruningTimeout = setTimeout(_prune, 1e3)
-        if (this._pruningTimeout.unref) {
-          this._pruningTimeout.unref()
-        }
+        this._pruningTimeout = timers.setTimeout(_prune, 1e3)
       }
     }
 
     _prune()
   }
 
-  _onRef(rec) {
-    if (rec.refs === 0) {
+  _onPruning(rec, isPruning) {
+    if (isPruning) {
       this._pruning.add(rec)
-    } else if (rec.refs === 1) {
+    } else {
       this._pruning.delete(rec)
     }
   }
 
-  _onState(rec, prevState) {
-    if (
-      rec.state < Record.STATE.SERVER &&
-      (prevState === Record.STATE.INIT || prevState >= Record.STATE.SERVER)
-    ) {
-      rec.ref()
+  _onPending(rec, isPending) {
+    if (isPending) {
       this._pending.add(rec)
-    } else if (prevState >= Record.STATE.SERVER) {
-      rec.unref()
+    } else {
       this._pending.delete(rec)
     }
+    this._pendingEmitter.emit(rec.name, isPending)
   }
 
   get connected() {
@@ -120,7 +110,7 @@ class RecordHandler {
     let record = this._records.get(name)
 
     if (!record) {
-      record = new Record(name, this)
+      record = new Record(name, this).ref()
       this._records.set(name, record)
       this._stats.created++
     } else {
@@ -163,7 +153,7 @@ class RecordHandler {
 
   sync() {
     return new Promise((resolve) => {
-      let counter = 0
+      let counter = this._pending.size
 
       const maybeSync = () => {
         if (counter > 0) {
@@ -178,24 +168,12 @@ class RecordHandler {
         }
       }
 
-      const onUpdate = (rec) => {
-        if (rec.state < C.RECORD_STATE.SERVER) {
-          return
-        }
-
-        rec.unsubscribe(onUpdate)
-        rec.unref()
-        counter -= 1
-
-        maybeSync()
-      }
-
       for (const rec of this._pending) {
-        if (rec.state < C.RECORD_STATE.SERVER) {
-          rec.subscribe(onUpdate)
-          rec.ref()
-          counter += 1
-        }
+        this._pendingEmitter.once(rec.name, (isPending) => {
+          invariant(!isPending, 'unexpected pending state')
+          counter -= 1
+          maybeSync()
+        })
       }
 
       maybeSync()
@@ -347,7 +325,7 @@ class RecordHandler {
       const record = this.getRecord(name).subscribe(onUpdate)
 
       if (timeoutValue && state && record.state < state) {
-        timeoutHandle = timers.setTimeout(() => {
+        timeoutHandle = timers.timers.setTimeout(() => {
           const expected = C.RECORD_STATE_NAME[state]
           const current = C.RECORD_STATE_NAME[record.state]
           o.error(
