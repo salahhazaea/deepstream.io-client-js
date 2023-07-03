@@ -22,7 +22,6 @@ class Record {
     this._updating = null
     this._patches = null
     this._subscribed = false
-    this._connection = handler.connection
   }
 
   get name() {
@@ -51,7 +50,7 @@ class Record {
       this._handler._onPruning(this, false)
     }
 
-    if (this._refs === 1 && this._connection.connected && !this._subscribed) {
+    if (this._refs === 1 && this._handler._connection.connected && !this._subscribed) {
       this._subscribe()
     }
 
@@ -230,14 +229,14 @@ class Record {
   }
 
   _$onConnectionStateChange() {
-    if (this._connection.connected) {
+    if (this._handler._connection.connected) {
       if (this._refs > 0) {
         this._subscribe()
       }
 
       if (this._updating) {
         for (const update of this._updating.values()) {
-          this._connection.connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.UPDATE, update)
+          this._handler._connection.connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.UPDATE, update)
         }
       }
     } else {
@@ -251,9 +250,9 @@ class Record {
   }
 
   _subscribe() {
-    invariant(this._connection.connected, 'must be connected')
+    invariant(this._handler._connection.connected, 'must be connected')
 
-    this._connection.sendMsg1(C.TOPIC.RECORD, C.ACTIONS.SUBSCRIBE, this._name)
+    this._handler._connection.sendMsg1(C.TOPIC.RECORD, C.ACTIONS.SUBSCRIBE, this._name)
     this._subscribed = true
 
     this.ref()
@@ -265,10 +264,13 @@ class Record {
     invariant(!this._patches, 'must not have patches')
     invariant(!this._updating, 'must not have updates')
     invariant(this.state >= C.RECORD_STATE.SERVER, 'must not be pending')
-    invariant(!this._subscribed || this._connection.connected, 'must be unsubscribed or connected')
+    invariant(
+      !this._subscribed || this._handler._connection.connected,
+      'must be unsubscribed or connected'
+    )
 
     if (this._subscribed) {
-      this._connection.sendMsg1(C.TOPIC.RECORD, C.ACTIONS.UNSUBSCRIBE, this._name)
+      this._handler._connection.sendMsg1(C.TOPIC.RECORD, C.ACTIONS.UNSUBSCRIBE, this._name)
       this._subscribed = false
     }
 
@@ -398,7 +400,10 @@ class Record {
         try {
           fn(this)
         } catch (err) {
-          this._error(C.EVENT.USER_ERROR, Object.assign(new Error('user callback failed'), { cause: err }))
+          this._error(
+            C.EVENT.USER_ERROR,
+            Object.assign(new Error('user callback failed'), { cause: err })
+          )
         }
       }
     } finally {
