@@ -15,7 +15,7 @@ class Record {
     this._name = name
     this._version = ''
     this._data = jsonPath.EMPTY
-    this._state = Record.STATE.VOID
+    this._state = C.RECORD_STATE.VOID
     this._refs = 0
     this._subscriptions = []
     this._emitting = false
@@ -60,7 +60,7 @@ class Record {
   unref() {
     invariant(this._refs > 0, 'missing refs')
     invariant(this._refs > 0 || !this._patching, 'must not have patches')
-    invariant(this._refs > 0 || this._state >= Record.STATE.SERVER, 'must be ready')
+    invariant(this._refs > 0 || this._state >= C.RECORD_STATE.SERVER, 'must be ready')
 
     this._refs -= 1
     if (this._refs === 0) {
@@ -127,7 +127,7 @@ class Record {
       throw new Error('invalid argument: path')
     }
 
-    if (this._state < Record.STATE.SERVER) {
+    if (this._state < C.RECORD_STATE.SERVER) {
       if (!this._patching) {
         this.ref()
         this._patching = []
@@ -149,7 +149,7 @@ class Record {
   when(stateOrNull) {
     invariant(this._refs > 0, 'missing refs')
 
-    const state = stateOrNull == null ? Record.STATE.SERVER : stateOrNull
+    const state = stateOrNull == null ? C.RECORD_STATE.SERVER : stateOrNull
 
     if (!Number.isFinite(state) || state < 0) {
       throw new Error('invalid argument: state')
@@ -205,7 +205,7 @@ class Record {
     }
 
     this.ref()
-    return this.when(Record.STATE.SERVER)
+    return this.when(C.RECORD_STATE.SERVER)
       .then(() => {
         const prev = this.get(path)
         const next = updater(prev, this._version)
@@ -245,8 +245,8 @@ class Record {
       this._onPending(true)
     }
 
-    if (this._state > Record.STATE.CLIENT) {
-      this._state = Record.STATE.CLIENT
+    if (this._state > C.RECORD_STATE.CLIENT) {
+      this._state = C.RECORD_STATE.CLIENT
       this._emitUpdate()
     }
   }
@@ -445,7 +445,7 @@ Object.defineProperty(Record.prototype, 'empty', {
 // TODO (fix): Remove
 Object.defineProperty(Record.prototype, 'ready', {
   get: function ready() {
-    return this._state >= Record.STATE.SERVER
+    return this._state >= C.RECORD_STATE.SERVER
   },
 })
 
@@ -473,7 +473,7 @@ Object.defineProperty(Record.prototype, 'stale', {
 // TODO (fix): Remove
 Object.defineProperty(Record.prototype, 'isReady', {
   get: function isReady() {
-    return this._state >= Record.STATE.SERVER
+    return this._state >= C.RECORD_STATE.SERVER
   },
 })
 
