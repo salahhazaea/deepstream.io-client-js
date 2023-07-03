@@ -128,9 +128,8 @@ class Record {
     }
 
     if (this._state < C.RECORD_STATE.SERVER) {
-      if (!this._patching) {
-        this.ref()
-        this._patching = []
+      if (this._patching == null) {
+        this._onPatching(true)
       } else if (path) {
         this._patching.splice(0)
       }
@@ -283,12 +282,10 @@ class Record {
     const update = [this._name, nextVersion, jsonPath.stringify(nextData), prevVersion]
 
     if (!this._updating) {
-      this._updating = new Map()
-      this.ref()
+      this._onUpdating(true)
     }
 
     this._updating.set(nextVersion, update)
-    this._handler._stats.updating += 1
 
     connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.UPDATE, update)
 
@@ -301,12 +298,8 @@ class Record {
     const prevVersion = this._version
     const prevState = this._state
 
-    if (this._updating?.delete(version)) {
-      this._handler._stats.updating -= 1
-      if (this._updating.size === 0) {
-        this._updating = null
-        this.unref()
-      }
+    if (this._updating && this._updating.delete(version) && this._updating.size === 0) {
+      this._onUpdating(false)
     }
 
     if (
@@ -321,7 +314,7 @@ class Record {
     invariant(this._version, 'must have version')
     invariant(this._data, 'must have data')
 
-    if (this._patching) {
+    if (this._patching != null) {
       if (this._version.charAt(0) !== 'I') {
         let patchData = this._data
         for (let n = 0; n < this._patching.length; n += 2) {
@@ -330,8 +323,7 @@ class Record {
         this._update(patchData)
       }
 
-      this._patching = null
-      this.unref()
+      this._onPatching(false)
     }
 
     if (this._state < C.RECORD_STATE.SERVER) {
@@ -347,19 +339,44 @@ class Record {
     }
   }
 
-  _onPending(value) {
-    if (this._pending === value) {
-      return
-    }
-
-    this._pending = value
-    this._handler._onPending(this, value)
+  _onPatching(value) {
+    invariant(this._refs > 0, 'missing refs')
 
     if (value) {
-      this.ref()
+      this._patching = []
+      this._refs += 1
     } else {
-      this.unref()
+      this._patching = null
+      this._refs -= 1
     }
+
+    this._handler._onPending(this, value)
+  }
+
+  _onUpdating(value) {
+    invariant(this._refs > 0, 'missing refs')
+
+    if (value) {
+      this._updating = new Map()
+      this._refs += 1
+    } else {
+      this._updating = null
+      this._refs -= 1
+    }
+
+    this._handler._onUpdating(this, value)
+  }
+
+  _onPending(value) {
+    if (value) {
+      this._pending = true
+      this._refs += 1
+    } else {
+      this._pending = false
+      this._refs -= 1
+    }
+
+    this._handler._onPending(this, value)
   }
 
   _onSubscriptionHasProvider([, hasProvider]) {

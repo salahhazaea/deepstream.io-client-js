@@ -32,6 +32,10 @@ class RecordHandler {
       updating: 0,
       created: 0,
       destroyed: 0,
+      records: 0,
+      pending: 0,
+      pruning: 0,
+      patching: 0,
     }
 
     this._syncEmitter = new EventEmitter()
@@ -56,8 +60,10 @@ class RecordHandler {
 
       for (const rec of pruning) {
         rec._$dispose()
+
+        this._stats.records -= 1
+        this._stats.destroyed += 1
         this._records.delete(rec.name)
-        this._stats.destroyed++
       }
 
       if (this._pruningTimeout) {
@@ -72,14 +78,26 @@ class RecordHandler {
 
   _onPruning(rec, isPruning) {
     if (isPruning) {
+      this._stats.pruning += 1
+    } else {
+      this._stats.pruning -= 1
+    }
+
+    if (isPruning) {
       this._pruning.add(rec)
     } else {
       this._pruning.delete(rec)
     }
   }
 
-  _onPending(rec, isPending) {
-    if (isPending) {
+  _onPending(rec, value) {
+    if (value) {
+      this._stats.pending += 1
+    } else {
+      this._stats.pending -= 1
+    }
+
+    if (value) {
       this._pending.set(rec, [])
     } else {
       for (const callback of this._pending.get(rec)) {
@@ -89,37 +107,46 @@ class RecordHandler {
     }
   }
 
+  _onUpdating(rec, value) {
+    if (value) {
+      this._stats.updating += 1
+    } else {
+      this._stats.updating -= 1
+    }
+  }
+
+  _onPatching(rec, value) {
+    if (value) {
+      this._stats.patching += 1
+    } else {
+      this._stats.patching -= 1
+    }
+  }
+
   get connected() {
     return Boolean(this._connected)
   }
 
   get stats() {
-    return {
-      ...this._stats,
-      listeners: this._listeners.size,
-      records: this._records.size,
-      pruning: this._pruning.size,
-      pending: this._pending.size,
-    }
+    return this._stats
   }
 
   getRecord(name) {
     invariant(
-      typeof name === 'string' && name.length > 0 && !name.includes('[object Object]'),
+      typeof name === 'string' && name.length > 0 && name !== '[object Object]',
       `invalid name ${name}`
     )
 
     let record = this._records.get(name)
 
     if (!record) {
-      record = new Record(name, this).ref()
+      record = new Record(name, this)
+      this._stats.records += 1
+      this._stats.created += 1
       this._records.set(name, record)
-      this._stats.created++
-    } else {
-      record.ref()
     }
 
-    return record
+    return record.ref()
   }
 
   provide(pattern, callback, options) {
@@ -146,14 +173,19 @@ class RecordHandler {
         ? new UnicastListener(C.TOPIC.RECORD, pattern, callback, this, options)
         : new MulticastListener(C.TOPIC.RECORD, pattern, callback, this, options)
 
+    this._stats.listeners += 1
     this._listeners.set(pattern, listener)
+
     return () => {
       listener._$destroy()
+
+      this._stats.listeners -= 1
       this._listeners.delete(pattern)
     }
   }
 
   sync() {
+    // TODO (fix): Sync patching & updating?
     return new Promise((resolve) => {
       let counter = this._pending.size + 1
 
