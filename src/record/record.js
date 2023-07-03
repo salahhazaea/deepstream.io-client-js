@@ -350,7 +350,7 @@ class Record {
       this._refs -= 1
     }
 
-    this._handler._onPending(this, value)
+    this._handler._onPatching(this, value)
   }
 
   _onUpdating(value) {
