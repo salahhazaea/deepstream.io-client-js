@@ -85,12 +85,15 @@ class RecordHandler {
   }
 
   _onState(rec, prevState) {
-    // TODO (perf): avoid pending.has
-    if (rec.state < Record.STATE.SERVER && !this._pending.has(rec)) {
-      this._pending.add(rec)
+    if (
+      rec.state < Record.STATE.SERVER &&
+      (prevState === Record.STATE.INIT || prevState >= Record.STATE.SERVER)
+    ) {
       rec.ref()
-    } else if (this._pending.delete(rec)) {
+      this._pending.add(rec)
+    } else if (prevState >= Record.STATE.SERVER) {
       rec.unref()
+      this._pending.delete(rec)
     }
   }
 
