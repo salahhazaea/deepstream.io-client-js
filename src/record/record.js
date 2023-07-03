@@ -16,12 +16,17 @@ class Record {
     this._version = ''
     this._data = jsonPath.EMPTY
     this._state = Record.STATE.VOID
-    this._refs = 0
+    this._refs = 1
     this._subscriptions = []
-    this._subscriptionsEmitting = false
+    this._emitting = false
     this._updating = null
-    this._patches = null
+    this._patching = null
+    this._pending = false
     this._subscribed = false
+
+    this._onPending(true)
+
+    this._subscribe()
   }
 
   get name() {
@@ -50,7 +55,7 @@ class Record {
       this._handler._onPruning(this, false)
     }
 
-    if (this._refs === 1 && this._handler._connection.connected && !this._subscribed) {
+    if (!this._subscribed) {
       this._subscribe()
     }
 
@@ -59,7 +64,7 @@ class Record {
 
   unref() {
     invariant(this._refs > 0, 'missing refs')
-    invariant(this._refs > 0 || !this._patches, 'must not have patches')
+    invariant(this._refs > 0 || !this._patching, 'must not have patches')
     invariant(this._refs > 0 || this._state >= Record.STATE.SERVER, 'must be ready')
 
     this._refs -= 1
@@ -71,9 +76,9 @@ class Record {
   }
 
   subscribe(fn) {
-    if (this._subscriptionsEmitting) {
+    if (this._emitting) {
       this._subscriptions = this._subscriptions.slice()
-      this._subscriptionsEmitting = false
+      this._emitting = false
     }
 
     this._subscriptions.push(fn)
@@ -82,9 +87,9 @@ class Record {
   }
 
   unsubscribe(fn) {
-    if (this._subscriptionsEmitting) {
+    if (this._emitting) {
       this._subscriptions = this._subscriptions.slice()
-      this._subscriptionsEmitting = false
+      this._emitting = false
     }
 
     const idx = this._subscriptions.indexOf(fn)
@@ -128,14 +133,14 @@ class Record {
     }
 
     if (this._state < Record.STATE.SERVER) {
-      if (!this._patches) {
+      if (!this._patching) {
         this.ref()
-        this._patches = []
+        this._patching = []
       } else if (path) {
-        this._patches.splice(0)
+        this._patching.splice(0)
       }
 
-      this._patches.push(path, cloneDeep(data))
+      this._patching.push(path, cloneDeep(data))
     } else {
       this._update(jsonPath.set(this._data, path, data, false))
     }
@@ -228,8 +233,8 @@ class Record {
     return true
   }
 
-  _$onConnectionStateChange() {
-    if (this._handler._connection.connected) {
+  _$onConnectionStateChange(connected) {
+    if (connected) {
       if (this._refs > 0) {
         this._subscribe()
       }
@@ -243,6 +248,10 @@ class Record {
       this._subscribed = false
     }
 
+    if (!this._pending) {
+      this._onPending(true)
+    }
+
     if (this._state > Record.STATE.CLIENT) {
       this._state = Record.STATE.CLIENT
       this._emitUpdate()
@@ -250,20 +259,21 @@ class Record {
   }
 
   _subscribe() {
+    if (!this._handler._connection.connected) {
+      return
+    }
+
     invariant(this._handler._connection.connected, 'must be connected')
 
     this._handler._connection.sendMsg1(C.TOPIC.RECORD, C.ACTIONS.SUBSCRIBE, this._name)
     this._subscribed = true
-
-    this.ref()
-    this._handler._onPending(this, true)
   }
 
   _$dispose() {
     invariant(!this._refs, 'must not have refs')
-    invariant(!this._patches, 'must not have patches')
+    invariant(!this._patching, 'must not have patches')
     invariant(!this._updating, 'must not have updates')
-    invariant(this.state >= C.RECORD_STATE.SERVER, 'must not be pending')
+    invariant(!this._pending, 'must not be pending')
     invariant(
       !this._subscribed || this._handler._connection.connected,
       'must be unsubscribed or connected'
@@ -334,23 +344,25 @@ class Record {
     invariant(this._version, 'must have version')
     invariant(this._data, 'must have data')
 
-    if (this._patches) {
+    if (this._patching) {
       if (this._version.charAt(0) !== 'I') {
         let patchData = this._data
-        for (let n = 0; n < this._patches.length; n += 2) {
-          patchData = jsonPath.set(patchData, this._patches[n + 0], this._patches[n + 1], false)
+        for (let n = 0; n < this._patching.length; n += 2) {
+          patchData = jsonPath.set(patchData, this._patching[n + 0], this._patching[n + 1], false)
         }
         this._update(patchData)
       }
 
-      this._patches = null
+      this._patching = null
       this.unref()
     }
 
     if (this._state < C.RECORD_STATE.SERVER) {
       this._state = this._version.charAt(0) === 'I' ? C.RECORD_STATE.STALE : C.RECORD_STATE.SERVER
-      this._handler._onPending(this, false)
-      this.unref()
+    }
+
+    if (this._pending) {
+      this._onPending(false)
     }
 
     if (this._state !== prevState || this._data !== prevData || this._version !== prevVersion) {
@@ -358,13 +370,30 @@ class Record {
     }
   }
 
+  _onPending(value) {
+    if (this._pending === value) {
+      return
+    }
+
+    this._pending = value
+    this._handler._onPending(this, value)
+
+    if (value) {
+      this.ref()
+    } else {
+      this.unref()
+    }
+  }
+
   _onSubscriptionHasProvider([, hasProvider]) {
+    if (this._state < C.RECORD_STATE.SERVER) {
+      return
+    }
+
     const prevState = this._state
 
     this._state =
-      hasProvider &&
-      messageParser.convertTyped(hasProvider, this._handler._client) &&
-      this._state >= C.RECORD_STATE.SERVER
+      hasProvider && messageParser.convertTyped(hasProvider, this._handler._client)
         ? C.RECORD_STATE.PROVIDER
         : this._version.charAt(0) === 'I'
         ? C.RECORD_STATE.STALE
@@ -394,7 +423,7 @@ class Record {
   }
 
   _emitUpdate() {
-    this._subscriptionsEmitting = true
+    this._emitting = true
     try {
       for (const fn of this._subscriptions) {
         try {
@@ -407,7 +436,7 @@ class Record {
         }
       }
     } finally {
-      this._subscriptionsEmitting = false
+      this._emitting = false
     }
   }
 }
