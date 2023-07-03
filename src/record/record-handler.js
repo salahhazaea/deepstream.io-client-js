@@ -55,7 +55,8 @@ class RecordHandler {
 
       this._pruning = new Set()
       for (const rec of pruning) {
-        invariant(!rec.pending && !rec.refs, 'cannot prune pending or referenced record')
+        invariant(!rec.refs, 'cannot prune referenced record')
+        invariant(rec.state !== C.RECORD_STATE.PENDING, 'cannot prune pending record')
         rec._unsubscribe()
         this._records.delete(rec.name)
         this._stats.destroyed++
@@ -75,7 +76,7 @@ class RecordHandler {
   }
 
   _onRef(rec) {
-    if (rec.refs === 0 && rec.state > C.RECORD_STATE.PATCH) {
+    if (rec.refs === 0 && rec.state > C.RECORD_STATE.PENDING) {
       this._pruning.add(rec)
     } else if (rec.refs === 1) {
       this._pruning.delete(rec)
@@ -83,7 +84,7 @@ class RecordHandler {
   }
 
   _onPending(rec) {
-    if (rec.state > C.RECORD_STATE.PATCH) {
+    if (rec.state > C.RECORD_STATE.PENDING) {
       this._pending.delete(rec)
       if (rec.refs === 0) {
         this._pruning.add(rec)

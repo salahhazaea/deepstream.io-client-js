@@ -126,7 +126,7 @@ class Record {
     if (this._state < Record.STATE.SERVER) {
       this._patches = path && this._patches ? this._patches : []
       this._patches.push(path, cloneDeep(data))
-      this._state = Record.STATE.PATCH
+      this._state = Record.STATE.PENDING
     }
 
     if (this._update(jsonPath.set(this._data, path, data, false))) {
