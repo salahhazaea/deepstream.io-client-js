@@ -53,20 +53,14 @@ class Record {
       this._handler._onPruning(this, false)
       this._subscribed = this._subscribed || this._sendMsg1(C.ACTIONS.SUBSCRIBE, this._name)
     }
-
     return this
   }
 
   unref() {
-    invariant(this._refs > 0, 'missing refs')
-    invariant(this._refs > 0 || !this._patching, 'must not have patches')
-    invariant(this._refs > 0 || this._state >= C.RECORD_STATE.SERVER, 'must be ready')
-
     this._refs -= 1
     if (this._refs === 0) {
       this._handler._onPruning(this, true)
     }
-
     return this
   }
 
@@ -344,10 +338,10 @@ class Record {
 
     if (value) {
       this._patching = []
-      this._refs += 1
+      this.ref()
     } else {
       this._patching = null
-      this._refs -= 1
+      this.unref()
     }
 
     this._handler._onPatching(this, value)
@@ -358,10 +352,10 @@ class Record {
 
     if (value) {
       this._updating = new Map()
-      this._refs += 1
+      this.ref()
     } else {
       this._updating = null
-      this._refs -= 1
+      this.unref()
     }
 
     this._handler._onUpdating(this, value)
@@ -370,10 +364,10 @@ class Record {
   _onPending(value) {
     if (value) {
       this._pending = true
-      this._refs += 1
+      this.ref()
     } else {
       this._pending = false
-      this._refs -= 1
+      this.unref()
     }
 
     this._handler._onPending(this, value)
