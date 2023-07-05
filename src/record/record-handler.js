@@ -109,14 +109,14 @@ class RecordHandler {
     this._pruningTimeout = timers.setTimeout(_prune, 1e3)
   }
 
-  _onPruning(rec, isPruning) {
-    if (isPruning) {
+  _onPruning(rec, value) {
+    if (value) {
       this._stats.pruning += 1
     } else {
       this._stats.pruning -= 1
     }
 
-    if (isPruning) {
+    if (value) {
       this._pruning.add(rec)
     } else {
       this._pruning.delete(rec)
