@@ -27,28 +27,32 @@ class Record {
     this._onPending(true)
   }
 
+  /** @type {string} */
   get name() {
     return this._name
   }
 
+  /** @type {string} */
   get version() {
     return this._version
   }
 
+  /** @type {Object} */
   get data() {
     return this._data
   }
 
+  /** @type {Number} */
   get state() {
     return this._state
   }
 
+  /** @type {Number} */
   get refs() {
     return this._refs
   }
 
   /**
-   *
    * @returns {Record}
    */
   ref() {
@@ -61,7 +65,6 @@ class Record {
   }
 
   /**
-   *
    * @returns {Record}
    */
   unref() {
@@ -73,7 +76,6 @@ class Record {
   }
 
   /**
-   *
    * @param {*} fn
    * @param {*} opaque
    * @returns {Record}
