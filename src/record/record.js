@@ -448,23 +448,15 @@ class Record {
 
   _emitUpdate() {
     this._emitting = true
-    try {
-      const arr = this._subscriptions
-      const len = arr.length
 
-      for (let n = 0; n < len; n += 2) {
-        try {
-          arr[n + 0](this, arr[n + 1])
-        } catch (err) {
-          this._error(
-            C.EVENT.USER_ERROR,
-            Object.assign(new Error('user callback failed'), { cause: err })
-          )
-        }
-      }
-    } finally {
-      this._emitting = false
+    const arr = this._subscriptions
+    const len = arr.length
+
+    for (let n = 0; n < len; n += 2) {
+      arr[n + 0](this, arr[n + 1])
     }
+
+    this._emitting = false
   }
 }
 
