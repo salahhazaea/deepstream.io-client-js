@@ -90,8 +90,6 @@ class RecordHandler {
 
     this._client.on(C.EVENT.CONNECTED, this._onConnectionStateChange.bind(this))
 
-    this._pruningTimeout = null
-
     const _prune = () => {
       const pruning = this._pruning
       this._pruning = new Set()
@@ -105,14 +103,10 @@ class RecordHandler {
       this._stats.records -= pruning.size
       this._stats.destroyed += pruning.size
 
-      if (this._pruningTimeout) {
-        this._pruningTimeout.refresh()
-      } else {
-        this._pruningTimeout = timers.setTimeout(_prune, 1e3)
-      }
+      this._pruningTimeout.refresh()
     }
 
-    _prune()
+    this._pruningTimeout = timers.setTimeout(_prune, 1e3)
   }
 
   _onPruning(rec, isPruning) {
