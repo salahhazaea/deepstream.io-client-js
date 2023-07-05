@@ -143,13 +143,17 @@ module.exports.addAbortListener = function addAbortListener(signal, handler) {
     return
   }
 
-  let handlers = abortSignals.get(signal)
-  if (!handlers) {
-    handlers = []
-    abortSignals.set(signal, handlers)
-    signal.addEventListener('abort', onAbort)
+  if (signal.aborted) {
+    queueMicrotask(handler)
+  } else {
+    let handlers = abortSignals.get(signal)
+    if (!handlers) {
+      handlers = []
+      abortSignals.set(signal, handlers)
+      signal.addEventListener('abort', onAbort)
+    }
+    handlers.push(handler)
   }
-  handlers.push(handler)
 }
 
 module.exports.removeAbortListener = function removeAbortListener(signal, handler) {

@@ -13,6 +13,46 @@ const timers = require('../utils/timers')
 
 const kEmpty = Symbol('kEmpty')
 
+function noop() {}
+
+function onUpdate(record, subscription) {
+  if (subscription.state && record.state < subscription.state) {
+    return
+  }
+
+  if (subscription.timeout) {
+    timers.clearTimeout(subscription.timeout)
+    subscription.timeout = null
+  }
+
+  const data = subscription.path ? record.get(subscription.path) : record.data
+
+  if (subscription.dataOnly) {
+    if (data !== subscription.data) {
+      subscription.data = data
+      subscription.subscriber.next(data)
+    }
+  } else {
+    subscription.subscriber.next({
+      name: record.name,
+      version: record.version,
+      state: record.state,
+      data,
+    })
+  }
+}
+
+function onTimeout(subscription) {
+  const expected = C.RECORD_STATE_NAME[subscription.state]
+  const current = C.RECORD_STATE_NAME[subscription.record.state]
+
+  subscription.subscriber.error(
+    Object.assign(new Error(`timeout  ${subscription.record.name} [${current}<${expected}]`), {
+      code: 'ETIMEDOUT',
+    })
+  )
+}
+
 class RecordHandler {
   constructor(options, connection, client) {
     this.JSON = jsonPath
@@ -261,7 +301,7 @@ class RecordHandler {
     let path
     let state = defaults ? defaults.state : undefined
     let signal
-    let timeoutValue = defaults ? defaults.timeout : undefined
+    let timeout = defaults ? defaults.timeout : undefined
     let dataOnly = defaults ? defaults.dataOnly : undefined
 
     let idx = 0
@@ -282,7 +322,7 @@ class RecordHandler {
       }
 
       if (options.timeout != null) {
-        timeoutValue = options.timeout
+        timeout = options.timeout
       }
 
       if (options.path != null) {
@@ -302,84 +342,52 @@ class RecordHandler {
       state = C.RECORD_STATE[state.toUpperCase()]
     }
 
-    if (!name) {
-      const data = path ? undefined : jsonPath.EMPTY
-      return rxjs.of(
-        dataOnly
-          ? data
-          : utils.deepFreeze({
-              name,
-              version: '0-00000000000000',
-              data,
-              state: Number.isFinite(state) ? state : C.RECORD_STATE.SERVER,
-            })
-      )
-    }
-
-    if (signal?.aborted) {
-      return rxjs.throwError(() => new utils.AbortError())
-    }
-
-    return new rxjs.Observable((o) => {
-      let timeoutHandle
-      let prevData = kEmpty
-
-      const onUpdate = (record) => {
-        if (state && record.state < state) {
-          return
-        }
-
-        if (timeoutHandle) {
-          timers.clearTimeout(timeoutHandle)
-          timeoutHandle = null
-        }
-
-        const nextData = path ? record.get(path) : record.data
-
-        if (dataOnly) {
-          if (nextData !== prevData) {
-            prevData = nextData
-            o.next(nextData)
+    return new rxjs.Observable((subscriber) => {
+      const subscription = {
+        subscriber,
+        path,
+        state,
+        signal,
+        dataOnly,
+        data: kEmpty,
+        timeout: null,
+        abort: noop,
+        unsubscribe() {
+          if (this.timeout) {
+            timers.clearTimeout(this.timeout)
+            this.timeout = null
           }
-        } else {
-          o.next({
-            name: record.name,
-            version: record.version,
-            data: nextData,
-            state: record.state,
-          })
-        }
+
+          if (this.ignal) {
+            utils.removeAbortListener(this.signal, this.abort)
+            this.signal = null
+            this.abort = noop
+          }
+
+          if (this.record) {
+            this.record.unsubscribe(onUpdate, this)
+            this.record.unref()
+            this.record = null
+          }
+        },
       }
 
-      const record = this.getRecord(name).subscribe(onUpdate)
+      const record = this.getRecord(name).subscribe(onUpdate, subscription)
 
-      if (timeoutValue && state && record.state < state) {
-        timeoutHandle = timers.setTimeout(() => {
-          const expected = C.RECORD_STATE_NAME[state]
-          const current = C.RECORD_STATE_NAME[record.state]
-          o.error(
-            Object.assign(
-              new Error(
-                `timeout after ${timeoutValue / 1e3}s: ${record.name} [${current}<${expected}]`
-              ),
-              { code: 'ETIMEDOUT' }
-            )
-          )
-        }, timeoutValue)
+      if (timeout && subscription.state && record.state < subscription.state) {
+        subscription.timeout = timers.setTimeout(onTimeout, timeout, subscription)
       }
 
       if (record.version) {
-        onUpdate(record)
+        onUpdate(record, subscription)
       }
 
-      const abort = signal ? () => o.error(new utils.AbortError()) : null
-
-      utils.addAbortListener(signal, abort)
-
-      return () => {
-        record.unsubscribe(onUpdate).unref()
-        utils.removeAbortListener(signal, abort)
+      if (subscription.signal) {
+        subscription.abort = () => subscription.subscriber.error(new utils.AbortError())
+        utils.addAbortListener(subscription.signal, subscription.abort)
       }
+
+      return subscription
     })
   }
 

@@ -64,26 +64,36 @@ class Record {
     return this
   }
 
-  subscribe(fn) {
+  subscribe(fn, opaque = null) {
     if (this._emitting) {
       this._subscriptions = this._subscriptions.slice()
       this._emitting = false
     }
 
-    this._subscriptions.push(fn)
+    this._subscriptions.push(fn, opaque)
 
     return this
   }
 
-  unsubscribe(fn) {
+  unsubscribe(fn, opaque = null) {
     if (this._emitting) {
       this._subscriptions = this._subscriptions.slice()
       this._emitting = false
     }
 
-    const idx = this._subscriptions.indexOf(fn)
+    let idx = -1
+
+    const arr = this._subscriptions
+    const len = arr.length
+    for (let n = 0; n < len; n += 2) {
+      if (arr[n + 0] === fn && arr[n + 1] === opaque) {
+        idx = n
+        break
+      }
+    }
+
     if (idx !== -1) {
-      this._subscriptions.splice(idx, 1)
+      this._subscriptions.splice(idx, 2)
     }
 
     return this
@@ -417,9 +427,12 @@ class Record {
   _emitUpdate() {
     this._emitting = true
     try {
-      for (const fn of this._subscriptions) {
+      const arr = this._subscriptions
+      const len = arr.length
+
+      for (let n = 0; n < len; n += 2) {
         try {
-          fn(this)
+          arr[n + 0](this, arr[n + 1])
         } catch (err) {
           this._error(
             C.EVENT.USER_ERROR,
