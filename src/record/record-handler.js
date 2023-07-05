@@ -260,6 +260,12 @@ class RecordHandler {
     }
   }
 
+  /**
+   *
+   * @param {*} name
+   * @param  {...any} args
+   * @returns {Promise}
+   */
   update(name, ...args) {
     try {
       const record = this.getRecord(name)
@@ -273,6 +279,10 @@ class RecordHandler {
     }
   }
 
+  /**
+   * @param  {...any} args
+   * @returns {rxjs.Observable}
+   */
   observe(...args) {
     return this._observe(
       {
@@ -284,6 +294,10 @@ class RecordHandler {
     )
   }
 
+  /**
+   * @param  {...any} args
+   * @returns {Promise}
+   */
   get(...args) {
     return new Promise((resolve, reject) => {
       this.observe(...args)
@@ -295,10 +309,17 @@ class RecordHandler {
     })
   }
 
+  /**
+   * @param  {...any} args
+   * @returns {rxjs.Observable<{ name: string, version: string, state: Number, data: any}>}
+   */
   observe2(...args) {
     return this._observe(null, ...args)
   }
 
+  /**
+   * @returns {rxjs.Observable}
+   */
   _observe(defaults, name, ...args) {
     let path
     let state = defaults ? defaults.state : undefined
