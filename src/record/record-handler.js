@@ -390,19 +390,19 @@ class RecordHandler {
         },
       }
 
-      subscription.record = this.getRecord(name).subscribe(onUpdate, subscription)
+      const record = (subscription.record = this.getRecord(name).subscribe(onUpdate, subscription))
 
-      if (timeout && subscription.state && subscription.record.state < subscription.state) {
+      if (timeout && state && record.state < state) {
         subscription.timeout = timers.setTimeout(onTimeout, timeout, subscription)
       }
 
-      if (subscription.record.version) {
-        onUpdate(subscription.record, subscription)
+      if (record.version) {
+        onUpdate(record, subscription)
       }
 
-      if (subscription.signal) {
-        subscription.abort = () => subscription.subscriber.error(new utils.AbortError())
-        utils.addAbortListener(subscription.signal, subscription.abort)
+      if (signal) {
+        subscription.abort = () => subscriber.error(new utils.AbortError())
+        utils.addAbortListener(signal, subscription.abort)
       }
 
       return subscription
