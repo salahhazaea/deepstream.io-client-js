@@ -47,6 +47,10 @@ class Record {
     return this._refs
   }
 
+  /**
+   *
+   * @returns {Record}
+   */
   ref() {
     this._refs += 1
     if (this._refs === 1) {
@@ -56,6 +60,10 @@ class Record {
     return this
   }
 
+  /**
+   *
+   * @returns {Record}
+   */
   unref() {
     this._refs -= 1
     if (this._refs === 0) {
@@ -64,6 +72,12 @@ class Record {
     return this
   }
 
+  /**
+   *
+   * @param {*} fn
+   * @param {*} opaque
+   * @returns {Record}
+   */
   subscribe(fn, opaque = null) {
     if (this._emitting) {
       this._subscriptions = this._subscriptions.slice()
@@ -75,6 +89,12 @@ class Record {
     return this
   }
 
+  /**
+   *
+   * @param {*} fn
+   * @param {*} opaque
+   * @returns {Record}
+   */
   unsubscribe(fn, opaque = null) {
     if (this._emitting) {
       this._subscriptions = this._subscriptions.slice()

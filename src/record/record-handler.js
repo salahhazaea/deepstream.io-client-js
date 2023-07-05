@@ -13,8 +13,6 @@ const timers = require('../utils/timers')
 
 const kEmpty = Symbol('kEmpty')
 
-function noop() {}
-
 function onUpdate(record, subscription) {
   if (subscription.state && record.state < subscription.state) {
     return
@@ -172,6 +170,10 @@ class RecordHandler {
     return this._stats
   }
 
+  /**
+   * @param {string} name
+   * @returns {Record}
+   */
   getRecord(name) {
     invariant(
       typeof name === 'string' && name.length > 0 && name !== '[object Object]',
@@ -351,17 +353,18 @@ class RecordHandler {
         dataOnly,
         data: kEmpty,
         timeout: null,
-        abort: noop,
+        /** @type {Record?} */ record: null,
+        /** @type {Function?} */ abort: null,
         unsubscribe() {
           if (this.timeout) {
             timers.clearTimeout(this.timeout)
             this.timeout = null
           }
 
-          if (this.ignal) {
+          if (this.signal) {
             utils.removeAbortListener(this.signal, this.abort)
             this.signal = null
-            this.abort = noop
+            this.abort = null
           }
 
           if (this.record) {
@@ -372,14 +375,14 @@ class RecordHandler {
         },
       }
 
-      const record = this.getRecord(name).subscribe(onUpdate, subscription)
+      subscription.record = this.getRecord(name).subscribe(onUpdate, subscription)
 
-      if (timeout && subscription.state && record.state < subscription.state) {
+      if (timeout && subscription.state && subscription.record.state < subscription.state) {
         subscription.timeout = timers.setTimeout(onTimeout, timeout, subscription)
       }
 
-      if (record.version) {
-        onUpdate(record, subscription)
+      if (subscription.record.version) {
+        onUpdate(subscription.record, subscription)
       }
 
       if (subscription.signal) {
