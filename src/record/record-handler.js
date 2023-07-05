@@ -314,6 +314,7 @@ class RecordHandler {
   /**
    * @returns {rxjs.Observable}
    */
+  // TODO (perf): Avoid rest parameters.
   _observe(defaults, name, ...args) {
     let path
     let state = defaults ? defaults.state : undefined
@@ -359,6 +360,7 @@ class RecordHandler {
       state = C.RECORD_STATE[state.toUpperCase()]
     }
 
+    // TODO (perf): Avoid subscribe closure allocation.
     return new rxjs.Observable((subscriber) => {
       const subscription = {
         subscriber,
@@ -393,6 +395,7 @@ class RecordHandler {
       const record = (subscription.record = this.getRecord(name).subscribe(onUpdate, subscription))
 
       if (timeout && state && record.state < state) {
+        // TODO (perf): Avoid Timer allocation.
         subscription.timeout = timers.setTimeout(onTimeout, timeout, subscription)
       }
 
@@ -401,6 +404,7 @@ class RecordHandler {
       }
 
       if (signal) {
+        // TODO (perf): Avoid abort closure allocation.
         subscription.abort = () => subscriber.error(new utils.AbortError())
         utils.addAbortListener(signal, subscription.abort)
       }
