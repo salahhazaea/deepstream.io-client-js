@@ -19,8 +19,8 @@ class Record {
     this._refs = 0
     this._subscriptions = []
     this._emitting = false
-    this._updating = null
-    this._patching = null
+    /** @type Map? */ this._updating = null
+    /** @type Array? */ this._patching = null
     this._pending = false
     this._subscribed = this._sendMsg1(C.ACTIONS.SUBSCRIBE, this._name)
 
@@ -160,7 +160,11 @@ class Record {
         this._patching.splice(0)
       }
 
-      this._patching.push(path, cloneDeep(data))
+      if (this._patching) {
+        this._patching.push(path, cloneDeep(data))
+      } else {
+        throw new Error('invalid state')
+      }
     } else {
       this._update(jsonPath.set(this._data, path, data, false))
     }
@@ -311,7 +315,11 @@ class Record {
       this._onUpdating(true)
     }
 
-    this._updating.set(nextVersion, update)
+    if (this._updating) {
+      this._updating.set(nextVersion, update)
+    } else {
+      throw new Error('invalid state')
+    }
 
     connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.UPDATE, update)
 
