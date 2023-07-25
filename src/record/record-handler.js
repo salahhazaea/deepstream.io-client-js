@@ -308,7 +308,12 @@ class RecordHandler {
    * @returns {rxjs.Observable<{ name: string, version: string, state: Number, data: any}>}
    */
   observe2(...args) {
-    return this._observe(null, ...args)
+    return this._observe(
+      {
+        timeout: 10 * 60e3,
+      },
+      ...args
+    )
   }
 
   /**
