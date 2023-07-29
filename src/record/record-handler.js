@@ -70,7 +70,6 @@ class RecordHandler {
       created: 0,
       destroyed: 0,
       records: 0,
-      pending: 0,
       pruning: 0,
       patching: 0,
     }
@@ -119,14 +118,6 @@ class RecordHandler {
       this._pruning.add(rec)
     } else {
       this._pruning.delete(rec)
-    }
-  }
-
-  _onPending(rec, value) {
-    if (value) {
-      this._stats.pending += 1
-    } else {
-      this._stats.pending -= 1
     }
   }
 

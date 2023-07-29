@@ -21,10 +21,7 @@ class Record {
     this._emitting = false
     /** @type Map? */ this._updating = null
     /** @type Array? */ this._patching = null
-    this._pending = false
     this._subscribed = this._sendMsg1(C.ACTIONS.SUBSCRIBE, this._name)
-
-    this._onPending(true)
   }
 
   /** @type {string} */
@@ -270,10 +267,6 @@ class Record {
       this._subscribed = false
     }
 
-    if (!this._pending) {
-      this._onPending(true)
-    }
-
     if (this._state > C.RECORD_STATE.CLIENT) {
       this._state = C.RECORD_STATE.CLIENT
       this._emitUpdate()
@@ -284,7 +277,6 @@ class Record {
     invariant(!this._refs, 'must not have refs')
     invariant(!this._patching, 'must not have patches')
     invariant(!this._updating, 'must not have updates')
-    invariant(!this._pending, 'must not be pending')
 
     if (this._subscribed) {
       this._sendMsg1(C.ACTIONS.UNSUBSCRIBE, this._name)
@@ -364,10 +356,6 @@ class Record {
       this._state = this._version.charAt(0) === 'I' ? C.RECORD_STATE.STALE : C.RECORD_STATE.SERVER
     }
 
-    if (this._pending) {
-      this._onPending(false)
-    }
-
     if (this._state !== prevState || this._data !== prevData || this._version !== prevVersion) {
       this._emitUpdate()
     }
@@ -399,16 +387,6 @@ class Record {
     }
 
     this._handler._onUpdating(this, value)
-  }
-
-  _onPending(value) {
-    if (value) {
-      this._pending = true
-    } else {
-      this._pending = false
-    }
-
-    this._handler._onPending(this, value)
   }
 
   _onSubscriptionHasProvider([, hasProvider]) {
