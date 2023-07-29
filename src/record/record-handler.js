@@ -223,25 +223,11 @@ class RecordHandler {
 
   sync() {
     // TODO (fix): Sync patching & updating?
+    // TODO (fix): Ensure no pending?
     return new Promise((resolve) => {
-      let counter = this._pending.size + 1
-
-      const maybeSync = () => {
-        counter -= 1
-        if (counter > 0) {
-          return
-        }
-
-        const token = xuid()
-        this._syncEmitter.once(token, resolve)
-        this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.SYNC, [token])
-      }
-
-      for (const callbacks of this._pending.values()) {
-        callbacks.push(maybeSync)
-      }
-
-      maybeSync()
+      const token = xuid()
+      this._syncEmitter.once(token, resolve)
+      this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.SYNC, [token])
     })
   }
 
