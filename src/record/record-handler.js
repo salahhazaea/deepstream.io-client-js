@@ -62,7 +62,6 @@ class RecordHandler {
     this._client = client
     this._records = new Map()
     this._listeners = new Map()
-    this._pending = new Map()
     this._pruning = new Set()
 
     this._connected = 0
@@ -128,15 +127,6 @@ class RecordHandler {
       this._stats.pending += 1
     } else {
       this._stats.pending -= 1
-    }
-
-    if (value) {
-      this._pending.set(rec, [])
-    } else {
-      for (const callback of this._pending.get(rec)) {
-        callback()
-      }
-      this._pending.delete(rec)
     }
   }
 

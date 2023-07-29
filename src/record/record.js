@@ -404,10 +404,8 @@ class Record {
   _onPending(value) {
     if (value) {
       this._pending = true
-      this.ref()
     } else {
       this._pending = false
-      this.unref()
     }
 
     this._handler._onPending(this, value)
