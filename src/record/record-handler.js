@@ -63,6 +63,8 @@ class RecordHandler {
     this._records = new Map()
     this._listeners = new Map()
     this._pruning = new Set()
+    this._patching = new Map()
+    this._updating = new Map()
 
     this._connected = 0
     this._stats = {
@@ -124,16 +126,30 @@ class RecordHandler {
   _onUpdating(rec, value) {
     if (value) {
       this._stats.updating += 1
+      this._updating.set(rec, [])
     } else {
       this._stats.updating -= 1
+
+      const callbacks = this._updating.get(rec)
+      this._updating.delete(rec)
+      for (const callback of callbacks) {
+        callback()
+      }
     }
   }
 
   _onPatching(rec, value) {
     if (value) {
       this._stats.patching += 1
+      this._patching.set(rec, [])
     } else {
       this._stats.patching -= 1
+
+      const callbacks = this._patching.get(rec)
+      this._patching.delete(rec)
+      for (const callback of callbacks) {
+        callback()
+      }
     }
   }
 
@@ -202,13 +218,66 @@ class RecordHandler {
     }
   }
 
-  sync() {
-    // TODO (fix): Sync patching & updating?
-    // TODO (fix): Ensure no pending?
-    return new Promise((resolve) => {
-      const token = xuid()
-      this._syncEmitter.once(token, resolve)
-      this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.SYNC, [token])
+  async sync() {
+    // TODO (fix): Sync pending? What about VOID state?
+
+    let patchingTimeout
+    await Promise.race([
+      Promise.all(
+        [...this._patching.values()].map(
+          (callbacks) => new Promise((resolve) => callbacks.push(resolve))
+        )
+      ),
+      new Promise((resolve) => {
+        patchingTimeout = timers.setTimeout(() => {
+          this._client._$onError(
+            C.TOPIC.RECORD,
+            C.EVENT.TIMEOUT,
+            new Error('sync patching timeout')
+          )
+          resolve(null)
+        }, 2 * 60e3)
+      }),
+    ]).finally(() => {
+      timers.clearTimeout(patchingTimeout)
+    })
+
+    let updatingTimeout
+    await Promise.race([
+      Promise.all(
+        [...this._updating.values()].map(
+          (callbacks) => new Promise((resolve) => callbacks.push(resolve))
+        )
+      ),
+      new Promise((resolve) => {
+        updatingTimeout = timers.setTimeout(() => {
+          this._client._$onError(
+            C.TOPIC.RECORD,
+            C.EVENT.TIMEOUT,
+            new Error('sync updating timeout')
+          )
+          resolve(null)
+        }, 2 * 60e3)
+      }),
+    ]).finally(() => {
+      timers.clearTimeout(updatingTimeout)
+    })
+
+    let serverTimeout
+    await Promise.race([
+      await new Promise((resolve) => {
+        const token = xuid()
+        this._syncEmitter.once(token, resolve)
+        this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.SYNC, [token])
+      }),
+      new Promise((resolve) => {
+        serverTimeout = timers.setTimeout(() => {
+          this._client._$onError(C.TOPIC.RECORD, C.EVENT.TIMEOUT, new Error('sync server timeout'))
+          resolve(null)
+        }, 2 * 60e3)
+      }),
+    ]).finally(() => {
+      timers.clearTimeout(serverTimeout)
     })
   }
 
