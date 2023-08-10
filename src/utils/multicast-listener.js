@@ -9,7 +9,7 @@ class Listener {
     this._handler = handler
     this._client = this._handler._client
     this._connection = this._handler._connection
-    this._providers = new Map()
+    this._subscriptions = new Map()
     this._recursive = recursive
     this._stringify = stringify || JSON.stringify
 
@@ -18,6 +18,12 @@ class Listener {
 
   get connected() {
     return this._client.getConnectionState() === C.CONNECTION_STATE.OPEN
+  }
+
+  get stats() {
+    return {
+      subscriptions: this._subscriptions.size,
+    }
   }
 
   _$destroy() {
@@ -42,7 +48,7 @@ class Listener {
     const name = message.data[1]
 
     if (message.action === C.ACTIONS.SUBSCRIPTION_FOR_PATTERN_FOUND) {
-      if (this._providers.has(name)) {
+      if (this._subscriptions.has(name)) {
         this._error(name, 'invalid add: listener exists')
         return
       }
@@ -175,9 +181,9 @@ class Listener {
 
       provider.start()
 
-      this._providers.set(provider.name, provider)
+      this._subscriptions.set(provider.name, provider)
     } else if (message.action === C.ACTIONS.LISTEN_ACCEPT) {
-      const provider = this._providers.get(name)
+      const provider = this._subscriptions.get(name)
       if (!provider?.value$) {
         return
       }
@@ -189,13 +195,13 @@ class Listener {
         provider.valueSubscription = provider.value$.subscribe(provider.observer)
       }
     } else if (message.action === C.ACTIONS.SUBSCRIPTION_FOR_PATTERN_REMOVED) {
-      const provider = this._providers.get(name)
+      const provider = this._subscriptions.get(name)
 
       if (!provider) {
         this._error(name, 'invalid remove: listener missing')
       } else {
         provider.stop()
-        this._providers.delete(provider.name)
+        this._subscriptions.delete(provider.name)
       }
     } else {
       return false
@@ -216,10 +222,10 @@ class Listener {
   }
 
   _reset() {
-    for (const provider of this._providers.values()) {
+    for (const provider of this._subscriptions.values()) {
       provider.stop()
     }
-    this._providers.clear()
+    this._subscriptions.clear()
   }
 }
 

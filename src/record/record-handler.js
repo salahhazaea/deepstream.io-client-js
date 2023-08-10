@@ -158,7 +158,15 @@ class RecordHandler {
   }
 
   get stats() {
-    return this._stats
+    let subscriptions = 0
+    for (const listener of this._listeners.values()) {
+      subscriptions += listener.subscriptions ?? 0
+    }
+
+    return {
+      ...this._stats,
+      subscriptions,
+    }
   }
 
   /**

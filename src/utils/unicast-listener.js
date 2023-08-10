@@ -43,6 +43,12 @@ class Listener {
     return this._client.getConnectionState() === C.CONNECTION_STATE.OPEN
   }
 
+  get stats() {
+    return {
+      subscriptions: this._subscriptions.size,
+    }
+  }
+
   _$destroy() {
     this._reset()
 
