@@ -376,23 +376,23 @@ class RecordHandler {
     if (idx < args.length && (args[idx] == null || typeof args[idx] === 'object')) {
       const options = args[idx++] || {}
 
-      if (options.signal != null) {
+      if (options.signal !== undefined) {
         signal = options.signal
       }
 
-      if (options.timeout != null) {
+      if (options.timeout !== undefined) {
         timeout = options.timeout
       }
 
-      if (options.path != null) {
+      if (options.path !== undefined) {
         path = options.path
       }
 
-      if (options.state != null) {
+      if (options.state !== undefined) {
         state = options.state
       }
 
-      if (options.dataOnly != null) {
+      if (options.dataOnly !== undefined) {
         dataOnly = options.dataOnly
       }
     }
