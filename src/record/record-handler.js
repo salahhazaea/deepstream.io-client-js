@@ -435,7 +435,7 @@ class RecordHandler {
 
       const record = (subscription.record = this.getRecord(name).subscribe(onUpdate, subscription))
 
-      if (timeout && state && record.state < state) {
+      if (timeout > 0 && state && record.state < state) {
         // TODO (perf): Avoid Timer allocation.
         subscription.timeout = timers.setTimeout(onTimeout, timeout, subscription)
       }
