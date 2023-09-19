@@ -91,7 +91,8 @@ Client.prototype._$onMessage = function (message) {
 }
 
 Client.prototype._$onError = function (topic, event, msgOrError, data) {
-  const error = msgOrError && msgOrError.message ? msgOrError : new Error(msgOrError)
+  const error =
+    msgOrError && msgOrError.message ? msgOrError : new Error(msgOrError || 'unknown error')
   error.topic = topic
   error.event = event
   error.data = data
