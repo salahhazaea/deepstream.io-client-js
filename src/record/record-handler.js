@@ -349,6 +349,21 @@ class RecordHandler {
 
   /**
    * @param  {...any} args
+   * @returns {Promise}
+   */
+  get2(...args) {
+    return new Promise((resolve, reject) => {
+      this.observe2(...args)
+        .pipe(rx.first())
+        .subscribe({
+          next: resolve,
+          error: reject,
+        })
+    })
+  }
+
+  /**
+   * @param  {...any} args
    * @returns {rxjs.Observable<{ name: string, version: string, state: Number, data: any}>}
    */
   observe2(...args) {
