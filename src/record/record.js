@@ -153,8 +153,6 @@ class Record {
     if (this._state < C.RECORD_STATE.SERVER) {
       if (this._patching == null) {
         this._onPatching(true)
-      } else if (path) {
-        this._patching.splice(0)
       }
 
       if (this._patching) {
