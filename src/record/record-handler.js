@@ -226,67 +226,94 @@ class RecordHandler {
     }
   }
 
-  async sync() {
+  async sync({ timeout, signal }) {
     // TODO (fix): Sync pending? What about VOID state?
 
-    let patchingTimeout
-    await Promise.race([
-      Promise.all(
-        [...this._patching.values()].map(
-          (callbacks) => new Promise((resolve) => callbacks.push(resolve))
-        )
-      ),
-      new Promise((resolve) => {
-        patchingTimeout = timers.setTimeout(() => {
-          this._client._$onError(
-            C.TOPIC.RECORD,
-            C.EVENT.TIMEOUT,
-            new Error('sync patching timeout')
-          )
-          resolve(null)
-        }, 2 * 60e3)
-      }),
-    ]).finally(() => {
-      timers.clearTimeout(patchingTimeout)
-    })
+    let onAbort
 
-    let updatingTimeout
-    await Promise.race([
-      Promise.all(
-        [...this._updating.values()].map(
-          (callbacks) => new Promise((resolve) => callbacks.push(resolve))
-        )
-      ),
-      new Promise((resolve) => {
-        updatingTimeout = timers.setTimeout(() => {
-          this._client._$onError(
-            C.TOPIC.RECORD,
-            C.EVENT.TIMEOUT,
-            new Error('sync updating timeout')
-          )
-          resolve(null)
-        }, 2 * 60e3)
-      }),
-    ]).finally(() => {
-      timers.clearTimeout(updatingTimeout)
-    })
+    const signalPromise = signal
+      ? new Promise((resolve, reject) => {
+          onAbort = () => {
+            reject(signal.reason ?? new utils.AbortError())
+          }
+          signal.addEventListener('abort', onAbort)
+        })
+      : null
+    signalPromise?.catch(() => {})
 
-    let serverTimeout
-    await Promise.race([
-      await new Promise((resolve) => {
-        const token = xuid()
-        this._syncEmitter.once(token, resolve)
-        this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.SYNC, [token])
-      }),
-      new Promise((resolve) => {
-        serverTimeout = timers.setTimeout(() => {
-          this._client._$onError(C.TOPIC.RECORD, C.EVENT.TIMEOUT, new Error('sync server timeout'))
-          resolve(null)
-        }, 2 * 60e3)
-      }),
-    ]).finally(() => {
-      timers.clearTimeout(serverTimeout)
-    })
+    try {
+      if (this._patching.size) {
+        let patchingTimeout
+        const patching = [...this._patching.values()]
+        await Promise.race([
+          Promise.all(
+            patching.map((callbacks) => new Promise((resolve) => callbacks.push(resolve)))
+          ),
+          new Promise((resolve) => {
+            patchingTimeout = timers.setTimeout(() => {
+              this._client._$onError(
+                C.TOPIC.RECORD,
+                C.EVENT.TIMEOUT,
+                Object.assign(new Error('sync patching timeout'), { data: { patching, timeout } })
+              )
+              resolve(null)
+            }, timeout ?? 10 * 60e3)
+          }),
+          signalPromise,
+        ]).finally(() => {
+          timers.clearTimeout(patchingTimeout)
+        })
+      }
+
+      if (this._updating.size) {
+        let updatingTimeout
+        const updating = [...this._updating.values()]
+        await Promise.race([
+          Promise.all(
+            updating.map((callbacks) => new Promise((resolve) => callbacks.push(resolve)))
+          ),
+          new Promise((resolve) => {
+            updatingTimeout = timers.setTimeout(() => {
+              this._client._$onError(
+                C.TOPIC.RECORD,
+                C.EVENT.TIMEOUT,
+                Object.assign(new Error('sync updating timeout'), { data: { updating, timeout } })
+              )
+              resolve(null)
+            }, timeout ?? 10 * 60e3)
+          }),
+          signalPromise,
+        ]).finally(() => {
+          timers.clearTimeout(updatingTimeout)
+        })
+      }
+
+      let serverTimeout
+      const token = xuid()
+      await Promise.race([
+        await new Promise((resolve) => {
+          this._syncEmitter.once(token, resolve)
+          this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.SYNC, [token])
+        }),
+        new Promise((resolve) => {
+          serverTimeout = timers.setTimeout(() => {
+            this._client._$onError(
+              C.TOPIC.RECORD,
+              C.EVENT.TIMEOUT,
+              Object.assign(new Error('sync server timeout'), { data: { token, timeout } })
+            )
+            resolve(null)
+          }, timeout ?? 10 * 60e3)
+        }),
+        signalPromise,
+      ]).finally(() => {
+        timers.clearTimeout(serverTimeout)
+      })
+    } finally {
+      if (onAbort) {
+        signal?.removeEventListener('abort', onAbort)
+      }
+    }
   }
 
   set(name, ...args) {
