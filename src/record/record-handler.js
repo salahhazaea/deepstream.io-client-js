@@ -260,7 +260,7 @@ class RecordHandler {
                 Object.assign(new Error('sync patching timeout'), { data: { patching, timeout } })
               )
               resolve(null)
-            }, timeout ?? 10 * 60e3)
+            }, timeout ?? 2 * 60e3)
           }),
           signalPromise,
         ]).finally(() => {
@@ -283,7 +283,7 @@ class RecordHandler {
                 Object.assign(new Error('sync updating timeout'), { data: { updating, timeout } })
               )
               resolve(null)
-            }, timeout ?? 10 * 60e3)
+            }, timeout ?? 2 * 60e3)
           }),
           signalPromise,
         ]).finally(() => {
@@ -306,7 +306,7 @@ class RecordHandler {
               Object.assign(new Error('sync server timeout'), { data: { token, timeout } })
             )
             resolve(null)
-          }, timeout ?? 10 * 60e3)
+          }, timeout ?? 2 * 60e3)
         }),
         signalPromise,
       ]).finally(() => {
@@ -355,7 +355,7 @@ class RecordHandler {
     return this._observe(
       {
         state: C.RECORD_STATE.SERVER,
-        timeout: 10 * 60e3,
+        timeout: 2 * 60e3,
         dataOnly: true,
       },
       ...args
@@ -399,7 +399,7 @@ class RecordHandler {
   observe2(...args) {
     return this._observe(
       {
-        timeout: 10 * 60e3,
+        timeout: 2 * 60e3,
       },
       ...args
     )
