@@ -226,10 +226,13 @@ class RecordHandler {
     }
   }
 
-  async sync({ timeout, signal }) {
+  async sync(opts) {
     // TODO (fix): Sync pending? What about VOID state?
 
     let onAbort
+
+    const signal = opts?.signal
+    const timeout = opts?.timeout
 
     const signalPromise = signal
       ? new Promise((resolve, reject) => {
