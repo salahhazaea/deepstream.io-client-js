@@ -10,6 +10,7 @@ class Listener {
     this._handler = handler
     this._client = this._handler._client
     this._connection = this._handler._connection
+    this._connected = false
     this._subscriptions = new Map()
     this._stringify = stringify || JSON.stringify
 
@@ -39,10 +40,6 @@ class Listener {
     }
   }
 
-  get connected() {
-    return this._client.getConnectionState() === C.CONNECTION_STATE.OPEN
-  }
-
   get stats() {
     return {
       subscriptions: this._subscriptions.size,
@@ -52,13 +49,13 @@ class Listener {
   _$destroy() {
     this._reset()
 
-    if (this.connected) {
+    if (this._connected) {
       this._connection.sendMsg(this._topic, C.ACTIONS.UNLISTEN, [this._pattern])
     }
   }
 
   _$onMessage(message) {
-    if (!this.connected) {
+    if (!this._connected) {
       this._client._$onError(
         C.TOPIC.RECORD,
         C.EVENT.NOT_CONNECTED,
@@ -122,8 +119,10 @@ class Listener {
     return true
   }
 
-  _$onConnectionStateChange() {
-    if (this.connected) {
+  _$onConnectionStateChange(connected) {
+    this._connected = connected
+
+    if (connected) {
       this._connection.sendMsg(this._topic, C.ACTIONS.LISTEN, [this._pattern, 'U'])
     } else {
       this._reset()
