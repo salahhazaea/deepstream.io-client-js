@@ -13,11 +13,11 @@ class Listener {
     this._recursive = recursive
     this._stringify = stringify || JSON.stringify
 
-    this._$onConnectionStateChange()
+    this._$onConnectionStateChange(this._connection.connected)
   }
 
   get connected() {
-    return this._client.getConnectionState() === C.CONNECTION_STATE.OPEN
+    return this._connection.connected
   }
 
   get stats() {
@@ -209,8 +209,8 @@ class Listener {
     return true
   }
 
-  _$onConnectionStateChange() {
-    if (this.connected) {
+  _$onConnectionStateChange(connected) {
+    if (connected) {
       this._connection.sendMsg(this._topic, C.ACTIONS.LISTEN, [this._pattern])
     } else {
       this._reset()

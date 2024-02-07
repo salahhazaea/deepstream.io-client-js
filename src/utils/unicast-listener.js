@@ -2,42 +2,47 @@ const C = require('../constants/constants')
 const rx = require('rxjs/operators')
 const rxjs = require('rxjs')
 
+const PIPE = rxjs.pipe(
+  rx.map((value) => {
+    let data
+    if (value && typeof value === 'string') {
+      if (value.charAt(0) !== '{' && value.charAt(0) !== '[') {
+        throw new Error(`invalid value: ${value}`)
+      }
+      data = value
+    } else if (value && typeof value === 'object') {
+      data = JSON.stringify(value)
+    } else if (data != null) {
+      throw new Error(`invalid value: ${value}`)
+    }
+
+    return data
+  }),
+  rx.distinctUntilChanged()
+)
+
 class Listener {
-  constructor(topic, pattern, callback, handler, { stringify = null, recursive = false } = {}) {
+  constructor(topic, pattern, callback, handler, opts) {
+    if (opts.recursive) {
+      throw new Error('invalid argument: recursive')
+    }
+    if (opts.stringify) {
+      throw new Error('invalid argument: stringify')
+    }
+
     this._topic = topic
     this._pattern = pattern
     this._callback = callback
     this._handler = handler
     this._client = this._handler._client
     this._connection = this._handler._connection
-    this._connected = false
     this._subscriptions = new Map()
-    this._stringify = stringify || JSON.stringify
 
-    this._pipe = rxjs.pipe(
-      rx.map((value) => {
-        let data
-        if (value && typeof value === 'string') {
-          if (value.charAt(0) !== '{' && value.charAt(0) !== '[') {
-            throw new Error(`invalid value: ${value}`)
-          }
-          data = value
-        } else if (value && typeof value === 'object') {
-          data = this._stringify(value)
-        } else if (data != null) {
-          throw new Error(`invalid value: ${value}`)
-        }
+    this._$onConnectionStateChange(this._connection.connected)
+  }
 
-        return data
-      }),
-      rx.distinctUntilChanged()
-    )
-
-    this._$onConnectionStateChange()
-
-    if (recursive) {
-      throw new Error('invalid argument: recursive')
-    }
+  get connected() {
+    return this._connection.connected
   }
 
   get stats() {
@@ -49,13 +54,13 @@ class Listener {
   _$destroy() {
     this._reset()
 
-    if (this._connected) {
+    if (this.connected) {
       this._connection.sendMsg(this._topic, C.ACTIONS.UNLISTEN, [this._pattern])
     }
   }
 
   _$onMessage(message) {
-    if (!this._connected) {
+    if (!this.connected) {
       this._client._$onError(
         C.TOPIC.RECORD,
         C.EVENT.NOT_CONNECTED,
@@ -81,7 +86,7 @@ class Listener {
       }
 
       if (value$) {
-        const subscription = value$.pipe(this._pipe).subscribe({
+        const subscription = value$.pipe(PIPE).subscribe({
           next: (data) => {
             if (data == null) {
               this._connection.sendMsg(this._topic, C.ACTIONS.LISTEN_REJECT, [this._pattern, name])
@@ -120,8 +125,6 @@ class Listener {
   }
 
   _$onConnectionStateChange(connected) {
-    this._connected = connected
-
     if (connected) {
       this._connection.sendMsg(this._topic, C.ACTIONS.LISTEN, [this._pattern, 'U'])
     } else {

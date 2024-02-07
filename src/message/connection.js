@@ -318,11 +318,14 @@ Connection.prototype._setState = function (state) {
     return
   }
   this._state = state
+  this.emit(C.EVENT.CONNECTION_STATE_CHANGED, state)
   this._client.emit(C.EVENT.CONNECTION_STATE_CHANGED, state)
 
   if (state === C.CONNECTION_STATE.OPEN) {
+    this.emit(C.EVENT.CONNECTED, true)
     this._client.emit(C.EVENT.CONNECTED, true)
   } else if (state === C.CONNECTION_STATE.RECONNECTING || state === C.CONNECTION_STATE.CLOSED) {
+    this.emit(C.EVENT.CONNECTED, false)
     this._client.emit(C.EVENT.CONNECTED, false)
   }
 }
