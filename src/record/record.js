@@ -10,6 +10,8 @@ class Record {
   static STATE = C.RECORD_STATE
 
   constructor(name, handler) {
+    const connection = handler._connection
+
     this._handler = handler
 
     this._name = name
@@ -21,7 +23,7 @@ class Record {
     this._emitting = false
     /** @type Map? */ this._updating = null
     /** @type Array? */ this._patching = null
-    this._subscribed = this._sendMsg1(C.ACTIONS.SUBSCRIBE, this._name)
+    this._subscribed = connection.sendMsg1(C.TOPIC.RECORD, C.ACTIONS.SUBSCRIBE, this._name)
   }
 
   /** @type {string} */
@@ -53,10 +55,13 @@ class Record {
    * @returns {Record}
    */
   ref() {
+    const connection = this._handler._connection
+
     this._refs += 1
     if (this._refs === 1) {
       this._handler._onPruning(this, false)
-      this._subscribed = this._subscribed || this._sendMsg1(C.ACTIONS.SUBSCRIBE, this._name)
+      this._subscribed =
+        this._subscribed || connection.sendMsg1(C.TOPIC.RECORD, C.ACTIONS.SUBSCRIBE, this._name)
     }
     return this
   }
@@ -261,12 +266,15 @@ class Record {
   }
 
   _$onConnectionStateChange(connected) {
+    const connection = this._handler._connection
+
     if (connected) {
-      this._subscribed = this._refs > 0 && this._sendMsg1(C.ACTIONS.SUBSCRIBE, this._name)
+      this._subscribed =
+        this._refs > 0 && connection.sendMsg1(C.TOPIC.RECORD, C.ACTIONS.SUBSCRIBE, this._name)
 
       if (this._updating) {
         for (const update of this._updating.values()) {
-          this._sendMsg1(C.ACTIONS.UPDATE, update)
+          connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.UPDATE, update)
         }
       }
     } else {
@@ -280,12 +288,14 @@ class Record {
   }
 
   _$dispose() {
+    const connection = this._handler._connection
+
     invariant(!this._refs, 'must not have refs')
     invariant(!this._patching, 'must not have patches')
     invariant(!this._updating, 'must not have updates')
 
     if (this._subscribed) {
-      this._sendMsg1(C.ACTIONS.UNSUBSCRIBE, this._name)
+      connection.sendMsg1(C.TOPIC.RECORD, C.ACTIONS.UNSUBSCRIBE, this._name)
       this._subscribed = false
     }
 
@@ -412,10 +422,6 @@ class Record {
     if (this._state !== prevState) {
       this._emitUpdate()
     }
-  }
-
-  _sendMsg1(action, data) {
-    return this._handler._connection.sendMsg1(C.TOPIC.RECORD, action, data)
   }
 
   _error(event, msgOrError, data) {
