@@ -5,6 +5,7 @@ const messageParser = require('../message/message-parser')
 const xuid = require('xuid')
 const invariant = require('invariant')
 const cloneDeep = require('lodash.clonedeep')
+const timers = require('../utils/timers')
 
 class Record {
   static STATE = C.RECORD_STATE
@@ -185,15 +186,31 @@ class Record {
 
     const signal = optionsOrNil?.signal
     const state = stateOrNil ?? C.RECORD_STATE.SERVER
+    const timeout = optionsOrNil?.timeout ?? 2 * 60e3
 
     if (!Number.isFinite(state) || state < 0) {
       throw new Error('invalid argument: state')
     }
 
-    await new Promise((resolve) => {
+    await new Promise((resolve, reject) => {
       if (this._state >= state) {
         resolve(null)
         return
+      }
+
+      let timeoutHandle
+
+      if (timeout > 0) {
+        timeoutHandle = timers.setTimeout(() => {
+          const expected = C.RECORD_STATE_NAME[state]
+          const current = C.RECORD_STATE_NAME[this._state]
+
+          reject(
+            Object.assign(new Error(`timeout  ${this.name} [${current}<${expected}]`), {
+              code: 'ETIMEDOUT',
+            })
+          )
+        }, timeout)
       }
 
       const onUpdate = () => {
@@ -203,6 +220,11 @@ class Record {
 
         this.unref()
         this.unsubscribe(onUpdate)
+
+        if (timeoutHandle) {
+          timers.clearTimeout(timeoutHandle)
+          timeoutHandle = null
+        }
 
         resolve(null)
       }
