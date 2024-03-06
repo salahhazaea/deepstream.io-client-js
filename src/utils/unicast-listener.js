@@ -90,8 +90,8 @@ class Listener {
           next: (data) => {
             if (data == null) {
               this._connection.sendMsg(this._topic, C.ACTIONS.LISTEN_REJECT, [this._pattern, name])
+              this._subscriptions.delete(name)
               subscription.unsubscribe()
-              this._subscriptions.set(name, null)
             } else {
               const version = `INF-${this._connection.hasher.h64ToString(data)}`
               this._connection.sendMsg(this._topic, C.ACTIONS.UPDATE, [name, version, data])
@@ -105,19 +105,17 @@ class Listener {
         this._subscriptions.set(name, subscription)
       } else {
         this._connection.sendMsg(this._topic, C.ACTIONS.LISTEN_REJECT, [this._pattern, name])
-        this._subscriptions.set(name, null)
+        this._subscriptions.delete(name)
       }
     } else if (message.action === C.ACTIONS.LISTEN_REJECT) {
-      if (!this._subscriptions.has(name)) {
-        this._error(name, 'invalid remove: listener missing')
-        return
-      }
-
       const subscription = this._subscriptions.get(name)
 
-      subscription?.unsubscribe()
-
-      this._subscriptions.delete(name)
+      if (subscription) {
+        this._subscriptions.delete(name)
+        subscription.unsubscribe()
+      } else {
+        this._error(name, 'invalid remove: listener missing')
+      }
     } else {
       return false
     }
