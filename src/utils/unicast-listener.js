@@ -89,7 +89,6 @@ class Listener {
         this._subscriptions.set(name, subscription)
       } else {
         this._connection.sendMsg(this._topic, C.ACTIONS.LISTEN_REJECT, [this._pattern, name])
-        this._subscriptions.delete(name)
       }
     } else if (message.action === C.ACTIONS.LISTEN_REJECT) {
       const subscription = this._subscriptions.get(name)
