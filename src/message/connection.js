@@ -9,6 +9,8 @@ const xxhash = require('xxhash-wasm')
 const FixedQueue = require('../utils/fixed-queue')
 const Emitter = require('component-emitter2')
 
+const kCorked = Symbol('corked')
+
 const Connection = function (client, url, options) {
   this._client = client
   this._options = options
@@ -136,9 +138,11 @@ Connection.prototype.send = function (message) {
     return false
   }
 
-  if (this._endpoint._socket && !this._endpoint._socket.writableCorked) {
+  if (this._endpoint._socket && !this._endpoint[kCorked]) {
     this._endpoint._socket.cork()
+    this._endpoint[kCorked] = true
     queueMicrotask(() => {
+      this._endpoint[kCorked] = false
       this._endpoint._socket.uncork()
     })
   }
