@@ -141,7 +141,7 @@ Connection.prototype.send = function (message) {
   if (this._endpoint._socket && !this._endpoint[kCorked]) {
     this._endpoint._socket.cork()
     this._endpoint[kCorked] = true
-    queueMicrotask(() => {
+    setImmediate(() => {
       this._endpoint[kCorked] = false
       this._endpoint._socket.uncork()
     })
