@@ -9,8 +9,6 @@ const xxhash = require('xxhash-wasm')
 const FixedQueue = require('../utils/fixed-queue')
 const Emitter = require('component-emitter2')
 
-const kCorked = Symbol('corked')
-
 const Connection = function (client, url, options) {
   this._client = client
   this._options = options
@@ -108,6 +106,7 @@ Connection.prototype._createEndpoint = function () {
     : new NodeWebSocket(this._url, {
         generateMask() {},
       })
+  this._corked = false
 
   this._endpoint.onopen = this._onOpen.bind(this)
   this._endpoint.onerror = this._onError.bind(this)
@@ -138,12 +137,12 @@ Connection.prototype.send = function (message) {
     return false
   }
 
-  if (this._endpoint._socket && !this._endpoint[kCorked]) {
+  if (this._endpoint._socket && !this._corked) {
     this._endpoint._socket.cork()
-    this._endpoint[kCorked] = true
+    this._corked = true
     setImmediate(() => {
-      this._endpoint[kCorked] = false
       this._endpoint._socket.uncork()
+      this._corked = false
     })
   }
 
