@@ -136,6 +136,13 @@ Connection.prototype.send = function (message) {
     return false
   }
 
+  if (this._endpoint._socket && !this._endpoint._socket.writableCorked) {
+    this._endpoint._socket.cork()
+    queueMicrotask(() => {
+      this._endpoint._socket.uncork()
+    })
+  }
+
   this.emit('send', message)
   this._endpoint.send(message)
 
