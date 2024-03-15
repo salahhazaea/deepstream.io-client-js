@@ -51,6 +51,27 @@ function onTimeout(subscription) {
   )
 }
 
+function onUpdateFast(rec, opaque) {
+  if (rec.state >= opaque.state) {
+    timers.clearTimeout(opaque.timeout)
+    rec.unsubscribe(onUpdateFast, opaque)
+    rec.unref()
+    opaque.resolve(rec.data)
+  }
+}
+
+function onTimeoutFast(opaque) {
+  opaque.unsubscribe(onUpdateFast, opaque)
+  opaque.unref()
+  opaque.resolve(
+    Promise.reject(
+      Object.assign(new Error(`timeout ${opaque.rec.name} [${opaque.rec.state}<${opaque.state}]`), {
+        code: 'ETIMEDOUT',
+      })
+    )
+  )
+}
+
 class RecordHandler {
   constructor(options, connection, client) {
     this.JSON = jsonPath
@@ -367,14 +388,35 @@ class RecordHandler {
    * @returns {Promise}
    */
   get(...args) {
-    return new Promise((resolve, reject) => {
-      this.observe(...args)
-        .pipe(rx.first())
-        .subscribe({
-          next: resolve,
-          error: reject,
-        })
-    })
+    if (args.length === 1 || (args.length === 2 && typeof args[1] === 'number')) {
+      return new Promise((resolve) => {
+        const rec = this.getRecord(args[0])
+        const state = args.length === 2 ? args[1] : C.RECORD_STATE.SERVER
+
+        if (rec.state < state) {
+          rec.unref()
+          resolve(rec.data)
+        } else {
+          const opaque = {
+            rec,
+            state,
+            resolve,
+            timeout: null,
+          }
+          opaque.timeout = timers.setTimeout(onTimeoutFast, 2 * 60e3, opaque)
+          rec.subscribe(onUpdateFast, opaque)
+        }
+      })
+    } else {
+      return new Promise((resolve, reject) => {
+        this.observe(...args)
+          .pipe(rx.first())
+          .subscribe({
+            next: resolve,
+            error: reject,
+          })
+      })
+    }
   }
 
   /**
@@ -418,7 +460,10 @@ class RecordHandler {
 
     let idx = 0
 
-    if (idx < args.length && (args[idx] == null || typeof args[idx] === 'string')) {
+    if (
+      idx < args.length &&
+      (args[idx] == null || typeof args[idx] === 'string' || Array.isArray(args[idx]))
+    ) {
       path = args[idx++]
     }
 
