@@ -52,18 +52,21 @@ function onTimeout(subscription) {
 }
 
 function onUpdateFast(rec, opaque) {
+  const { timeout, resolve } = opaque
+
   if (rec.state >= opaque.state) {
-    timers.clearTimeout(opaque.timeout)
+    timers.clearTimeout(timeout)
     rec.unsubscribe(onUpdateFast, opaque)
     rec.unref()
-    opaque.resolve(rec.data)
+    resolve(rec.data)
   }
 }
 
 function onTimeoutFast(opaque) {
-  opaque.unsubscribe(onUpdateFast, opaque)
-  opaque.unref()
-  opaque.resolve(
+  const { rec, resolve } = opaque
+  rec.unsubscribe(onUpdateFast, opaque)
+  rec.unref()
+  resolve(
     Promise.reject(
       Object.assign(new Error(`timeout ${opaque.rec.name} [${opaque.rec.state}<${opaque.state}]`), {
         code: 'ETIMEDOUT',
