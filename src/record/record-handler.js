@@ -393,7 +393,7 @@ class RecordHandler {
         const rec = this.getRecord(args[0])
         const state = args.length === 2 ? args[1] : C.RECORD_STATE.SERVER
 
-        if (rec.state < state) {
+        if (rec.state >= state) {
           rec.unref()
           resolve(rec.data)
         } else {
