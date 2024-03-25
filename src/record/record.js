@@ -228,8 +228,8 @@ class Record {
       }
 
       const onAbort = signal
-        ? (abort) => {
-            onDone(abort ?? new utils.AbortError())
+        ? () => {
+            onDone(signal.reason ?? new utils.AbortError())
           }
         : null
 
