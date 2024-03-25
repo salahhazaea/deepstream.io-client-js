@@ -175,8 +175,7 @@ class Record {
     }
   }
 
-  // TODO (fix): timeout + signal
-  async when(stateOrNil, optionsOrNil) {
+  when(stateOrNil, optionsOrNil) {
     invariant(this._refs > 0, 'missing refs')
 
     if (stateOrNil != null && stateOrNil === 'object') {
@@ -188,11 +187,15 @@ class Record {
     const state = stateOrNil ?? C.RECORD_STATE.SERVER
     const timeout = optionsOrNil?.timeout ?? 2 * 60e3
 
-    if (!Number.isFinite(state) || state < 0) {
-      throw new Error('invalid argument: state')
+    if (signal?.aborted) {
+      return Promise.reject(signal.reason || new utils.AbortError())
     }
 
-    await new Promise((resolve, reject) => {
+    if (!Number.isFinite(state) || state < 0) {
+      return Promise.reject(new Error('invalid argument: state'))
+    }
+
+    return new Promise((resolve, reject) => {
       if (this._state >= state) {
         resolve(null)
         return
@@ -232,8 +235,6 @@ class Record {
       this.ref()
       this.subscribe(onUpdate)
     })
-
-    signal?.throwIfAborted()
   }
 
   update(...args) {
