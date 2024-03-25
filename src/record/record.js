@@ -236,7 +236,7 @@ class Record {
     signal?.throwIfAborted()
   }
 
-  update(pathOrUpdater, updaterOrNil) {
+  update(...args) {
     invariant(this._refs > 0, 'missing refs')
 
     if (this._version.charAt(0) === 'I') {
@@ -248,8 +248,9 @@ class Record {
       return Promise.resolve()
     }
 
-    const path = arguments.length === 1 ? undefined : pathOrUpdater
-    const updater = arguments.length === 1 ? pathOrUpdater : updaterOrNil
+    const options = args.at(-1) === 'object' ? args.pop() : null
+    const path = args.length === 1 ? undefined : args[0]
+    const updater = args.length === 1 ? args[0] : args[1]
 
     if (typeof updater !== 'function') {
       throw new Error('invalid argument: updater')
@@ -264,7 +265,7 @@ class Record {
     }
 
     this.ref()
-    return this.when(C.RECORD_STATE.SERVER)
+    return this.when(C.RECORD_STATE.SERVER, options)
       .then(() => {
         const prev = this.get(path)
         const next = updater(prev, this._version)
