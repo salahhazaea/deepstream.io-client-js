@@ -264,6 +264,10 @@ class Record {
       throw new Error('invalid argument: path')
     }
 
+    if (options?.signal?.aborted) {
+      return Promise.reject(options.signal.reason || new utils.AbortError())
+    }
+
     this.ref()
     return this.when(C.RECORD_STATE.SERVER, options)
       .then(() => {
