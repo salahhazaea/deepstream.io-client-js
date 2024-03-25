@@ -249,7 +249,7 @@ class Record {
       return Promise.resolve()
     }
 
-    const options = args.at(-1) === 'object' ? args.pop() : null
+    const options = args.at(-1) != null && typeof args.at(-1) === 'object' ? args.pop() : null
     const path = args.length === 1 ? undefined : args[0]
     const updater = args.length === 1 ? args[0] : args[1]
 
