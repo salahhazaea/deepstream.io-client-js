@@ -203,22 +203,11 @@ class Record {
 
       let timeoutHandle
 
-      if (timeout > 0) {
-        timeoutHandle = timers.setTimeout(() => {
-          const expected = C.RECORD_STATE_NAME[state]
-          const current = C.RECORD_STATE_NAME[this._state]
-
-          reject(
-            Object.assign(new Error(`timeout  ${this.name} [${current}<${expected}]`), {
-              code: 'ETIMEDOUT',
-            })
-          )
-        }, timeout)
-      }
-
-      const onUpdate = () => {
-        if (this._state < state) {
-          return
+      const onDone = (err, val) => {
+        if (err) {
+          reject(err)
+        } else {
+          resolve(val)
         }
 
         this.unref()
@@ -229,8 +218,35 @@ class Record {
           timeoutHandle = null
         }
 
-        resolve(null)
+        signal?.removeEventListener('abort', onAbort)
       }
+
+      const onUpdate = () => {
+        if (this._state >= state) {
+          onDone(null, null)
+        }
+      }
+
+      const onAbort = signal
+        ? (abort) => {
+            onDone(abort ?? new utils.AbortError())
+          }
+        : null
+
+      if (timeout > 0) {
+        timeoutHandle = timers.setTimeout(() => {
+          const expected = C.RECORD_STATE_NAME[state]
+          const current = C.RECORD_STATE_NAME[this._state]
+
+          onDone(
+            Object.assign(new Error(`timeout  ${this.name} [${current}<${expected}]`), {
+              code: 'ETIMEDOUT',
+            })
+          )
+        }, timeout)
+      }
+
+      signal?.addEventListener('abort', onAbort)
 
       this.ref()
       this.subscribe(onUpdate)
