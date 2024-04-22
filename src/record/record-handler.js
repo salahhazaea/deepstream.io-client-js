@@ -52,14 +52,19 @@ function onTimeout(subscription) {
 }
 
 function onUpdateFast(rec, opaque) {
-  const { timeout, resolve } = opaque
+  const { timeout, resolve, synced, state } = opaque
 
-  if (rec.state >= opaque.state) {
+  if (rec.state >= state && synced) {
     timers.clearTimeout(timeout)
     rec.unsubscribe(onUpdateFast, opaque)
     rec.unref()
     resolve(rec.data)
   }
+}
+
+function onSyncFast(opaque) {
+  opaque.synced = true
+  onUpdateFast(opaque.rec, opaque)
 }
 
 function onTimeoutFast(opaque) {
@@ -100,6 +105,7 @@ class RecordHandler {
       patching: 0,
     }
 
+    this._syncQueue = []
     this._syncEmitter = new EventEmitter()
     this._readyEmitter = new EventEmitter()
 
@@ -343,6 +349,27 @@ class RecordHandler {
     }
   }
 
+  _sync(callback, opaque) {
+    this._syncQueue.push(callback, opaque)
+
+    if (this._syncQueue.length > 2) {
+      return
+    }
+
+    setImmediate(() => {
+      // Token must be universally unique until deepstream properly separates
+      // sync requests from different sockets.
+      const token = xuid()
+      const queue = this._syncQueue.splice(0)
+      this._syncEmitter.once(token, () => {
+        for (let n = 0; n < queue.length; n += 2) {
+          queue[n](queue[n + 1])
+        }
+      })
+      this._connection.sendMsg2(C.TOPIC.RECORD, C.ACTIONS.SYNC, token, 'WEAK')
+    })
+  }
+
   set(name, ...args) {
     const record = this.getRecord(name)
     try {
@@ -395,8 +422,13 @@ class RecordHandler {
       return new Promise((resolve) => {
         const rec = this.getRecord(args[0])
         const state = args.length === 2 ? args[1] : C.RECORD_STATE.SERVER
+        // TODO (perf): We could also skip sync if state is less than SERVER. However,
+        // there is a potential race where we receive an UPDATE for a previous SUBSCRIBE.
+        // Unsure how to avoid that. Keep it simple for now and always sync regardless of
+        // current state.
+        const synced = state < C.RECORD_STATE.SERVER
 
-        if (rec.state >= state) {
+        if (rec.state >= state && synced) {
           rec.unref()
           resolve(rec.data)
         } else {
@@ -405,12 +437,19 @@ class RecordHandler {
             state,
             resolve,
             timeout: null,
+            synced,
           }
           opaque.timeout = timers.setTimeout(onTimeoutFast, 2 * 60e3, opaque)
           rec.subscribe(onUpdateFast, opaque)
+
+          if (!opaque.synced) {
+            this._sync(onSyncFast, 'WEAK', opaque)
+          }
         }
       })
     } else {
+      // Slow path...
+      // TODO (fix): Missing sync..
       return new Promise((resolve, reject) => {
         this.observe(...args)
           .pipe(rx.first())
