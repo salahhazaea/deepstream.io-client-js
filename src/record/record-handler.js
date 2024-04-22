@@ -443,7 +443,7 @@ class RecordHandler {
           rec.subscribe(onUpdateFast, opaque)
 
           if (!opaque.synced) {
-            this._sync(onSyncFast, 'WEAK', opaque)
+            this._sync(onSyncFast, opaque)
           }
         }
       })
