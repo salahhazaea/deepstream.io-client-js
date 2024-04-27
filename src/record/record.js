@@ -128,7 +128,7 @@ class Record {
     if (!path) {
       return this._data
     } else if (typeof path === 'string' || Array.isArray(path)) {
-      return path ? jsonPath.get(this._data, path) : this._data
+      return jsonPath.get(this._data, path)
     } else if (typeof path === 'function') {
       return path(this._data)
     } else {
