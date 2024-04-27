@@ -504,7 +504,10 @@ class RecordHandler {
 
     if (
       idx < args.length &&
-      (args[idx] == null || typeof args[idx] === 'string' || Array.isArray(args[idx]))
+      (args[idx] == null ||
+        typeof args[idx] === 'string' ||
+        Array.isArray(args[idx]) ||
+        typeof args[idx] === 'function')
     ) {
       path = args[idx++]
     }
