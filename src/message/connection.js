@@ -188,7 +188,7 @@ Connection.prototype._onOpen = function () {
 }
 
 Connection.prototype._onError = function (err) {
-  this._recvMessages()
+  this._recvMessages({ didTimeout: true, timeRemaining: () => 0 })
 
   if (err.error) {
     const { message, error } = err
@@ -210,7 +210,7 @@ Connection.prototype._onError = function (err) {
 }
 
 Connection.prototype._onClose = function () {
-  this._recvMessages()
+  this._recvMessages({ didTimeout: true, timeRemaining: () => 0 })
 
   if (this._deliberateClose === true) {
     this._setState(C.CONNECTION_STATE.CLOSED)
@@ -236,7 +236,7 @@ Connection.prototype._recvMessages = function (deadline) {
   for (
     let n = 0;
     // eslint-disable-next-line no-unmodified-loop-condition
-    n < this._batchSize && (!deadline || deadline.timeRemaining() || deadline.didTimeout);
+    deadline ? deadline.didTimeout || deadline.timeRemaining() : n < this._batchSize;
     ++n
   ) {
     const message = this._recvQueue.shift()
