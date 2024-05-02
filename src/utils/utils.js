@@ -126,7 +126,11 @@ module.exports.AbortError = class AbortError extends Error {
   }
 }
 
-module.exports.schedule = isNode ? setImmediate : window.requestIdleCallback
+function defaultSchedule(fn) {
+  setTimeout(fn, 0)
+}
+
+module.exports.schedule = isNode ? defaultSchedule : window.requestIdleCallback
 
 const abortSignals = new WeakMap()
 const onAbort = function () {
