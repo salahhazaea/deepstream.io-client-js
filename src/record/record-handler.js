@@ -356,7 +356,7 @@ class RecordHandler {
       return
     }
 
-    setImmediate(() => {
+    setTimeout(() => {
       // Token must be universally unique until deepstream properly separates
       // sync requests from different sockets.
       const token = xuid()
@@ -367,7 +367,7 @@ class RecordHandler {
         }
       })
       this._connection.sendMsg2(C.TOPIC.RECORD, C.ACTIONS.SYNC, token, 'WEAK')
-    })
+    }, 1)
   }
 
   set(name, ...args) {

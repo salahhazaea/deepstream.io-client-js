@@ -140,10 +140,10 @@ Connection.prototype.send = function (message) {
   if (this._endpoint._socket && !this._corked) {
     this._endpoint._socket.cork()
     this._corked = true
-    setImmediate(() => {
+    setTimeout(() => {
       this._endpoint._socket.uncork()
       this._corked = false
-    })
+    }, 1)
   }
 
   this.emit('send', message)
