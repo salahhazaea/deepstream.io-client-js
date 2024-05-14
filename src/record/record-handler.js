@@ -45,9 +45,12 @@ function onTimeout(subscription) {
   const current = C.RECORD_STATE_NAME[subscription.record.state]
 
   subscription.subscriber.error(
-    Object.assign(new Error(`timeout  ${subscription.record.name} [${current}<${expected}]`), {
-      code: 'ETIMEDOUT',
-    })
+    Object.assign(
+      new Error(`timeout state: ${subscription.record.name} [${current}<${expected}]`),
+      {
+        code: 'ETIMEDOUT',
+      }
+    )
   )
 }
 
@@ -68,16 +71,20 @@ function onSyncFast(opaque) {
 }
 
 function onTimeoutFast(opaque) {
-  const { rec, resolve } = opaque
+  const { rec, synced, resolve } = opaque
   rec.unsubscribe(onUpdateFast, opaque)
   rec.unref()
-  resolve(
-    Promise.reject(
-      Object.assign(new Error(`timeout ${opaque.rec.name} [${opaque.rec.state}<${opaque.state}]`), {
-        code: 'ETIMEDOUT',
-      })
-    )
-  )
+
+  let err
+  if (rec.state < opaque.state) {
+    err = new Error(`timeout state: ${opaque.rec.name} [${opaque.rec.state}<${opaque.state}]`)
+  } else if (!synced) {
+    err = new Error(`timeout sync: ${opaque.rec.name} `)
+  } else {
+    err = new Error('timeout')
+  }
+
+  resolve(Promise.reject(Object.assign(err, { code: 'ETIMEDOUT' })))
 }
 
 class RecordHandler {
