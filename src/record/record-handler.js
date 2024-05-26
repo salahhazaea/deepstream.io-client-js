@@ -330,7 +330,7 @@ class RecordHandler {
 
       let serverTimeout
       const token = xuid()
-      await Promise.race([
+      return await Promise.race([
         await new Promise((resolve) => {
           this._syncEmitter.once(token, resolve)
           this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.SYNC, [token])
@@ -613,7 +613,7 @@ class RecordHandler {
     }
 
     if (message.action === C.ACTIONS.SYNC) {
-      this._syncEmitter.emit(message.data[0])
+      this._syncEmitter.emit(message.data[0], message.data[1]?.toString())
       return true
     }
 
