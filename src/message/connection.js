@@ -1,8 +1,8 @@
 const BrowserWebSocket = globalThis.WebSocket || globalThis.MozWebSocket
-const NodeWebSocket = BrowserWebSocket ? null : require('ws')
+const utils = require('../utils/utils')
+const NodeWebSocket = utils.isNode ? require('ws') : null
 const messageParser = require('./message-parser')
 const messageBuilder = require('./message-builder')
-const utils = require('../utils/utils')
 const C = require('../constants/constants')
 const pkg = require('../../package.json')
 const xxhash = require('xxhash-wasm')
@@ -101,11 +101,11 @@ Connection.prototype.close = function () {
 }
 
 Connection.prototype._createEndpoint = function () {
-  this._endpoint = BrowserWebSocket
-    ? new BrowserWebSocket(this._url)
-    : new NodeWebSocket(this._url, {
+  this._endpoint = NodeWebSocket
+    ? new NodeWebSocket(this._url, {
         generateMask() {},
       })
+    : new BrowserWebSocket(this._url)
   this._corked = false
 
   this._endpoint.onopen = this._onOpen.bind(this)
