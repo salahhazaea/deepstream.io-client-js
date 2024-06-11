@@ -205,17 +205,17 @@ class Record {
 
     return new Promise((resolve, reject) => {
       if (this._state >= state) {
-        resolve(null)
+        resolve(this)
         return
       }
 
       let timeoutHandle
 
-      const onDone = (err, val) => {
+      const onDone = (err) => {
         if (err) {
           reject(err)
         } else {
-          resolve(val)
+          resolve(this)
         }
 
         this.unref()
@@ -231,7 +231,7 @@ class Record {
 
       const onUpdate = () => {
         if (this._state >= state) {
-          onDone(null, null)
+          onDone(null)
         }
       }
 
