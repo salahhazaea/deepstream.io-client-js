@@ -11,10 +11,7 @@ class Record {
   static STATE = C.RECORD_STATE
 
   constructor(name, handler) {
-    const connection = handler._connection
-
     this._handler = handler
-
     this._name = name
     this._version = ''
     this._data = jsonPath.EMPTY
@@ -24,7 +21,7 @@ class Record {
     this._emitting = false
     /** @type Map? */ this._updating = null
     /** @type Array? */ this._patching = null
-    this._subscribed = connection.sendMsg1(C.TOPIC.RECORD, C.ACTIONS.SUBSCRIBE, this._name)
+    this._subscribed = false
   }
 
   /** @type {string} */
