@@ -97,10 +97,18 @@ class RecordHandler {
     this._connection = connection
     this._client = client
     this._records = new Map()
+    this._cache = new Map()
     this._listeners = new Map()
     this._pruning = new Set()
     this._patching = new Map()
     this._updating = new Map()
+
+    this._registry = new FinalizationRegistry((name) => {
+      const entry = this._cache.get(name)
+      if (entry && entry.deref && entry.deref() === undefined) {
+        this._cache.delete(name)
+      }
+    })
 
     this._connected = 0
     this._stats = {
@@ -134,6 +142,11 @@ class RecordHandler {
       for (const rec of pruning) {
         rec._$dispose()
         this._records.delete(rec.name)
+
+        if (!this._cache.has(rec.name)) {
+          this._cache.set(rec.name, new WeakRef(rec))
+          this._registry.register(rec, rec.name)
+        }
       }
 
       this._stats.pruning -= pruning.size
@@ -219,7 +232,7 @@ class RecordHandler {
     let record = this._records.get(name)
 
     if (!record) {
-      record = new Record(name, this)
+      record = this._cache.get(name)?.deref() ?? new Record(name, this)
       this._stats.records += 1
       this._stats.created += 1
       this._records.set(name, record)
