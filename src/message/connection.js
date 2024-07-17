@@ -249,20 +249,20 @@ Connection.prototype._recvMessages = function (deadline) {
       continue
     }
 
-    if (this._logger) {
-      this._logger.trace(message, 'receive')
-    }
+    try {
+      messageParser.parseMessage(message, this._client, this._message)
 
-    messageParser.parseMessage(message, this._client, this._message)
+      this.emit('recv', this._message)
 
-    this.emit('recv', this._message)
-
-    if (this._message.topic === C.TOPIC.CONNECTION) {
-      this._handleConnectionResponse(this._message)
-    } else if (this._message.topic === C.TOPIC.AUTH) {
-      this._handleAuthResponse(this._message)
-    } else {
-      this._client._$onMessage(this._message)
+      if (this._message.topic === C.TOPIC.CONNECTION) {
+        this._handleConnectionResponse(this._message)
+      } else if (this._message.topic === C.TOPIC.AUTH) {
+        this._handleAuthResponse(this._message)
+      } else {
+        this._client._$onMessage(this._message)
+      }
+    } catch (err) {
+      this._onError(err)
     }
   }
 
