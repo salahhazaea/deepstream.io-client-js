@@ -101,19 +101,22 @@ Connection.prototype.close = function () {
 }
 
 Connection.prototype._createEndpoint = function () {
-  this._endpoint = NodeWebSocket
-    ? new NodeWebSocket(this._url, {
-        generateMask() {},
-      })
-    : new BrowserWebSocket(this._url)
+  if (NodeWebSocket) {
+    this._endpoint = new NodeWebSocket(this._url, {
+      generateMask() {},
+    })
+  } else {
+    this._endpoint = new BrowserWebSocket(this._url)
+    this._endpoint.binaryType = 'arraybuffer'
+  }
   this._corked = false
 
   this._endpoint.onopen = this._onOpen.bind(this)
   this._endpoint.onerror = this._onError.bind(this)
   this._endpoint.onclose = this._onClose.bind(this)
   this._endpoint.onmessage = BrowserWebSocket
-    ? ({ data }) => this._onMessage(typeof data === 'string' ? data : Buffer.from(data).toString())
-    : ({ data }) => this._onMessage(typeof data === 'string' ? data : data.toString())
+    ? ({ data }) => this._onMessage(Buffer.from(data))
+    : ({ data }) => this._onMessage(data)
 }
 
 Connection.prototype.send = function (message) {
