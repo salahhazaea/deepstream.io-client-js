@@ -105,11 +105,11 @@ Connection.prototype._createEndpoint = function () {
     this._endpoint = new NodeWebSocket(this._url, {
       generateMask() {},
     })
-    this._endpoint.onmessage = ({ data }) => this._onMessage(data)
+    this._endpoint.onmessage = ({ data }) => this._onMessage(data.toString())
   } else {
     this._endpoint = new BrowserWebSocket(this._url)
     this._endpoint.binaryType = 'arraybuffer'
-    this._endpoint.onmessage = ({ data }) => this._onMessage(Buffer.from(data))
+    this._endpoint.onmessage = ({ data }) => this._onMessage(Buffer.from(data).toString())
   }
   this._corked = false
 
