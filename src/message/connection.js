@@ -109,7 +109,8 @@ Connection.prototype._createEndpoint = function () {
   } else {
     this._endpoint = new BrowserWebSocket(this._url)
     this._endpoint.binaryType = 'arraybuffer'
-    this._endpoint.onmessage = ({ data }) => this._onMessage(Buffer.from(data).toString())
+    const decoder = new TextDecoder()
+    this._endpoint.onmessage = ({ data }) => this._onMessage(decoder.decode(data))
   }
   this._corked = false
 
