@@ -101,17 +101,20 @@ Connection.prototype.close = function () {
 }
 
 Connection.prototype._createEndpoint = function () {
+  const decoder = new TextDecoder()
   if (NodeWebSocket) {
     this._endpoint = new NodeWebSocket(this._url, {
       generateMask() {},
     })
-    this._endpoint.onmessage = ({ data }) => this._onMessage(data.toString())
   } else {
     this._endpoint = new BrowserWebSocket(this._url)
     this._endpoint.binaryType = 'arraybuffer'
-    const decoder = new TextDecoder()
-    this._endpoint.onmessage = ({ data }) => this._onMessage(decoder.decode(data))
   }
+
+  this._endpoint.onmessage = ({ data }) => {
+    this._onMessage(typeof data === 'string' ? data : decoder.decode(data))
+  }
+
   this._corked = false
 
   this._endpoint.onopen = this._onOpen.bind(this)
