@@ -101,8 +101,7 @@ Connection.prototype.close = function () {
 }
 
 Connection.prototype._createEndpoint = function () {
-  const decoder = new TextDecoder()
-  if (NodeWebSocket) {
+  if (utils.isNode) {
     this._endpoint = new NodeWebSocket(this._url, {
       generateMask() {},
     })
@@ -110,16 +109,16 @@ Connection.prototype._createEndpoint = function () {
     this._endpoint = new BrowserWebSocket(this._url)
     this._endpoint.binaryType = 'arraybuffer'
   }
-
-  this._endpoint.onmessage = ({ data }) => {
-    this._onMessage(typeof data === 'string' ? data : decoder.decode(data))
-  }
-
   this._corked = false
 
   this._endpoint.onopen = this._onOpen.bind(this)
   this._endpoint.onerror = this._onError.bind(this)
   this._endpoint.onclose = this._onClose.bind(this)
+
+  const decoder = new TextDecoder()
+  this._endpoint.onmessage = ({ data }) => {
+    this._onMessage(typeof data === 'string' ? data : decoder.decode(data))
+  }
 }
 
 Connection.prototype.send = function (message) {
@@ -255,20 +254,20 @@ Connection.prototype._recvMessages = function (deadline) {
       continue
     }
 
-    try {
-      messageParser.parseMessage(message, this._client, this._message)
+    if (this._logger) {
+      this._logger.trace(message, 'receive')
+    }
 
-      this.emit('recv', this._message)
+    messageParser.parseMessage(message, this._client, this._message)
 
-      if (this._message.topic === C.TOPIC.CONNECTION) {
-        this._handleConnectionResponse(this._message)
-      } else if (this._message.topic === C.TOPIC.AUTH) {
-        this._handleAuthResponse(this._message)
-      } else {
-        this._client._$onMessage(this._message)
-      }
-    } catch (err) {
-      this._onError(err)
+    this.emit('recv', this._message)
+
+    if (this._message.topic === C.TOPIC.CONNECTION) {
+      this._handleConnectionResponse(this._message)
+    } else if (this._message.topic === C.TOPIC.AUTH) {
+      this._handleAuthResponse(this._message)
+    } else {
+      this._client._$onMessage(this._message)
     }
   }
 
