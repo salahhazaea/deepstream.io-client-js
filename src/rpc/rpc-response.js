@@ -1,5 +1,5 @@
-const C = require('../constants/constants')
-const messageBuilder = require('../message/message-builder')
+import * as C from '../constants/constants.js'
+import * as messageBuilder from '../message/message-builder.js'
 
 const RpcResponse = function (connection, name, id) {
   this._connection = connection
@@ -44,4 +44,4 @@ RpcResponse.prototype.send = function (data) {
   ])
 }
 
-module.exports = RpcResponse
+export default RpcResponse

@@ -1,6 +1,6 @@
-const C = require('../constants/constants')
-const rx = require('rxjs/operators')
-const rxjs = require('rxjs')
+import * as C from '../constants/constants.js'
+import rx from 'rxjs/operators'
+import rxjs from 'rxjs'
 
 const PIPE = rxjs.pipe(
   rx.map((value) => {
@@ -127,4 +127,4 @@ class Listener {
   }
 }
 
-module.exports = Listener
+export default Listener

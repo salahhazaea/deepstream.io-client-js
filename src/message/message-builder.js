@@ -1,4 +1,4 @@
-const C = require('../constants/constants')
+import * as C from '../constants/constants.js'
 
 const poolEncoder = new TextEncoder()
 
@@ -24,7 +24,7 @@ function alignPool() {
 
 reallocPool()
 
-module.exports.getMsg = function (topic, action, data) {
+export function getMsg(topic, action, data) {
   if (data && !(data instanceof Array)) {
     throw new Error('data must be an array')
   }
@@ -69,14 +69,14 @@ module.exports.getMsg = function (topic, action, data) {
 
       if (poolOffset >= poolBuffer.length) {
         reallocPool(start === 0 ? poolSize * 2 : poolSize)
-        return this.getMsg(topic, action, data)
+        return getMsg(topic, action, data)
       }
     }
   }
   return new Uint8Array(poolBuffer.buffer, start, poolOffset - start)
 }
 
-module.exports.typed = function (value) {
+export function typed(value) {
   const type = typeof value
 
   if (type === 'string') {

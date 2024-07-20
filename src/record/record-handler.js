@@ -1,15 +1,15 @@
-const Record = require('./record')
-const MulticastListener = require('../utils/multicast-listener')
-const UnicastListener = require('../utils/unicast-listener')
-const C = require('../constants/constants')
-const rxjs = require('rxjs')
-const invariant = require('invariant')
-const EventEmitter = require('component-emitter2')
-const jsonPath = require('@nxtedition/json-path')
-const utils = require('../utils/utils')
-const rx = require('rxjs/operators')
-const xuid = require('xuid')
-const timers = require('../utils/timers')
+import Record from './record.js'
+import MulticastListener from '../utils/multicast-listener.js'
+import UnicastListener from '../utils/unicast-listener.js'
+import * as C from '../constants/constants.js'
+import rxjs from 'rxjs'
+import invariant from 'invariant'
+import EventEmitter from 'component-emitter2'
+import jsonPath from '@nxtedition/json-path'
+import * as utils from '../utils/utils.js'
+import rx from 'rxjs/operators'
+import xuid from 'xuid'
+import * as timers from '../utils/timers.js'
 
 const kEmpty = Symbol('kEmpty')
 
@@ -650,4 +650,4 @@ class RecordHandler {
   }
 }
 
-module.exports = RecordHandler
+export default RecordHandler

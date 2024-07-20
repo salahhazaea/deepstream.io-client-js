@@ -1,5 +1,5 @@
-const C = require('../constants/constants')
-const rxjs = require('rxjs')
+import * as C from '../constants/constants.js'
+import rxjs from 'rxjs'
 
 class Listener {
   constructor(topic, pattern, callback, handler, { recursive = false, stringify = null } = {}) {
@@ -229,4 +229,4 @@ class Listener {
   }
 }
 
-module.exports = Listener
+export default Listener

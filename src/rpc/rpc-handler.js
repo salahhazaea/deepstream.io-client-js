@@ -1,8 +1,8 @@
-const C = require('../constants/constants')
-const RpcResponse = require('./rpc-response')
-const messageParser = require('../message/message-parser')
-const messageBuilder = require('../message/message-builder')
-const xuid = require('xuid')
+import * as C from '../constants/constants.js'
+import RpcResponse from './rpc-response.js'
+import messageParser from '../message/message-parser.js'
+import * as messageBuilder from '../message/message-builder.js'
+import xuid from 'xuid'
 
 const RpcHandler = function (options, connection, client) {
   this._options = options
@@ -175,4 +175,4 @@ RpcHandler.prototype._onConnectionStateChange = function (connected) {
   }
 }
 
-module.exports = RpcHandler
+export default RpcHandler

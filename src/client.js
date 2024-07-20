@@ -1,12 +1,12 @@
-const C = require('./constants/constants')
-const Emitter = require('component-emitter2')
-const Connection = require('./message/connection')
-const EventHandler = require('./event/event-handler')
-const RpcHandler = require('./rpc/rpc-handler')
-const RecordHandler = require('./record/record-handler')
-const defaultOptions = require('./default-options')
-const xuid = require('xuid')
-const utils = require('./utils/utils')
+import * as C from './constants/constants.js'
+import Emitter from 'component-emitter2'
+import Connection from './message/connection.js'
+import EventHandler from './event/event-handler.js'
+import RpcHandler from './rpc/rpc-handler.js'
+import RecordHandler from './record/record-handler.js'
+import defaultOptions from './default-options.js'
+import xuid from 'xuid'
+import * as utils from './utils/utils.js'
 
 const Client = function (url, options) {
   this._url = url
@@ -135,4 +135,4 @@ Client.prototype.isSameOrNewer = utils.isSameOrNewer
 Client.prototype.CONSTANTS = C
 createDeepstream.CONSTANTS = C
 
-module.exports = createDeepstream
+export default createDeepstream

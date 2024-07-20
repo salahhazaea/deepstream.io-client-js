@@ -1,4 +1,4 @@
-module.exports = {
+export default {
   reconnectIntervalIncrement: 1e3,
   maxReconnectInterval: 6e3,
   maxReconnectAttempts: Infinity,

@@ -1,13 +1,15 @@
+import * as utils from '../utils/utils.js'
+import messageParser from './message-parser.js'
+import * as messageBuilder from './message-builder.js'
+import * as C from '../constants/constants.js'
+import xxhash from 'xxhash-wasm'
+import FixedQueue from '../utils/fixed-queue.js'
+import Emitter from 'component-emitter2'
+
 const BrowserWebSocket = globalThis.WebSocket || globalThis.MozWebSocket
-const utils = require('../utils/utils')
-const NodeWebSocket = utils.isNode ? require('ws') : null
-const messageParser = require('./message-parser')
-const messageBuilder = require('./message-builder')
-const C = require('../constants/constants')
-const pkg = require('../../package.json')
-const xxhash = require('xxhash-wasm')
-const FixedQueue = require('../utils/fixed-queue')
-const Emitter = require('component-emitter2')
+const NodeWebSocket = utils.isNode ? await import('ws').then((x) => x.default) : null
+
+const HASHER = await xxhash()
 
 const Connection = function (client, url, options) {
   this._client = client
@@ -30,7 +32,6 @@ const Connection = function (client, url, options) {
   this._recvQueue = new FixedQueue()
   this._reconnectTimeout = null
   this._reconnectionAttempt = 0
-  this._endpoint = null
 
   this._processingRecv = false
   this._recvMessages = this._recvMessages.bind(this)
@@ -39,11 +40,9 @@ const Connection = function (client, url, options) {
 
   this._state = C.CONNECTION_STATE.CLOSED
 
-  this.hasher = null
-  xxhash().then((hasher) => {
-    this.hasher = hasher
-    this._createEndpoint()
-  })
+  this.hasher = HASHER
+
+  this._createEndpoint()
 }
 
 Emitter(Connection.prototype)
@@ -171,7 +170,7 @@ Connection.prototype._sendAuthParams = function () {
   this._setState(C.CONNECTION_STATE.AUTHENTICATING)
   const authMessage = messageBuilder.getMsg(C.TOPIC.AUTH, C.ACTIONS.REQUEST, [
     this._authParams,
-    pkg.version,
+    '24.3.1', // TODO (fix): How to read from package.json?
     utils.isNode
       ? `Node/${process.version}`
       : globalThis.navigator && globalThis.navigator.userAgent,
@@ -365,4 +364,4 @@ Connection.prototype._clearReconnect = function () {
   this._reconnectionAttempt = 0
 }
 
-module.exports = Connection
+export default Connection

@@ -1,7 +1,3 @@
-// undici timers
-
-'use strict'
-
 let fastNow = Date.now()
 let fastNowTimeout
 
@@ -44,8 +40,8 @@ function refreshTimeout() {
   if (fastNowTimeout && fastNowTimeout.refresh) {
     fastNowTimeout.refresh()
   } else {
-    clearTimeout(fastNowTimeout)
-    fastNowTimeout = setTimeout(onTimeout, 1e3)
+    globalThis.clearTimeout(fastNowTimeout)
+    fastNowTimeout = globalThis.setTimeout(onTimeout, 1e3)
     if (fastNowTimeout.unref) {
       fastNowTimeout.unref()
     }
@@ -83,15 +79,16 @@ class Timeout {
   }
 }
 
-module.exports = {
-  setTimeout(callback, delay, opaque) {
-    return delay < 1e3 ? setTimeout(callback, delay, opaque) : new Timeout(callback, delay, opaque)
-  },
-  clearTimeout(timeout) {
-    if (timeout instanceof Timeout) {
-      timeout.clear()
-    } else {
-      clearTimeout(timeout)
-    }
-  },
+export function setTimeout(callback, delay, opaque) {
+  return delay < 1e3
+    ? globalThis.setTimeout(callback, delay, opaque)
+    : new Timeout(callback, delay, opaque)
+}
+
+export function clearTimeout(timeout) {
+  if (timeout instanceof Timeout) {
+    timeout.clear()
+  } else {
+    globalThis.clearTimeout(timeout)
+  }
 }

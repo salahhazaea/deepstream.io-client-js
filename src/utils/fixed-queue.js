@@ -1,5 +1,3 @@
-'use strict'
-
 // Currently optimal queue size, tested on V8 6.0 - 6.6. Must be power of two.
 const kSize = 2048
 const kMask = kSize - 1
@@ -82,7 +80,7 @@ class FixedCircularBuffer {
   }
 }
 
-module.exports = class FixedQueue {
+export default class FixedQueue {
   constructor() {
     this.head = this.tail = new FixedCircularBuffer()
   }
