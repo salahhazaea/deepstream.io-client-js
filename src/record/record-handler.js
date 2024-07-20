@@ -373,7 +373,7 @@ class RecordHandler {
           queue[n](queue[n + 1])
         }
       })
-      this._connection.sendMsg2(C.TOPIC.RECORD, C.ACTIONS.SYNC, token, 'WEAK')
+      this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.SYNC, [token, 'WEAK'])
     }, 1)
   }
 

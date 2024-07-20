@@ -82,14 +82,6 @@ Connection.prototype.sendMsg = function (topic, action, data) {
   return this.send(messageBuilder.getMsg(topic, action, data))
 }
 
-Connection.prototype.sendMsg1 = function (topic, action, p0) {
-  return this.send(messageBuilder.getMsg1(topic, action, p0))
-}
-
-Connection.prototype.sendMsg2 = function (topic, action, p0, p1) {
-  return this.send(messageBuilder.getMsg2(topic, action, p0, p1))
-}
-
 Connection.prototype.close = function () {
   this._deliberateClose = true
   this._endpoint?.close()

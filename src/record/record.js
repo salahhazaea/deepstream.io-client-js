@@ -16,6 +16,7 @@ class Record {
     this._handler = handler
 
     this._name = name
+    this._key = connection.hasher?.h64(name) ?? name
     this._version = ''
     this._data = jsonPath.EMPTY
     this._state = C.RECORD_STATE.VOID
@@ -24,7 +25,10 @@ class Record {
     this._emitting = false
     /** @type Map? */ this._updating = null
     /** @type Array? */ this._patching = null
-    this._subscribed = connection.sendMsg1(C.TOPIC.RECORD, C.ACTIONS.SUBSCRIBE, this._name)
+    this._subscribed = connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.SUBSCRIBE, [
+      this._name,
+      this._key,
+    ])
   }
 
   /** @type {string} */
@@ -62,7 +66,8 @@ class Record {
     if (this._refs === 1) {
       this._handler._onPruning(this, false)
       this._subscribed =
-        this._subscribed || connection.sendMsg1(C.TOPIC.RECORD, C.ACTIONS.SUBSCRIBE, this._name)
+        this._subscribed ||
+        connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.SUBSCRIBE, [this._name, this._key])
     }
     return this
   }
@@ -323,8 +328,10 @@ class Record {
     const connection = this._handler._connection
 
     if (connected) {
+      this._key = typeof this._key === 'bigint' ? this._key : connection.hasher?.h64(this._name)
       this._subscribed =
-        this._refs > 0 && connection.sendMsg1(C.TOPIC.RECORD, C.ACTIONS.SUBSCRIBE, this._name)
+        this._refs > 0 &&
+        connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.SUBSCRIBE, [this._name, this._key])
 
       if (this._updating) {
         for (const update of this._updating.values()) {
@@ -349,7 +356,7 @@ class Record {
     invariant(!this._updating, 'must not have updates')
 
     if (this._subscribed) {
-      connection.sendMsg1(C.TOPIC.RECORD, C.ACTIONS.UNSUBSCRIBE, this._name)
+      connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.UNSUBSCRIBE, [this._key])
       this._subscribed = false
     }
 
@@ -371,7 +378,7 @@ class Record {
     const prevVersion = this._version
     const nextVersion = this._makeVersion(parseInt(prevVersion) + 1)
 
-    const update = [this._name, nextVersion, jsonPath.stringify(nextData), prevVersion]
+    const update = [this._key, nextVersion, jsonPath.stringify(nextData), prevVersion]
 
     if (!this._updating) {
       this._onUpdating(true)
