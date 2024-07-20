@@ -7,6 +7,8 @@ const invariant = require('invariant')
 const cloneDeep = require('lodash.clonedeep')
 const timers = require('../utils/timers')
 
+const encoder = new TextEncoder()
+
 class Record {
   static STATE = C.RECORD_STATE
 
@@ -16,15 +18,17 @@ class Record {
     this._handler = handler
 
     this._name = name
-    this._key = connection.hasher?.h64(name) ?? name
+    this._key = name
     this._version = ''
     this._data = jsonPath.EMPTY
     this._state = C.RECORD_STATE.VOID
     this._refs = 0
     this._subscriptions = []
     this._emitting = false
+
     /** @type Map? */ this._updating = null
     /** @type Array? */ this._patching = null
+    this._hashName()
     this._subscribed = connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.SUBSCRIBE, [
       this._name,
       this._key,
@@ -312,6 +316,16 @@ class Record {
       })
   }
 
+  _hashName() {
+    // TODO (fix): It's hacky that hasher is not always available...
+    this._key =
+      typeof this._key === 'bigint'
+        ? this._key
+        : this._name.length <= 8 && encoder.encode(this._name).byteLength === 8
+        ? this._name
+        : this._handler.connection.hasher?.h64(this._name)
+  }
+
   _$onMessage(message) {
     if (message.action === C.ACTIONS.UPDATE) {
       this._onUpdate(message.data)
@@ -328,7 +342,7 @@ class Record {
     const connection = this._handler._connection
 
     if (connected) {
-      this._key = typeof this._key === 'bigint' ? this._key : connection.hasher?.h64(this._name)
+      this._hashName()
       this._subscribed =
         this._refs > 0 &&
         connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.SUBSCRIBE, [this._name, this._key])
