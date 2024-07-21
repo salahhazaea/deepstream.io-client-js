@@ -151,8 +151,8 @@ Connection.prototype.send = function (message) {
 Connection.prototype._submit = function (message) {
   const { maxPacketSize } = this._options
 
-  if (message.length > maxPacketSize) {
-    const err = new Error(`Packet to big: ${message.length} > ${maxPacketSize}`)
+  if (message.byteLength > maxPacketSize) {
+    const err = new Error(`Packet to big: ${message.byteLength} > ${maxPacketSize}`)
     this._client._$onError(C.TOPIC.CONNECTION, C.EVENT.CONNECTION_ERROR, err)
     return false
   } else if (this._endpoint.readyState === this._endpoint.OPEN) {
