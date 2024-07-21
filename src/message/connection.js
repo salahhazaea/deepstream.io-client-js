@@ -209,9 +209,10 @@ Connection.prototype._onClose = function () {
 Connection.prototype._onMessage = function (raw) {
   if (typeof raw === 'string') {
     raw = this._encoder.encode(raw)
+  } else if (!utils.isNode) {
+    raw = new Uint8Array(raw)
   }
 
-  raw = new Uint8Array(raw)
   const len = raw.byteLength
 
   const start = 0
