@@ -241,14 +241,14 @@ Connection.prototype._onMessage = function (raw) {
 
   if (headerSize > 0) {
     data = []
-    let headerPos = 1
+    let headerPos = start + 1
     while (headerPos < headerSize) {
       const len = varint.decode(raw, headerPos)
       headerPos += varint.decode.bytes
       if (len === 0) {
         break
       }
-      data.push(this._decoder.decode(raw.subarray(pos, len - 1)))
+      data.push(this._decoder.decode(raw.subarray(pos, pos + len - 1)))
       pos += len
     }
   } else {
