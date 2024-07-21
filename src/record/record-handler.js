@@ -101,6 +101,7 @@ class RecordHandler {
     this._pruning = new Set()
     this._patching = new Map()
     this._updating = new Map()
+    this._encoder = new TextEncoder()
 
     this._connected = 0
     this._stats = {
@@ -206,6 +207,12 @@ class RecordHandler {
     }
   }
 
+  _getKey(name) {
+    return name.length <= 8 && this._encoder.encode(name).byteLength === 8
+      ? name
+      : this._connection.hasher.h64(name)
+  }
+
   /**
    * @param {string} name
    * @returns {Record}
@@ -219,7 +226,7 @@ class RecordHandler {
     let record = this._records.get(name)
 
     if (!record) {
-      record = new Record(name, this)
+      record = new Record(this._getKey(name), name, this)
       this._stats.records += 1
       this._stats.created += 1
       this._records.set(name, record)

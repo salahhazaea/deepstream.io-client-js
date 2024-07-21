@@ -12,18 +12,13 @@ import * as timers from '../utils/timers.js'
 class Record {
   static STATE = C.RECORD_STATE
 
-  constructor(name, handler) {
+  constructor(key, name, handler) {
     const connection = handler._connection
 
     this._handler = handler
 
-    // TODO (fix): Implement this once we have binary header.
-    // this._key = name.length <= 8 && encoder.encode(name).byteLength === 8
-    //   ? name
-    //   : connection.hasher?.h64(name)
-
     this._name = name
-    this._key = name
+    this._key = key
     this._version = ''
     this._data = jsonPath.EMPTY
     this._state = C.RECORD_STATE.VOID
