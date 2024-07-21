@@ -1,7 +1,7 @@
 import jsonPath from '@nxtedition/json-path'
 import * as utils from '../utils/utils.js'
 import * as C from '../constants/constants.js'
-import messageParser from '../message/message-parser.js'
+import { convertTyped } from '../message/message-parser.js'
 import xuid from 'xuid'
 import invariant from 'invariant'
 import cloneDeep from 'lodash.clonedeep'
@@ -470,7 +470,7 @@ class Record {
     const prevState = this._state
 
     this._state =
-      hasProvider && messageParser.convertTyped(hasProvider, this._handler._client)
+      hasProvider && convertTyped(hasProvider, this._handler._client)
         ? C.RECORD_STATE.PROVIDER
         : this._version.charAt(0) === 'I'
         ? C.RECORD_STATE.STALE

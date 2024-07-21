@@ -1,6 +1,6 @@
 import * as C from '../constants/constants.js'
 import RpcResponse from './rpc-response.js'
-import messageParser from '../message/message-parser.js'
+import { convertTyped } from '../message/message-parser.js'
 import * as messageBuilder from '../message/message-builder.js'
 import xuid from 'xuid'
 
@@ -111,7 +111,7 @@ RpcHandler.prototype._respond = function (message) {
   if (callback) {
     let promise
     try {
-      promise = Promise.resolve(callback(messageParser.convertTyped(data, this._client), response))
+      promise = Promise.resolve(callback(convertTyped(data, this._client), response))
     } catch (err) {
       promise = Promise.reject(err)
     }
@@ -156,7 +156,7 @@ RpcHandler.prototype._$handle = function (message) {
         })
       )
     } else {
-      rpc.callback(null, messageParser.convertTyped(data, this._client))
+      rpc.callback(null, convertTyped(data, this._client))
     }
   }
 }

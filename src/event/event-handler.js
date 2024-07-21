@@ -1,6 +1,6 @@
 import * as C from '../constants/constants.js'
 import * as messageBuilder from '../message/message-builder.js'
-import messageParser from '../message/message-parser.js'
+import { convertTyped } from '../message/message-parser.js'
 import MulticastListener from '../utils/multicast-listener.js'
 import UnicastListener from '../utils/unicast-listener.js'
 import EventEmitter from 'component-emitter2'
@@ -143,7 +143,7 @@ EventHandler.prototype._$handle = function (message) {
 
   if (message.action === C.ACTIONS.EVENT) {
     if (message.data && message.data.length === 2) {
-      this._emitter.emit(name, messageParser.convertTyped(data, this._client))
+      this._emitter.emit(name, convertTyped(data, this._client))
     } else {
       this._emitter.emit(name)
     }
