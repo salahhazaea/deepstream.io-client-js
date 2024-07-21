@@ -207,7 +207,7 @@ class RecordHandler {
     }
   }
 
-  _getKey(name) {
+  getKey(name) {
     return name.length <= 8 && this._encoder.encode(name).byteLength === 8
       ? name
       : this._connection.hasher.h64(name)
@@ -226,7 +226,7 @@ class RecordHandler {
     let record = this._records.get(name)
 
     if (!record) {
-      record = new Record(this._getKey(name), name, this)
+      record = new Record(this.getKey(name), name, this)
       this._stats.records += 1
       this._stats.created += 1
       this._records.set(name, record)

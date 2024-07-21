@@ -56,6 +56,7 @@ class Listener {
       // TODO (refactor): Move to class
       const provider = {
         name,
+        key: this._handler.getKey(name),
         value$: null,
         sending: false,
         accepted: false,
@@ -68,7 +69,7 @@ class Listener {
         if (this.connected && provider.accepted) {
           this._connection.sendMsg(this._topic, C.ACTIONS.LISTEN_REJECT, [
             this._pattern,
-            provider.name,
+            provider.key,
           ])
         }
 
@@ -101,7 +102,7 @@ class Listener {
         this._connection.sendMsg(
           this._topic,
           accepted ? C.ACTIONS.LISTEN_ACCEPT : C.ACTIONS.LISTEN_REJECT,
-          [this._pattern, provider.name]
+          [this._pattern, provider.key]
         )
 
         provider.version = null
@@ -157,7 +158,7 @@ class Listener {
             if (provider.version !== version) {
               provider.version = version
               this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.UPDATE, [
-                provider.name,
+                provider.key,
                 version,
                 body,
               ])
@@ -218,7 +219,11 @@ class Listener {
   }
 
   _error(name, err) {
-    this._client._$onError(this._topic, C.EVENT.LISTENER_ERROR, err, [this._pattern, name])
+    this._client._$onError(this._topic, C.EVENT.LISTENER_ERROR, err, [
+      this._pattern,
+      name,
+      this._handler.getKey(name),
+    ])
   }
 
   _reset() {

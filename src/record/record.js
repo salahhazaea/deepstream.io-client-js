@@ -13,10 +13,7 @@ class Record {
   static STATE = C.RECORD_STATE
 
   constructor(key, name, handler) {
-    const connection = handler._connection
-
     this._handler = handler
-
     this._name = name
     this._key = key
     this._version = ''
@@ -28,10 +25,7 @@ class Record {
 
     /** @type Map? */ this._updating = null
     /** @type Array? */ this._patching = null
-    this._subscribed = connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.SUBSCRIBE, [
-      this._name,
-      this._key,
-    ])
+    this._subscribed = false
   }
 
   /** @type {string} */
