@@ -225,11 +225,13 @@ Connection.prototype._onMessage = function (raw) {
     pos += headerSize
   }
 
+  // TODO (perf): Use numbers instead of string..
   const topic = String.fromCharCode(raw[pos++])
   pos++
 
   let action = ''
   while (pos < len && raw[pos] !== 31) {
+    // TODO (perf): Use numbers instead of string..
     action += String.fromCharCode(raw[pos++])
   }
   pos++
