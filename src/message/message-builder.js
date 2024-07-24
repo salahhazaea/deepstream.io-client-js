@@ -28,9 +28,9 @@ function alignPool() {
 
 function writeString(dst, str, offset) {
   if (utils.isNode) {
-    return poolBuffer.write(str, poolOffset)
+    return dst.write(str, offset)
   } else {
-    const res = poolEncoder.encodeInto(str, new Uint8Array(poolBuffer.buffer, poolOffset))
+    const res = poolEncoder.encodeInto(str, new Uint8Array(dst.buffer, offset))
     return res.written
   }
 }
