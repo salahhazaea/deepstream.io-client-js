@@ -28,6 +28,11 @@ class Record {
     this._subscribed = false
   }
 
+  /** @type {bigint} */
+  get key() {
+    return this._key
+  }
+
   /** @type {string} */
   get name() {
     return this._name
