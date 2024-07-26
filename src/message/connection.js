@@ -161,7 +161,7 @@ Connection.prototype._sendAuthParams = function () {
   this._setState(C.CONNECTION_STATE.AUTHENTICATING)
   const authMessage = messageBuilder.getMsg(C.TOPIC.AUTH, C.ACTIONS.REQUEST, [
     this._authParams,
-    '25.0.0', // TODO (fix): How to read from package.json?
+    '25.1.0', // TODO (fix): How to read from package.json?
     utils.isNode
       ? `Node/${process.version}`
       : globalThis.navigator && globalThis.navigator.userAgent,
@@ -313,7 +313,7 @@ Connection.prototype._handleConnectionResponse = function (message) {
   } else if (message.action === C.ACTIONS.CHALLENGE) {
     this._setState(C.CONNECTION_STATE.CHALLENGING)
     this._submit(
-      messageBuilder.getMsg(C.TOPIC.CONNECTION, C.ACTIONS.CHALLENGE_RESPONSE, [this._url])
+      messageBuilder.getMsg(C.TOPIC.CONNECTION, C.ACTIONS.CHALLENGE_RESPONSE, [this._url]),
     )
   } else if (message.action === C.ACTIONS.REJECTION) {
     this._challengeDenied = true
@@ -381,10 +381,16 @@ Connection.prototype._tryReconnect = function () {
 
   if (this._reconnectionAttempt < this._options.maxReconnectAttempts) {
     this._setState(C.CONNECTION_STATE.RECONNECTING)
-    this._reconnectTimeout = setTimeout(() => {
-      this._reconnectTimeout = null
-      this._createEndpoint()
-    }, Math.min(this._options.maxReconnectInterval, this._options.reconnectIntervalIncrement * this._reconnectionAttempt))
+    this._reconnectTimeout = setTimeout(
+      () => {
+        this._reconnectTimeout = null
+        this._createEndpoint()
+      },
+      Math.min(
+        this._options.maxReconnectInterval,
+        this._options.reconnectIntervalIncrement * this._reconnectionAttempt,
+      ),
+    )
     this._reconnectionAttempt++
   } else {
     this._clearReconnect()
