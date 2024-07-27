@@ -397,7 +397,7 @@ class Record {
     this._version = nextVersion
   }
 
-  _onUpdate([, version, data]) {
+  _onUpdate([, version, data, hasProvider]) {
     const prevData = this._data
     const prevVersion = this._version
     const prevState = this._state
@@ -434,13 +434,13 @@ class Record {
       this._state = this._version.charAt(0) === 'I' ? C.RECORD_STATE.STALE : C.RECORD_STATE.SERVER
     }
 
-    // if (hasProvider != null ) {
-    //   this._state = convertTyped(hasProvider, this._handler._client)
-    //     ? C.RECORD_STATE.PROVIDER
-    //     : this._version.charAt(0) === 'I'
-    //     ? C.RECORD_STATE.STALE
-    //     : C.RECORD_STATE.SERVER
-    // }
+    if (hasProvider != null) {
+      this._state = convertTyped(hasProvider, this._handler._client)
+        ? C.RECORD_STATE.PROVIDER
+        : this._version.charAt(0) === 'I'
+          ? C.RECORD_STATE.STALE
+          : C.RECORD_STATE.SERVER
+    }
 
     if (this._state !== prevState || this._data !== prevData || this._version !== prevVersion) {
       this._emitUpdate()
