@@ -40,7 +40,7 @@ class Listener {
         C.TOPIC.RECORD,
         C.EVENT.NOT_CONNECTED,
         new Error('received message while not connected'),
-        message
+        message,
       )
       return
     }
@@ -102,7 +102,7 @@ class Listener {
         this._connection.sendMsg(
           this._topic,
           accepted ? C.ACTIONS.LISTEN_ACCEPT : C.ACTIONS.LISTEN_REJECT,
-          [this._pattern, provider.key]
+          [this._pattern, provider.key],
         )
 
         provider.version = null
@@ -222,7 +222,7 @@ class Listener {
     this._client._$onError(this._topic, C.EVENT.LISTENER_ERROR, err, [
       this._pattern,
       name,
-      this._handler.getKey(name),
+      this._handler.getKey(name).toString(),
     ])
   }
 
