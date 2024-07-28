@@ -18,7 +18,7 @@ const PIPE = rxjs.pipe(
 
     return data
   }),
-  rx.distinctUntilChanged()
+  rx.distinctUntilChanged(),
 )
 
 class Listener {
@@ -116,7 +116,11 @@ class Listener {
   }
 
   _error(name, err) {
-    this._client._$onError(this._topic, C.EVENT.LISTENER_ERROR, err, [this._pattern, name])
+    this._client._$onError(this._topic, C.EVENT.LISTENER_ERROR, err, [
+      this._pattern,
+      name,
+      this._handler.getKey(name).toString(),
+    ])
   }
 
   _reset() {
