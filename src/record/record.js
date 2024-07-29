@@ -12,7 +12,7 @@ import * as timers from '../utils/timers.js'
 class Record {
   static STATE = C.RECORD_STATE
 
-  constructor (key, name, handler) {
+  constructor(key, name, handler) {
     this._handler = handler
     this._name = name
     this._key = key
@@ -29,34 +29,34 @@ class Record {
   }
 
   /** @type {string} */
-  get name () {
+  get name() {
     return this._name
   }
 
   /** @type {string} */
-  get version () {
+  get version() {
     return this._version
   }
 
   /** @type {Object} */
-  get data () {
+  get data() {
     return this._data
   }
 
   /** @type {Number} */
-  get state () {
+  get state() {
     return this._state
   }
 
   /** @type {Number} */
-  get refs () {
+  get refs() {
     return this._refs
   }
 
   /**
    * @returns {Record}
    */
-  ref () {
+  ref() {
     const connection = this._handler._connection
 
     this._refs += 1
@@ -72,7 +72,7 @@ class Record {
   /**
    * @returns {Record}
    */
-  unref () {
+  unref() {
     this._refs -= 1
     if (this._refs === 0) {
       this._handler._onPruning(this, true)
@@ -85,7 +85,7 @@ class Record {
    * @param {*} opaque
    * @returns {Record}
    */
-  subscribe (fn, opaque = null) {
+  subscribe(fn, opaque = null) {
     if (this._emitting) {
       this._subscriptions = this._subscriptions.slice()
       this._emitting = false
@@ -102,7 +102,7 @@ class Record {
    * @param {*} opaque
    * @returns {Record}
    */
-  unsubscribe (fn, opaque = null) {
+  unsubscribe(fn, opaque = null) {
     if (this._emitting) {
       this._subscriptions = this._subscriptions.slice()
       this._emitting = false
@@ -126,7 +126,7 @@ class Record {
     return this
   }
 
-  get (path) {
+  get(path) {
     if (!path) {
       return this._data
     } else if (typeof path === 'string' || Array.isArray(path)) {
@@ -138,7 +138,7 @@ class Record {
     }
   }
 
-  set (pathOrData, dataOrNil) {
+  set(pathOrData, dataOrNil) {
     const prevData = this._data
     const prevVersion = this._version
 
@@ -185,7 +185,7 @@ class Record {
     }
   }
 
-  when (stateOrNil, optionsOrNil) {
+  when(stateOrNil, optionsOrNil) {
     invariant(this._refs > 0, 'missing refs')
 
     if (stateOrNil != null && stateOrNil === 'object') {
@@ -250,8 +250,8 @@ class Record {
 
           onDone(
             Object.assign(new Error(`timeout  ${this.name} [${current}<${expected}]`), {
-              code: 'ETIMEDOUT'
-            })
+              code: 'ETIMEDOUT',
+            }),
           )
         }, timeout)
       }
@@ -263,14 +263,14 @@ class Record {
     })
   }
 
-  update (...args) {
+  update(...args) {
     invariant(this._refs > 0, 'missing refs')
 
     if (this._version.charAt(0) === 'I') {
       this._handler._client._$onError(C.TOPIC.RECORD, C.EVENT.UPDATE_ERROR, 'cannot update', [
         this._name,
         this._version,
-        this._state
+        this._state,
       ])
       return Promise.resolve()
     }
@@ -309,7 +309,7 @@ class Record {
       })
   }
 
-  _$onMessage (message) {
+  _$onMessage(message) {
     if (message.action === C.ACTIONS.UPDATE) {
       this._onUpdate(message.data)
     } else if (message.action === C.ACTIONS.SUBSCRIPTION_HAS_PROVIDER) {
@@ -321,7 +321,7 @@ class Record {
     return true
   }
 
-  _$onConnectionStateChange (connected) {
+  _$onConnectionStateChange(connected) {
     const connection = this._handler._connection
 
     if (connected) {
@@ -344,7 +344,7 @@ class Record {
     }
   }
 
-  _$dispose () {
+  _$dispose() {
     const connection = this._handler._connection
 
     invariant(!this._refs, 'must not have refs')
@@ -362,7 +362,7 @@ class Record {
     }
   }
 
-  _update (nextData) {
+  _update(nextData) {
     invariant(this._version, 'must have version')
 
     const connection = this._handler._connection
@@ -392,7 +392,7 @@ class Record {
     this._version = nextVersion
   }
 
-  _onUpdate ([, version, data]) {
+  _onUpdate([, version, data, hasProvider]) {
     const prevData = this._data
     const prevVersion = this._version
     const prevState = this._state
@@ -429,12 +429,20 @@ class Record {
       this._state = this._version.charAt(0) === 'I' ? C.RECORD_STATE.STALE : C.RECORD_STATE.SERVER
     }
 
+    if (hasProvider) {
+      this._state = messageParser.convertTyped(hasProvider, this._handler._client)
+        ? C.RECORD_STATE.PROVIDER
+        : this._version.charAt(0) === 'I'
+          ? C.RECORD_STATE.STALE
+          : C.RECORD_STATE.SERVER
+    }
+
     if (this._state !== prevState || this._data !== prevData || this._version !== prevVersion) {
       this._emitUpdate()
     }
   }
 
-  _onPatching (value) {
+  _onPatching(value) {
     invariant(this._refs > 0, 'missing refs')
 
     if (value) {
@@ -448,7 +456,7 @@ class Record {
     this._handler._onPatching(this, value)
   }
 
-  _onUpdating (value) {
+  _onUpdating(value) {
     invariant(this._refs > 0, 'missing refs')
 
     if (value) {
@@ -462,7 +470,7 @@ class Record {
     this._handler._onUpdating(this, value)
   }
 
-  _onSubscriptionHasProvider ([, hasProvider]) {
+  _onSubscriptionHasProvider([, hasProvider]) {
     if (this._state < C.RECORD_STATE.SERVER) {
       return
     }
@@ -481,16 +489,16 @@ class Record {
     }
   }
 
-  _error (event, msgOrError, data) {
+  _error(event, msgOrError, data) {
     this._handler._client._$onError(C.TOPIC.RECORD, event, msgOrError, [
       ...(Array.isArray(data) ? data : []),
       this._name,
       this._version,
-      this._state
+      this._state,
     ])
   }
 
-  _makeVersion (start) {
+  _makeVersion(start) {
     let revid = `${xuid()}-${this._handler._client.user || ''}`
     if (revid.length === 32 || revid.length === 16) {
       // HACK: https://github.com/apache/couchdb/issues/2015
@@ -499,7 +507,7 @@ class Record {
     return `${start}-${revid}`
   }
 
-  _emitUpdate () {
+  _emitUpdate() {
     this._emitting = true
 
     const arr = this._subscriptions
@@ -521,58 +529,58 @@ Record.prototype.destroy = Record.prototype.unref
 
 // TODO (fix): Remove
 Object.defineProperty(Record.prototype, 'connected', {
-  get: function connected () {
+  get: function connected() {
     return this._handler._client.getConnectionState() === C.CONNECTION_STATE.OPEN
-  }
+  },
 })
 
 // TODO (fix): Remove
 Object.defineProperty(Record.prototype, 'empty', {
-  get: function empty () {
+  get: function empty() {
     return Object.keys(this.data).length === 0
-  }
+  },
 })
 
 // TODO (fix): Remove
 Object.defineProperty(Record.prototype, 'ready', {
-  get: function ready () {
+  get: function ready() {
     return this._state >= C.RECORD_STATE.SERVER
-  }
+  },
 })
 
 // TODO (fix): Remove
 Object.defineProperty(Record.prototype, 'provided', {
-  get: function provided () {
+  get: function provided() {
     return this.state >= C.RECORD_STATE.PROVIDER
-  }
+  },
 })
 
 // TODO (fix): Remove
 Object.defineProperty(Record.prototype, 'usages', {
-  get: function usages () {
+  get: function usages() {
     return this._refs
-  }
+  },
 })
 
 // TODO (fix): Remove
 Object.defineProperty(Record.prototype, 'stale', {
-  get: function ready () {
+  get: function ready() {
     return !this.version
-  }
+  },
 })
 
 // TODO (fix): Remove
 Object.defineProperty(Record.prototype, 'isReady', {
-  get: function isReady () {
+  get: function isReady() {
     return this._state >= C.RECORD_STATE.SERVER
-  }
+  },
 })
 
 // TODO (fix): Remove
 Object.defineProperty(Record.prototype, 'hasProvider', {
-  get: function hasProvider () {
+  get: function hasProvider() {
     return this.state >= C.RECORD_STATE.PROVIDER
-  }
+  },
 })
 
 export default Record
