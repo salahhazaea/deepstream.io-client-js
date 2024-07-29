@@ -208,11 +208,9 @@ class RecordHandler {
   }
 
   getKey(name) {
-    if (name.length > 8) {
-      return this._connection.hasher.h64(name)
-    }
-    const buf = this._encoder.encode(name)
-    return buf.byteLength === 8 ? utils.readBigUInt64BE(buf) : this._connection.hasher.h64Raw(buf)
+    return name.length <= 8 && this._encoder.encode(name).byteLength === 8
+      ? name
+      : this._connection.hasher.h64(name)
   }
 
   /**

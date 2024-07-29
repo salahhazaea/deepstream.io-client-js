@@ -174,14 +174,3 @@ export function removeAbortListener(signal, handler) {
     }
   }
 }
-
-export function readBigUInt64BE(buf, offset = 0) {
-  const first = buf[offset]
-  const last = buf[offset + 7]
-
-  const hi = first * 2 ** 24 + buf[++offset] * 2 ** 16 + buf[++offset] * 2 ** 8 + buf[++offset]
-
-  const lo = buf[++offset] * 2 ** 24 + buf[++offset] * 2 ** 16 + buf[++offset] * 2 ** 8 + last
-
-  return (BigInt(hi) << 32n) + BigInt(lo)
-}

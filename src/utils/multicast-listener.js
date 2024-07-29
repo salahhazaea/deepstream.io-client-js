@@ -186,7 +186,6 @@ class Listener {
     } else if (message.action === C.ACTIONS.LISTEN_ACCEPT) {
       const provider = this._subscriptions.get(name)
       if (!provider?.value$) {
-        this._error(name, 'invalid accept: listener missing')
         return
       }
 
@@ -220,7 +219,11 @@ class Listener {
   }
 
   _error(name, err) {
-    this._client._$onError(this._topic, C.EVENT.LISTENER_ERROR, err, [this._pattern, name])
+    this._client._$onError(this._topic, C.EVENT.LISTENER_ERROR, err, [
+      this._pattern,
+      name,
+      this._handler.getKey(name),
+    ])
   }
 
   _reset() {
