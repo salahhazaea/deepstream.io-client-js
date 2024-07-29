@@ -13,7 +13,7 @@ class Listener {
     this._recursive = recursive
     this._stringify = stringify || JSON.stringify
 
-    this._$onConnectionStateChange()
+    this._connection.sendMsg(this._topic, C.ACTIONS.LISTEN, [this._pattern])
   }
 
   get connected() {
