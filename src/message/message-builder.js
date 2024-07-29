@@ -9,7 +9,7 @@ let poolBuffer
 let poolView
 let poolOffset
 
-function allocPool(size) {
+function allocPool (size) {
   poolSize = size || poolSize || 1024 * 1024
   poolBuffer = utils.isNode
     ? globalThis.Buffer.allocUnsafe(poolSize)
@@ -18,7 +18,7 @@ function allocPool(size) {
   poolOffset = 0
 }
 
-function alignPool() {
+function alignPool () {
   // Ensure aligned slices
   if (poolOffset & 0x7) {
     poolOffset |= 0x7
@@ -26,7 +26,7 @@ function alignPool() {
   }
 }
 
-function writeString(dst, str, offset) {
+function writeString (dst, str, offset) {
   if (utils.isNode) {
     return dst.write(str, offset)
   } else {
@@ -35,7 +35,7 @@ function writeString(dst, str, offset) {
   }
 }
 
-export function getMsg(topic, action, data) {
+export function getMsg (topic, action, data) {
   if (data && !(data instanceof Array)) {
     throw new Error('data must be an array')
   }
@@ -79,6 +79,7 @@ export function getMsg(topic, action, data) {
       } else {
         throw new Error('invalid data')
       }
+
       poolOffset += len
 
       varint.encode(len + 1, poolBuffer, headerPos)
@@ -97,7 +98,7 @@ export function getMsg(topic, action, data) {
   return new Uint8Array(poolBuffer.buffer, start, poolOffset - start)
 }
 
-export function typed(value) {
+export function typed (value) {
   const type = typeof value
 
   if (type === 'string') {

@@ -1,11 +1,10 @@
 import * as utils from '../utils/utils.js'
-import { convertTyped } from './message-parser.js'
+import messageParser from './message-parser.js'
 import * as messageBuilder from './message-builder.js'
 import * as C from '../constants/constants.js'
 import xxhash from 'xxhash-wasm'
 import FixedQueue from '../utils/fixed-queue.js'
 import Emitter from 'component-emitter2'
-import varint from 'varint'
 
 const BrowserWebSocket = globalThis.WebSocket || globalThis.MozWebSocket
 const NodeWebSocket = utils.isNode ? await import('ws').then((x) => x.default) : null
@@ -24,8 +23,12 @@ const Connection = function (client, url, options) {
   this._tooManyAuthAttempts = false
   this._connectionAuthenticationTimeout = false
   this._challengeDenied = false
-  this._decoder = new TextDecoder()
-  this._encoder = new TextEncoder()
+  this._message = {
+    raw: null,
+    topic: null,
+    action: null,
+    data: null
+  }
   this._recvQueue = new FixedQueue()
   this._reconnectTimeout = null
   this._reconnectionAttempt = 0
@@ -46,9 +49,9 @@ Emitter(Connection.prototype)
 
 // TODO (fix): Remove
 Object.defineProperty(Connection.prototype, 'connected', {
-  get: function connected() {
+  get: function connected () {
     return this._state === C.CONNECTION_STATE.OPEN
-  },
+  }
 })
 
 Connection.prototype.getState = function () {
@@ -91,7 +94,7 @@ Connection.prototype.close = function () {
 Connection.prototype._createEndpoint = function () {
   if (utils.isNode) {
     this._endpoint = new NodeWebSocket(this._url, {
-      generateMask() {},
+      generateMask () {}
     })
   } else {
     this._endpoint = new BrowserWebSocket(this._url)
@@ -103,8 +106,9 @@ Connection.prototype._createEndpoint = function () {
   this._endpoint.onerror = this._onError.bind(this)
   this._endpoint.onclose = this._onClose.bind(this)
 
+  const decoder = new TextDecoder()
   this._endpoint.onmessage = ({ data }) => {
-    this._onMessage(data)
+    this._onMessage(typeof data === 'string' ? data : decoder.decode(data))
   }
 }
 
@@ -113,7 +117,12 @@ Connection.prototype.send = function (message) {
 
   if (message.length > maxPacketSize) {
     const err = new Error(`Packet to big: ${message.length} > ${maxPacketSize}`)
-    this._client._$onError(C.TOPIC.CONNECTION, C.EVENT.CONNECTION_ERROR, err, message)
+    this._client._$onError(
+      C.TOPIC.CONNECTION,
+      C.EVENT.CONNECTION_ERROR,
+      err,
+      message.split(C.MESSAGE_PART_SEPERATOR).map((x) => x.slice(0, 256))
+    )
     return false
   }
 
@@ -161,10 +170,10 @@ Connection.prototype._sendAuthParams = function () {
   this._setState(C.CONNECTION_STATE.AUTHENTICATING)
   const authMessage = messageBuilder.getMsg(C.TOPIC.AUTH, C.ACTIONS.REQUEST, [
     this._authParams,
-    '26.0.0', // TODO (fix): How to read from package.json?
+    '24.3.1', // TODO (fix): How to read from package.json?
     utils.isNode
       ? `Node/${process.version}`
-      : globalThis.navigator && globalThis.navigator.userAgent,
+      : globalThis.navigator && globalThis.navigator.userAgent
   ])
   this._submit(authMessage)
 }
@@ -206,60 +215,13 @@ Connection.prototype._onClose = function () {
   }
 }
 
-Connection.prototype._onMessage = function (raw) {
-  if (typeof raw === 'string') {
-    raw = this._encoder.encode(raw)
-  } else if (!utils.isNode) {
-    raw = new Uint8Array(raw)
+Connection.prototype._onMessage = function (data) {
+  // Remove MESSAGE_SEPERATOR if exists.
+  if (data.charCodeAt(data.length - 1) === 30) {
+    data = data.slice(0, -1)
   }
 
-  const len = raw.byteLength
-
-  const start = 0
-
-  let pos = start
-
-  let headerSize = 0
-  if (raw[pos] >= 128) {
-    headerSize = raw[pos] - 128
-    pos += headerSize
-  }
-
-  // TODO (perf): Use numbers instead of string..
-  const topic = String.fromCharCode(raw[pos++])
-  pos++
-
-  let action = ''
-  while (pos < len && raw[pos] !== 31) {
-    // TODO (perf): Use numbers instead of string..
-    action += String.fromCharCode(raw[pos++])
-  }
-  pos++
-
-  // TODO (fix): Validate topic and action
-
-  let data
-
-  // TODO (fix): Don't stringify binary data...
-
-  if (headerSize > 0) {
-    data = []
-    let headerPos = start + 1
-    while (headerPos < headerSize) {
-      const len = varint.decode(raw, headerPos)
-      headerPos += varint.decode.bytes
-      if (len === 0) {
-        break
-      }
-      data.push(this._decoder.decode(raw.subarray(pos, pos + len - 1)))
-      pos += len
-    }
-  } else {
-    data =
-      pos < len ? this._decoder.decode(raw.subarray(pos, len)).split(C.MESSAGE_PART_SEPERATOR) : []
-  }
-
-  this._recvQueue.push({ topic, action, data })
+  this._recvQueue.push(data)
   if (!this._processingRecv) {
     this._processingRecv = true
     this._schedule(this._recvMessages)
@@ -283,19 +245,20 @@ Connection.prototype._recvMessages = function (deadline) {
       continue
     }
 
-    if (message === C.TOPIC.ERROR) {
-      this._client._$onError(C.TOPIC.ERROR, message.action, new Error('Message error'), message)
-      continue
+    if (this._logger) {
+      this._logger.trace(message, 'receive')
     }
 
-    this.emit('recv', message)
+    messageParser.parseMessage(message, this._client, this._message)
 
-    if (message.topic === C.TOPIC.CONNECTION) {
-      this._handleConnectionResponse(message)
-    } else if (message.topic === C.TOPIC.AUTH) {
-      this._handleAuthResponse(message)
+    this.emit('recv', this._message)
+
+    if (this._message.topic === C.TOPIC.CONNECTION) {
+      this._handleConnectionResponse(this._message)
+    } else if (this._message.topic === C.TOPIC.AUTH) {
+      this._handleAuthResponse(this._message)
     } else {
-      this._client._$onMessage(message)
+      this._client._$onMessage(this._message)
     }
   }
 
@@ -313,7 +276,7 @@ Connection.prototype._handleConnectionResponse = function (message) {
   } else if (message.action === C.ACTIONS.CHALLENGE) {
     this._setState(C.CONNECTION_STATE.CHALLENGING)
     this._submit(
-      messageBuilder.getMsg(C.TOPIC.CONNECTION, C.ACTIONS.CHALLENGE_RESPONSE, [this._url]),
+      messageBuilder.getMsg(C.TOPIC.CONNECTION, C.ACTIONS.CHALLENGE_RESPONSE, [this._url])
     )
   } else if (message.action === C.ACTIONS.REJECTION) {
     this._challengeDenied = true
@@ -352,7 +315,7 @@ Connection.prototype._getAuthData = function (data) {
   if (data === undefined) {
     return null
   } else {
-    return convertTyped(data, this._client)
+    return messageParser.convertTyped(data, this._client)
   }
 }
 
@@ -388,8 +351,8 @@ Connection.prototype._tryReconnect = function () {
       },
       Math.min(
         this._options.maxReconnectInterval,
-        this._options.reconnectIntervalIncrement * this._reconnectionAttempt,
-      ),
+        this._options.reconnectIntervalIncrement * this._reconnectionAttempt
+      )
     )
     this._reconnectionAttempt++
   } else {

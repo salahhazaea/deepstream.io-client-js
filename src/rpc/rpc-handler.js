@@ -1,6 +1,6 @@
 import * as C from '../constants/constants.js'
 import RpcResponse from './rpc-response.js'
-import { convertTyped } from '../message/message-parser.js'
+import messageParser from '../message/message-parser.js'
 import * as messageBuilder from '../message/message-builder.js'
 import xuid from 'xuid'
 
@@ -20,19 +20,19 @@ const RpcHandler = function (options, connection, client) {
 }
 
 Object.defineProperty(RpcHandler.prototype, 'connected', {
-  get: function connected() {
+  get: function connected () {
     return this._client.getConnectionState() === C.CONNECTION_STATE.OPEN
-  },
+  }
 })
 
 Object.defineProperty(RpcHandler.prototype, 'stats', {
-  get: function stats() {
+  get: function stats () {
     return {
       ...this._stats,
       listeners: this._providers.size,
-      rpcs: this._rpcs.size,
+      rpcs: this._rpcs.size
     }
-  },
+  }
 })
 
 RpcHandler.prototype.provide = function (name, callback) {
@@ -95,7 +95,7 @@ RpcHandler.prototype.make = function (name, data, callback) {
     id,
     name,
     data,
-    callback,
+    callback
   })
   this._connection.sendMsg(C.TOPIC.RPC, C.ACTIONS.REQUEST, [name, id, messageBuilder.typed(data)])
 
@@ -111,7 +111,7 @@ RpcHandler.prototype._respond = function (message) {
   if (callback) {
     let promise
     try {
-      promise = Promise.resolve(callback(convertTyped(data, this._client), response))
+      promise = Promise.resolve(callback(messageParser.convertTyped(data, this._client), response))
     } catch (err) {
       promise = Promise.reject(err)
     }
@@ -152,11 +152,11 @@ RpcHandler.prototype._$handle = function (message) {
         Object.assign(new Error(data), {
           rpcId: rpc.id,
           rpcName: rpc.name,
-          rpcData: rpc.data,
+          rpcData: rpc.data
         })
       )
     } else {
-      rpc.callback(null, convertTyped(data, this._client))
+      rpc.callback(null, messageParser.convertTyped(data, this._client))
     }
   }
 }

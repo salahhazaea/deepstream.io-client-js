@@ -2,7 +2,7 @@ const NODE_ENV = typeof process !== 'undefined' && process.env && process.env.NO
 export const isNode = typeof process !== 'undefined' && process.toString() === '[object process]'
 export const isProduction = NODE_ENV === 'production'
 
-export function deepFreeze(o) {
+export function deepFreeze (o) {
   if (isProduction) {
     return o
   }
@@ -18,7 +18,7 @@ export function deepFreeze(o) {
   return o
 }
 
-export function splitRev(s) {
+export function splitRev (s) {
   if (!s) {
     return [-1, '00000000000000']
   }
@@ -29,7 +29,7 @@ export function splitRev(s) {
   return [ver.charAt(0) === 'I' ? Infinity : parseInt(ver, 10), s.slice(i + 1)]
 }
 
-export function isPlainObject(value, isPlainJSON) {
+export function isPlainObject (value, isPlainJSON) {
   if (isPlainJSON) {
     return value && typeof value === 'object' && !Array.isArray(value)
   }
@@ -50,13 +50,13 @@ export function isPlainObject(value, isPlainJSON) {
   return Object.getPrototypeOf(value) === proto
 }
 
-export function isSameOrNewer(a, b) {
+export function isSameOrNewer (a, b) {
   const [av, ar] = splitRev(a)
   const [bv, br] = splitRev(b)
   return av > bv || (av === bv && ar >= br)
 }
 
-export function shallowCopy(obj) {
+export function shallowCopy (obj) {
   if (Array.isArray(obj)) {
     return obj.slice(0)
   }
@@ -69,7 +69,7 @@ export function shallowCopy(obj) {
   return copy
 }
 
-export function setTimeout(callback, timeoutDuration) {
+export function setTimeout (callback, timeoutDuration) {
   if (timeoutDuration !== null) {
     return globalThis.setTimeout(callback, timeoutDuration)
   } else {
@@ -77,7 +77,7 @@ export function setTimeout(callback, timeoutDuration) {
   }
 }
 
-export function setInterval(callback, intervalDuration) {
+export function setInterval (callback, intervalDuration) {
   if (intervalDuration !== null) {
     return setInterval(callback, intervalDuration)
   } else {
@@ -85,7 +85,7 @@ export function setInterval(callback, intervalDuration) {
   }
 }
 
-export function compareRev(a, b) {
+export function compareRev (a, b) {
   if (!a) {
     return b ? -1 : 0
   }
@@ -116,14 +116,14 @@ export function compareRev(a, b) {
 }
 
 export class AbortError extends Error {
-  constructor() {
+  constructor () {
     super('The operation was aborted')
     this.code = 'ABORT_ERR'
     this.name = 'AbortError'
   }
 }
 
-function defaultSchedule(fn) {
+function defaultSchedule (fn) {
   setTimeout(fn, 0)
 }
 
@@ -139,7 +139,7 @@ const onAbort = function () {
   }
 }
 
-export function addAbortListener(signal, handler) {
+export function addAbortListener (signal, handler) {
   if (!signal) {
     return
   }
@@ -157,7 +157,7 @@ export function addAbortListener(signal, handler) {
   }
 }
 
-export function removeAbortListener(signal, handler) {
+export function removeAbortListener (signal, handler) {
   if (!signal) {
     return
   }
@@ -175,7 +175,7 @@ export function removeAbortListener(signal, handler) {
   }
 }
 
-export function readBigUInt64BE(buf, offset = 0) {
+export function readBigUInt64BE (buf, offset = 0) {
   const first = buf[offset]
   const last = buf[offset + 7]
 

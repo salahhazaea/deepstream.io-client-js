@@ -5,5 +5,5 @@ export default {
   maxPacketSize: 1024 * 1024,
   batchSize: 4096,
   schedule: null,
-  logger: null,
+  logger: null
 }

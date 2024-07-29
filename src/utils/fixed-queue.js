@@ -51,27 +51,27 @@ const kMask = kSize - 1
 // but allows much quicker checks.
 
 class FixedCircularBuffer {
-  constructor() {
+  constructor () {
     this.bottom = 0
     this.top = 0
     this.list = new Array(kSize)
     this.next = null
   }
 
-  isEmpty() {
+  isEmpty () {
     return this.top === this.bottom
   }
 
-  isFull() {
+  isFull () {
     return ((this.top + 1) & kMask) === this.bottom
   }
 
-  push(data) {
+  push (data) {
     this.list[this.top] = data
     this.top = (this.top + 1) & kMask
   }
 
-  shift() {
+  shift () {
     const nextItem = this.list[this.bottom]
     if (nextItem === undefined) return null
     this.list[this.bottom] = undefined
@@ -81,15 +81,15 @@ class FixedCircularBuffer {
 }
 
 export default class FixedQueue {
-  constructor() {
+  constructor () {
     this.head = this.tail = new FixedCircularBuffer()
   }
 
-  isEmpty() {
+  isEmpty () {
     return this.head.isEmpty()
   }
 
-  push(data) {
+  push (data) {
     if (this.head.isFull()) {
       // Head is full: Creates a new queue, sets the old queue's `.next` to it,
       // and sets it as the new main queue.
@@ -98,7 +98,7 @@ export default class FixedQueue {
     this.head.push(data)
   }
 
-  shift() {
+  shift () {
     const tail = this.tail
     const next = tail.shift()
     if (tail.isEmpty() && tail.next !== null) {
