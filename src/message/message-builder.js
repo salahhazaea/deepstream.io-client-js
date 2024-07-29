@@ -1,5 +1,6 @@
 import * as C from '../constants/constants.js'
 import varint from 'varint'
+import * as utils from '../utils/utils.js'
 
 const poolEncoder = new TextEncoder()
 
@@ -8,9 +9,11 @@ let poolBuffer
 let poolView
 let poolOffset
 
-function reallocPool(size) {
+function allocPool(size) {
   poolSize = size || poolSize || 1024 * 1024
-  poolBuffer = new Uint8Array(new ArrayBuffer(poolSize))
+  poolBuffer = utils.isNode
+    ? globalThis.Buffer.allocUnsafe(poolSize)
+    : new Uint8Array(new ArrayBuffer(poolSize))
   poolView = new DataView(poolBuffer.buffer)
   poolOffset = 0
 }
@@ -23,13 +26,22 @@ function alignPool() {
   }
 }
 
+function writeString(dst, str, offset) {
+  if (utils.isNode) {
+    return dst.write(str, offset)
+  } else {
+    const res = poolEncoder.encodeInto(str, new Uint8Array(dst.buffer, offset))
+    return res.written
+  }
+}
+
 export function getMsg(topic, action, data) {
   if (data && !(data instanceof Array)) {
     throw new Error('data must be an array')
   }
 
   if (!poolSize || poolOffset + poolSize / 16 >= poolSize) {
-    reallocPool()
+    allocPool()
   } else {
     alignPool()
   }
@@ -56,19 +68,14 @@ export function getMsg(topic, action, data) {
         len = 0
       } else if (type === 'object') {
         poolBuffer[poolOffset++] = 31
-        const res = poolEncoder.encodeInto(
-          JSON.stringify(data[i]),
-          new Uint8Array(poolBuffer.buffer, poolOffset),
-        )
-        len = res.written
+        len = writeString(poolBuffer, JSON.stringify(data[i]), poolOffset)
       } else if (type === 'bigint') {
         poolBuffer[poolOffset++] = 31
         poolView.setBigUint64(poolOffset, data[i], false)
         len = 8
       } else if (type === 'string') {
         poolBuffer[poolOffset++] = 31
-        const res = poolEncoder.encodeInto(data[i], new Uint8Array(poolBuffer.buffer, poolOffset))
-        len = res.written
+        len = writeString(poolBuffer, data[i], poolOffset)
       } else {
         throw new Error('invalid data')
       }
@@ -82,7 +89,7 @@ export function getMsg(topic, action, data) {
       }
 
       if (poolOffset >= poolBuffer.length) {
-        reallocPool(start === 0 ? poolSize * 2 : poolSize)
+        allocPool(start === 0 ? poolSize * 2 : poolSize)
         return getMsg(topic, action, data)
       }
     }
