@@ -27,7 +27,7 @@ const Connection = function (client, url, options) {
     raw: null,
     topic: null,
     action: null,
-    data: null
+    data: null,
   }
   this._recvQueue = new FixedQueue()
   this._reconnectTimeout = null
@@ -49,9 +49,9 @@ Emitter(Connection.prototype)
 
 // TODO (fix): Remove
 Object.defineProperty(Connection.prototype, 'connected', {
-  get: function connected () {
+  get: function connected() {
     return this._state === C.CONNECTION_STATE.OPEN
-  }
+  },
 })
 
 Connection.prototype.getState = function () {
@@ -94,7 +94,7 @@ Connection.prototype.close = function () {
 Connection.prototype._createEndpoint = function () {
   if (utils.isNode) {
     this._endpoint = new NodeWebSocket(this._url, {
-      generateMask () {}
+      generateMask() {},
     })
   } else {
     this._endpoint = new BrowserWebSocket(this._url)
@@ -121,7 +121,7 @@ Connection.prototype.send = function (message) {
       C.TOPIC.CONNECTION,
       C.EVENT.CONNECTION_ERROR,
       err,
-      message.split(C.MESSAGE_PART_SEPERATOR).map((x) => x.slice(0, 256))
+      message.split(C.MESSAGE_PART_SEPERATOR).map((x) => x.slice(0, 256)),
     )
     return false
   }
@@ -170,10 +170,10 @@ Connection.prototype._sendAuthParams = function () {
   this._setState(C.CONNECTION_STATE.AUTHENTICATING)
   const authMessage = messageBuilder.getMsg(C.TOPIC.AUTH, C.ACTIONS.REQUEST, [
     this._authParams,
-    '24.3.1', // TODO (fix): How to read from package.json?
+    '26.0.5', // TODO (fix): How to read from package.json?
     utils.isNode
       ? `Node/${process.version}`
-      : globalThis.navigator && globalThis.navigator.userAgent
+      : globalThis.navigator && globalThis.navigator.userAgent,
   ])
   this._submit(authMessage)
 }
@@ -276,7 +276,7 @@ Connection.prototype._handleConnectionResponse = function (message) {
   } else if (message.action === C.ACTIONS.CHALLENGE) {
     this._setState(C.CONNECTION_STATE.CHALLENGING)
     this._submit(
-      messageBuilder.getMsg(C.TOPIC.CONNECTION, C.ACTIONS.CHALLENGE_RESPONSE, [this._url])
+      messageBuilder.getMsg(C.TOPIC.CONNECTION, C.ACTIONS.CHALLENGE_RESPONSE, [this._url]),
     )
   } else if (message.action === C.ACTIONS.REJECTION) {
     this._challengeDenied = true
@@ -351,8 +351,8 @@ Connection.prototype._tryReconnect = function () {
       },
       Math.min(
         this._options.maxReconnectInterval,
-        this._options.reconnectIntervalIncrement * this._reconnectionAttempt
-      )
+        this._options.reconnectIntervalIncrement * this._reconnectionAttempt,
+      ),
     )
     this._reconnectionAttempt++
   } else {
