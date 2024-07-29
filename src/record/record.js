@@ -425,11 +425,7 @@ class Record {
       this._onPatching(false)
     }
 
-    if (
-      this._state < C.RECORD_STATE.PROVIDER &&
-      hasProvider &&
-      messageParser.convertTyped(hasProvider, this._handler._client) === true
-    ) {
+    if (this._state < C.RECORD_STATE.PROVIDER && hasProvider === 'T') {
       this._state = C.RECORD_STATE.PROVIDER
     } else if (this._state < C.RECORD_STATE.SERVER) {
       this._state = this._version.charAt(0) === 'I' ? C.RECORD_STATE.STALE : C.RECORD_STATE.SERVER
