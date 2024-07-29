@@ -79,7 +79,7 @@ export function setTimeout(callback, timeoutDuration) {
 
 export function setInterval(callback, intervalDuration) {
   if (intervalDuration !== null) {
-    return setInterval(callback, intervalDuration)
+    return globalThis.setInterval(callback, intervalDuration)
   } else {
     return -1
   }

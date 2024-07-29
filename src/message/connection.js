@@ -6,10 +6,9 @@ import xxhash from 'xxhash-wasm'
 import FixedQueue from '../utils/fixed-queue.js'
 import Emitter from 'component-emitter2'
 
-const BrowserWebSocket = globalThis.WebSocket || globalThis.MozWebSocket
-const NodeWebSocket = utils.isNode ? await import('ws').then((x) => x.default) : null
-
 const HASHER = await xxhash()
+const NodeWebSocket = utils.isNode ? await import('ws').then((x) => x.default) : null
+const BrowserWebSocket = globalThis.WebSocket || globalThis.MozWebSocket
 
 const Connection = function (client, url, options) {
   this._client = client
@@ -32,6 +31,7 @@ const Connection = function (client, url, options) {
   this._recvQueue = new FixedQueue()
   this._reconnectTimeout = null
   this._reconnectionAttempt = 0
+  this._endpoint = null
 
   this._processingRecv = false
   this._recvMessages = this._recvMessages.bind(this)
@@ -86,7 +86,7 @@ Connection.prototype.close = function () {
   this._endpoint?.close()
 
   if (this._reconnectTimeout) {
-    clearTimeout(this._reconnectTimeout)
+    globalThis.clearTimeout(this._reconnectTimeout)
     this._reconnectTimeout = null
   }
 }
@@ -136,7 +136,7 @@ Connection.prototype.send = function (message) {
   if (this._endpoint._socket && !this._corked) {
     this._endpoint._socket.cork()
     this._corked = true
-    setTimeout(() => {
+    globalThis.setTimeout(() => {
       this._endpoint._socket.uncork()
       this._corked = false
     }, 1)
@@ -151,8 +151,8 @@ Connection.prototype.send = function (message) {
 Connection.prototype._submit = function (message) {
   const { maxPacketSize } = this._options
 
-  if (message.byteLength > maxPacketSize) {
-    const err = new Error(`Packet to big: ${message.byteLength} > ${maxPacketSize}`)
+  if (message.length > maxPacketSize) {
+    const err = new Error(`Packet to big: ${message.length} > ${maxPacketSize}`)
     this._client._$onError(C.TOPIC.CONNECTION, C.EVENT.CONNECTION_ERROR, err)
     return false
   } else if (this._endpoint.readyState === this._endpoint.OPEN) {
@@ -170,7 +170,7 @@ Connection.prototype._sendAuthParams = function () {
   this._setState(C.CONNECTION_STATE.AUTHENTICATING)
   const authMessage = messageBuilder.getMsg(C.TOPIC.AUTH, C.ACTIONS.REQUEST, [
     this._authParams,
-    '26.0.8', // TODO (fix): How to read from package.json?
+    '26.0.0',
     utils.isNode
       ? `Node/${process.version}`
       : globalThis.navigator && globalThis.navigator.userAgent,
@@ -243,10 +243,6 @@ Connection.prototype._recvMessages = function (deadline) {
 
     if (message.length <= 2) {
       continue
-    }
-
-    if (this._logger) {
-      this._logger.trace(message, 'receive')
     }
 
     messageParser.parseMessage(message, this._client, this._message)

@@ -1,10 +1,10 @@
-import * as C from '../constants/constants.js'
 import * as messageBuilder from '../message/message-builder.js'
 import messageParser from '../message/message-parser.js'
+import * as C from '../constants/constants.js'
 import MulticastListener from '../utils/multicast-listener.js'
 import UnicastListener from '../utils/unicast-listener.js'
 import EventEmitter from 'component-emitter2'
-import rxjs from 'rxjs'
+import * as rxjs from 'rxjs'
 
 const EventHandler = function (options, connection, client) {
   this._options = options
