@@ -13,7 +13,7 @@ import * as timers from '../utils/timers.js'
 
 const kEmpty = Symbol('kEmpty')
 
-function onUpdate (record, subscription) {
+function onUpdate(record, subscription) {
   if (subscription.state && record.state < subscription.state) {
     return
   }
@@ -35,12 +35,12 @@ function onUpdate (record, subscription) {
       name: record.name,
       version: record.version,
       state: record.state,
-      data
+      data,
     })
   }
 }
 
-function onTimeout (subscription) {
+function onTimeout(subscription) {
   const expected = C.RECORD_STATE_NAME[subscription.state]
   const current = C.RECORD_STATE_NAME[subscription.record.state]
 
@@ -48,13 +48,13 @@ function onTimeout (subscription) {
     Object.assign(
       new Error(`timeout state: ${subscription.record.name} [${current}<${expected}]`),
       {
-        code: 'ETIMEDOUT'
-      }
-    )
+        code: 'ETIMEDOUT',
+      },
+    ),
   )
 }
 
-function onUpdateFast (rec, opaque) {
+function onUpdateFast(rec, opaque) {
   const { timeout, resolve, synced, state } = opaque
 
   if (rec.state >= state && synced) {
@@ -65,12 +65,12 @@ function onUpdateFast (rec, opaque) {
   }
 }
 
-function onSyncFast (opaque) {
+function onSyncFast(opaque) {
   opaque.synced = true
   onUpdateFast(opaque.rec, opaque)
 }
 
-function onTimeoutFast (opaque) {
+function onTimeoutFast(opaque) {
   const { rec, synced, resolve } = opaque
   rec.unsubscribe(onUpdateFast, opaque)
   rec.unref()
@@ -88,7 +88,7 @@ function onTimeoutFast (opaque) {
 }
 
 class RecordHandler {
-  constructor (options, connection, client) {
+  constructor(options, connection, client) {
     this.JSON = jsonPath
     this.STATE = C.RECORD_STATE
     Object.assign(this, C.RECORD_STATE)
@@ -110,7 +110,7 @@ class RecordHandler {
       destroyed: 0,
       records: 0,
       pruning: 0,
-      patching: 0
+      patching: 0,
     }
 
     this._syncQueue = []
@@ -147,7 +147,7 @@ class RecordHandler {
     this._pruningTimeout = timers.setTimeout(_prune, 1e3)
   }
 
-  _onPruning (rec, value) {
+  _onPruning(rec, value) {
     if (value) {
       this._stats.pruning += 1
     } else {
@@ -161,7 +161,7 @@ class RecordHandler {
     }
   }
 
-  _onUpdating (rec, value) {
+  _onUpdating(rec, value) {
     if (value) {
       this._stats.updating += 1
       this._updating.set(rec, [])
@@ -176,7 +176,7 @@ class RecordHandler {
     }
   }
 
-  _onPatching (rec, value) {
+  _onPatching(rec, value) {
     if (value) {
       this._stats.patching += 1
       this._patching.set(rec, [])
@@ -191,11 +191,11 @@ class RecordHandler {
     }
   }
 
-  get connected () {
+  get connected() {
     return Boolean(this._connected)
   }
 
-  get stats () {
+  get stats() {
     let subscriptions = 0
     for (const listener of this._listeners.values()) {
       subscriptions += listener.subscriptions ?? 0
@@ -203,11 +203,11 @@ class RecordHandler {
 
     return {
       ...this._stats,
-      subscriptions
+      subscriptions,
     }
   }
 
-  getKey (name) {
+  getKey(name) {
     if (name.length > 8) {
       return this._connection.hasher.h64(name)
     }
@@ -219,10 +219,10 @@ class RecordHandler {
    * @param {string} name
    * @returns {Record}
    */
-  getRecord (name) {
+  getRecord(name) {
     invariant(
       typeof name === 'string' && name.length > 0 && name !== '[object Object]',
-      `invalid name ${name}`
+      `invalid name ${name}`,
     )
 
     let record = this._records.get(name)
@@ -237,7 +237,7 @@ class RecordHandler {
     return record.ref()
   }
 
-  provide (pattern, callback, options) {
+  provide(pattern, callback, options) {
     if (typeof pattern !== 'string' || pattern.length === 0) {
       throw new Error('invalid argument pattern')
     }
@@ -272,7 +272,7 @@ class RecordHandler {
     }
   }
 
-  async sync (opts) {
+  async sync(opts) {
     // TODO (fix): Sync pending? What about VOID state?
 
     let onAbort
@@ -282,11 +282,11 @@ class RecordHandler {
 
     const signalPromise = signal
       ? new Promise((resolve, reject) => {
-        onAbort = () => {
-          reject(signal.reason ?? new utils.AbortError())
-        }
-        signal.addEventListener('abort', onAbort)
-      })
+          onAbort = () => {
+            reject(signal.reason ?? new utils.AbortError())
+          }
+          signal.addEventListener('abort', onAbort)
+        })
       : null
     signalPromise?.catch(() => {})
 
@@ -296,7 +296,7 @@ class RecordHandler {
         const patching = [...this._patching.values()]
         await Promise.race([
           Promise.all(
-            patching.map((callbacks) => new Promise((resolve) => callbacks.push(resolve)))
+            patching.map((callbacks) => new Promise((resolve) => callbacks.push(resolve))),
           ),
           new Promise((resolve) => {
             patchingTimeout = timers.setTimeout(
@@ -305,15 +305,15 @@ class RecordHandler {
                   C.TOPIC.RECORD,
                   C.EVENT.TIMEOUT,
                   Object.assign(new Error('sync patching timeout'), {
-                    data: { patching, timeout }
-                  })
+                    data: { patching, timeout },
+                  }),
                 )
                 resolve(null)
               },
-              timeout ?? 2 * 60e3
+              timeout ?? 2 * 60e3,
             )
           }),
-          signalPromise
+          signalPromise,
         ]).finally(() => {
           timers.clearTimeout(patchingTimeout)
         })
@@ -324,7 +324,7 @@ class RecordHandler {
         const updating = [...this._updating.values()]
         await Promise.race([
           Promise.all(
-            updating.map((callbacks) => new Promise((resolve) => callbacks.push(resolve)))
+            updating.map((callbacks) => new Promise((resolve) => callbacks.push(resolve))),
           ),
           new Promise((resolve) => {
             updatingTimeout = timers.setTimeout(
@@ -333,15 +333,15 @@ class RecordHandler {
                   C.TOPIC.RECORD,
                   C.EVENT.TIMEOUT,
                   Object.assign(new Error('sync updating timeout'), {
-                    data: { updating, timeout }
-                  })
+                    data: { updating, timeout },
+                  }),
                 )
                 resolve(null)
               },
-              timeout ?? 2 * 60e3
+              timeout ?? 2 * 60e3,
             )
           }),
-          signalPromise
+          signalPromise,
         ]).finally(() => {
           timers.clearTimeout(updatingTimeout)
         })
@@ -360,14 +360,14 @@ class RecordHandler {
               this._client._$onError(
                 C.TOPIC.RECORD,
                 C.EVENT.TIMEOUT,
-                Object.assign(new Error('sync server timeout'), { data: { token, timeout } })
+                Object.assign(new Error('sync server timeout'), { data: { token, timeout } }),
               )
               resolve(null)
             },
-            timeout ?? 2 * 60e3
+            timeout ?? 2 * 60e3,
           )
         }),
-        signalPromise
+        signalPromise,
       ]).finally(() => {
         timers.clearTimeout(serverTimeout)
       })
@@ -378,7 +378,7 @@ class RecordHandler {
     }
   }
 
-  _sync (callback, opaque) {
+  _sync(callback, opaque) {
     this._syncQueue.push(callback, opaque)
 
     if (this._syncQueue.length > 2) {
@@ -399,7 +399,7 @@ class RecordHandler {
     }, 1)
   }
 
-  set (name, ...args) {
+  set(name, ...args) {
     const record = this.getRecord(name)
     try {
       return record.set(...args)
@@ -414,7 +414,7 @@ class RecordHandler {
    * @param  {...any} args
    * @returns {Promise}
    */
-  update (name, ...args) {
+  update(name, ...args) {
     try {
       const record = this.getRecord(name)
       try {
@@ -431,14 +431,14 @@ class RecordHandler {
    * @param  {...any} args
    * @returns {rxjs.Observable}
    */
-  observe (...args) {
+  observe(...args) {
     return this._observe(
       {
         state: C.RECORD_STATE.SERVER,
         timeout: 2 * 60e3,
-        dataOnly: true
+        dataOnly: true,
       },
-      ...args
+      ...args,
     )
   }
 
@@ -446,7 +446,7 @@ class RecordHandler {
    * @param  {...any} args
    * @returns {Promise}
    */
-  get (...args) {
+  get(...args) {
     if (args.length === 1 || (args.length === 2 && typeof args[1] === 'number')) {
       return new Promise((resolve) => {
         const rec = this.getRecord(args[0])
@@ -466,7 +466,7 @@ class RecordHandler {
             state,
             resolve,
             timeout: null,
-            synced
+            synced,
           }
           opaque.timeout = timers.setTimeout(onTimeoutFast, 2 * 60e3, opaque)
           rec.subscribe(onUpdateFast, opaque)
@@ -484,7 +484,7 @@ class RecordHandler {
           .pipe(rx.first())
           .subscribe({
             next: resolve,
-            error: reject
+            error: reject,
           })
       })
     }
@@ -494,13 +494,13 @@ class RecordHandler {
    * @param  {...any} args
    * @returns {Promise}
    */
-  get2 (...args) {
+  get2(...args) {
     return new Promise((resolve, reject) => {
       this.observe2(...args)
         .pipe(rx.first())
         .subscribe({
           next: resolve,
-          error: reject
+          error: reject,
         })
     })
   }
@@ -509,12 +509,12 @@ class RecordHandler {
    * @param  {...any} args
    * @returns {rxjs.Observable<{ name: string, version: string, state: Number, data: any}>}
    */
-  observe2 (...args) {
+  observe2(...args) {
     return this._observe(
       {
-        timeout: 2 * 60e3
+        timeout: 2 * 60e3,
       },
-      ...args
+      ...args,
     )
   }
 
@@ -522,7 +522,7 @@ class RecordHandler {
    * @returns {rxjs.Observable}
    */
   // TODO (perf): Avoid rest parameters.
-  _observe (defaults, name, ...args) {
+  _observe(defaults, name, ...args) {
     let path
     let state = defaults ? defaults.state : undefined
     let signal
@@ -585,7 +585,7 @@ class RecordHandler {
         timeout: null,
         /** @type {Record?} */ record: null,
         /** @type {Function?} */ abort: null,
-        unsubscribe () {
+        unsubscribe() {
           if (this.timeout) {
             timers.clearTimeout(this.timeout)
             this.timeout = null
@@ -602,7 +602,7 @@ class RecordHandler {
             this.record.unref()
             this.record = null
           }
-        }
+        },
       }
 
       const record = (subscription.record = this.getRecord(name).subscribe(onUpdate, subscription))
@@ -626,7 +626,7 @@ class RecordHandler {
     })
   }
 
-  _$handle (message) {
+  _$handle(message) {
     let name
     if (message.action === C.ACTIONS.ERROR) {
       name = message.data[1]
@@ -652,7 +652,7 @@ class RecordHandler {
     return false
   }
 
-  _onConnectionStateChange (connected) {
+  _onConnectionStateChange(connected) {
     for (const listener of this._listeners.values()) {
       listener._$onConnectionStateChange(connected)
     }

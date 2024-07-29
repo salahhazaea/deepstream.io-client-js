@@ -13,7 +13,7 @@ const EventHandler = function (options, connection, client) {
   this._emitter = new EventEmitter()
   this._listeners = new Map()
   this._stats = {
-    emitted: 0
+    emitted: 0,
   }
 
   this.subscribe = this.subscribe.bind(this)
@@ -26,19 +26,19 @@ const EventHandler = function (options, connection, client) {
 }
 
 Object.defineProperty(EventHandler.prototype, 'connected', {
-  get: function connected () {
+  get: function connected() {
     return this._client.getConnectionState() === C.CONNECTION_STATE.OPEN
-  }
+  },
 })
 
 Object.defineProperty(EventHandler.prototype, 'stats', {
-  get: function stats () {
+  get: function stats() {
     return {
       ...this._stats,
       listeners: this._listeners.size,
-      events: this._emitter.eventNames().length
+      events: this._emitter.eventNames().length,
     }
-  }
+  },
 })
 
 EventHandler.prototype.subscribe = function (name, callback) {

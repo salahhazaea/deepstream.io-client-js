@@ -27,7 +27,7 @@ RpcResponse.prototype.error = function (error) {
     this._name,
     this._id,
     error.message || error,
-    true
+    true,
   ])
 }
 
@@ -40,7 +40,7 @@ RpcResponse.prototype.send = function (data) {
   this._connection.sendMsg(C.TOPIC.RPC, C.ACTIONS.RESPONSE, [
     this._name,
     this._id,
-    messageBuilder.typed(data)
+    messageBuilder.typed(data),
   ])
 }
 

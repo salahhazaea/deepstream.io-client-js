@@ -20,19 +20,19 @@ const RpcHandler = function (options, connection, client) {
 }
 
 Object.defineProperty(RpcHandler.prototype, 'connected', {
-  get: function connected () {
+  get: function connected() {
     return this._client.getConnectionState() === C.CONNECTION_STATE.OPEN
-  }
+  },
 })
 
 Object.defineProperty(RpcHandler.prototype, 'stats', {
-  get: function stats () {
+  get: function stats() {
     return {
       ...this._stats,
       listeners: this._providers.size,
-      rpcs: this._rpcs.size
+      rpcs: this._rpcs.size,
     }
-  }
+  },
 })
 
 RpcHandler.prototype.provide = function (name, callback) {
@@ -95,7 +95,7 @@ RpcHandler.prototype.make = function (name, data, callback) {
     id,
     name,
     data,
-    callback
+    callback,
   })
   this._connection.sendMsg(C.TOPIC.RPC, C.ACTIONS.REQUEST, [name, id, messageBuilder.typed(data)])
 
@@ -152,8 +152,8 @@ RpcHandler.prototype._$handle = function (message) {
         Object.assign(new Error(data), {
           rpcId: rpc.id,
           rpcName: rpc.name,
-          rpcData: rpc.data
-        })
+          rpcData: rpc.data,
+        }),
       )
     } else {
       rpc.callback(null, messageParser.convertTyped(data, this._client))

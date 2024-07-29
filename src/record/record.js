@@ -425,16 +425,14 @@ class Record {
       this._onPatching(false)
     }
 
-    if (this._state < C.RECORD_STATE.SERVER) {
+    if (
+      this._state < C.RECORD_STATE.PROVIDER &&
+      hasProvider &&
+      messageParser.convertTyped(hasProvider, this._handler._client) === true
+    ) {
+      this._state = C.RECORD_STATE.PROVIDER
+    } else if (this._state < C.RECORD_STATE.SERVER) {
       this._state = this._version.charAt(0) === 'I' ? C.RECORD_STATE.STALE : C.RECORD_STATE.SERVER
-    }
-
-    if (hasProvider) {
-      this._state = messageParser.convertTyped(hasProvider, this._handler._client)
-        ? C.RECORD_STATE.PROVIDER
-        : this._version.charAt(0) === 'I'
-          ? C.RECORD_STATE.STALE
-          : C.RECORD_STATE.SERVER
     }
 
     if (this._state !== prevState || this._data !== prevData || this._version !== prevVersion) {

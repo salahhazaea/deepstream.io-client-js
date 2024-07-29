@@ -3,7 +3,7 @@ let fastNowTimeout
 
 const fastTimers = []
 
-function onTimeout () {
+function onTimeout() {
   fastNow = Date.now()
 
   let len = fastTimers.length
@@ -36,7 +36,7 @@ function onTimeout () {
   }
 }
 
-function refreshTimeout () {
+function refreshTimeout() {
   if (fastNowTimeout && fastNowTimeout.refresh) {
     fastNowTimeout.refresh()
   } else {
@@ -49,7 +49,7 @@ function refreshTimeout () {
 }
 
 class Timeout {
-  constructor (callback, delay, opaque) {
+  constructor(callback, delay, opaque) {
     this.callback = callback
     this.delay = delay
     this.opaque = opaque
@@ -63,7 +63,7 @@ class Timeout {
     this.refresh()
   }
 
-  refresh () {
+  refresh() {
     if (this.state === -2) {
       fastTimers.push(this)
       if (!fastNowTimeout || fastTimers.length === 1) {
@@ -74,18 +74,18 @@ class Timeout {
     this.state = 0
   }
 
-  clear () {
+  clear() {
     this.state = -1
   }
 }
 
-export function setTimeout (callback, delay, opaque) {
+export function setTimeout(callback, delay, opaque) {
   return delay < 1e3
     ? globalThis.setTimeout(callback, delay, opaque)
     : new Timeout(callback, delay, opaque)
 }
 
-export function clearTimeout (timeout) {
+export function clearTimeout(timeout) {
   if (timeout instanceof Timeout) {
     timeout.clear()
   } else {

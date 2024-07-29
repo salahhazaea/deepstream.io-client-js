@@ -18,11 +18,11 @@ const PIPE = rxjs.pipe(
 
     return data
   }),
-  rx.distinctUntilChanged()
+  rx.distinctUntilChanged(),
 )
 
 class Listener {
-  constructor (topic, pattern, callback, handler, opts) {
+  constructor(topic, pattern, callback, handler, opts) {
     if (opts.recursive) {
       throw new Error('invalid argument: recursive')
     }
@@ -42,17 +42,17 @@ class Listener {
     this._connection.sendMsg(this._topic, C.ACTIONS.LISTEN, [this._pattern, 'U'])
   }
 
-  get stats () {
+  get stats() {
     return {
-      subscriptions: this._subscriptions.size
+      subscriptions: this._subscriptions.size,
     }
   }
 
-  _$destroy () {
+  _$destroy() {
     this._reset()
   }
 
-  _$onMessage (message) {
+  _$onMessage(message) {
     const name = message.data[1]
 
     if (message.action === C.ACTIONS.LISTEN_ACCEPT) {
@@ -86,7 +86,7 @@ class Listener {
             this._error(name, err)
             this._connection.sendMsg(this._topic, C.ACTIONS.LISTEN_REJECT, [this._pattern, key])
             this._subscriptions.delete(name)
-          }
+          },
         })
         this._subscriptions.set(name, subscription)
       } else {
@@ -107,7 +107,7 @@ class Listener {
     return true
   }
 
-  _$onConnectionStateChange (connected) {
+  _$onConnectionStateChange(connected) {
     if (connected) {
       this._connection.sendMsg(this._topic, C.ACTIONS.LISTEN, [this._pattern, 'U'])
     } else {
@@ -115,11 +115,11 @@ class Listener {
     }
   }
 
-  _error (name, err) {
+  _error(name, err) {
     this._client._$onError(this._topic, C.EVENT.LISTENER_ERROR, err, [this._pattern, name])
   }
 
-  _reset () {
+  _reset() {
     for (const subscription of this._subscriptions.values()) {
       subscription.unsubscribe()
     }
