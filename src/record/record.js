@@ -11,11 +11,16 @@ export default class Record {
   static STATE = C.RECORD_STATE
 
   constructor(name, handler) {
+    if (!name?.length || typeof name !== 'string') {
+      throw new Error('invalid argument: name')
+    }
+
     const connection = handler._connection
 
     this._handler = handler
 
     this._name = name
+    this._key = utils.hashNameBigInt(name)
     this._version = ''
     this._data = jsonPath.EMPTY
     this._state = C.RECORD_STATE.VOID
@@ -24,12 +29,20 @@ export default class Record {
     this._emitting = false
     /** @type Map? */ this._updating = null
     /** @type Array? */ this._patching = null
-    this._subscribed = connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.SUBSCRIBE, [this._name])
+    this._subscribed = connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.SUBSCRIBE, [
+      this._name,
+      this._key,
+    ])
   }
 
   /** @type {string} */
   get name() {
     return this._name
+  }
+
+  /** @type {bigint} */
+  get key() {
+    return this._key
   }
 
   /** @type {string} */
@@ -62,7 +75,8 @@ export default class Record {
     if (this._refs === 1) {
       this._handler._onPruning(this, false)
       this._subscribed =
-        this._subscribed || connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.SUBSCRIBE, [this._name])
+        this._subscribed ||
+        connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.SUBSCRIBE, [this._name, this._key])
     }
     return this
   }
@@ -324,7 +338,8 @@ export default class Record {
 
     if (connected) {
       this._subscribed =
-        this._refs > 0 && connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.SUBSCRIBE, [this._name])
+        this._refs > 0 &&
+        connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.SUBSCRIBE, [this._key, this._name])
 
       if (this._updating) {
         for (const update of this._updating.values()) {
@@ -349,7 +364,7 @@ export default class Record {
     invariant(!this._updating, 'must not have updates')
 
     if (this._subscribed) {
-      connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.UNSUBSCRIBE, [this._name])
+      connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.UNSUBSCRIBE, [this._key])
       this._subscribed = false
     }
 
@@ -371,7 +386,7 @@ export default class Record {
     const prevVersion = this._version
     const nextVersion = this._makeVersion(parseInt(prevVersion) + 1)
 
-    const update = [this._name, nextVersion, jsonPath.stringify(nextData), prevVersion]
+    const update = [this._key, nextVersion, jsonPath.stringify(nextData), prevVersion]
 
     if (!this._updating) {
       this._onUpdating(true)
