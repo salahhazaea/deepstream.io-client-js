@@ -20,7 +20,7 @@ export default class Record {
     this._handler = handler
 
     this._name = name
-    this._key = utils.hashNameBigInt(name)
+    this._key = utils.h64(name)
     this._version = ''
     this._data = jsonPath.EMPTY
     this._state = C.RECORD_STATE.VOID

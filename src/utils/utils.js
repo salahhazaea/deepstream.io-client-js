@@ -186,16 +186,3 @@ export function h64(name) {
 export function h64ToString(name) {
   return HASHER.h64ToString(name)
 }
-
-const encoder = new globalThis.TextEncoder()
-const buffer = new Uint8Array(8 * 3)
-const view = new DataView(buffer.buffer)
-
-export function hashNameBigInt(name) {
-  if (name.length >= 8) {
-    return HASHER.h64(name)
-  }
-
-  const { written } = encoder.encodeInto(name, buffer)
-  return written === 8 ? view.getBigUint64(0, false) : HASHER.h64Raw(buffer.subarray(0, written))
-}

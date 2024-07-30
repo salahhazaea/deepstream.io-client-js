@@ -53,7 +53,7 @@ class Listener {
       return
     }
 
-    const key = utils.hashNameBigInt(name)
+    const key = utils.h64(name)
 
     if (message.action === C.ACTIONS.SUBSCRIPTION_FOR_PATTERN_FOUND) {
       if (this._subscriptions.has(key)) {
