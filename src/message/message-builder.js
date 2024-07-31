@@ -51,9 +51,12 @@ export function getMsg(topic, action, data) {
   const start = poolOffset
 
   const headerSize = 8
-  poolBuffer[poolOffset++] = 128 + headerSize
-  let headerPos = poolOffset
-  poolOffset += headerSize - 1
+  for (let n = 0; n < headerSize; n++) {
+    poolBuffer[poolOffset++] = 0
+  }
+
+  let headerPos = start
+  poolBuffer[headerPos++] = 128 + headerSize
 
   poolBuffer[poolOffset++] = topic.charCodeAt(0)
   poolBuffer[poolOffset++] = 31
