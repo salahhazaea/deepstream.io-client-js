@@ -1,9 +1,9 @@
+import * as rxjs from 'rxjs'
 import * as C from '../constants/constants.js'
-import rx from 'rxjs/operators'
-import rxjs from 'rxjs'
+import { h64ToString } from '../utils/utils.js'
 
-const PIPE = rxjs.pipe(
-  rx.map((value) => {
+const valuePipe = rxjs.pipe(
+  rxjs.map((value) => {
     let data
     if (value && typeof value === 'string') {
       if (value.charAt(0) !== '{' && value.charAt(0) !== '[') {
@@ -18,7 +18,7 @@ const PIPE = rxjs.pipe(
 
     return data
   }),
-  rx.distinctUntilChanged(),
+  rxjs.distinctUntilChanged(),
 )
 
 export default class Listener {
@@ -69,14 +69,14 @@ export default class Listener {
       }
 
       if (value$) {
-        const subscription = value$.pipe(PIPE).subscribe({
+        const subscription = value$.pipe(valuePipe).subscribe({
           next: (data) => {
             if (data == null) {
               this._connection.sendMsg(this._topic, C.ACTIONS.LISTEN_REJECT, [this._pattern, name])
               this._subscriptions.delete(name)
               subscription.unsubscribe()
             } else {
-              const version = `INF-${this._connection.hasher.h64ToString(data)}`
+              const version = `INF-${h64ToString(data)}`
               this._connection.sendMsg(this._topic, C.ACTIONS.UPDATE, [name, version, data])
             }
           },

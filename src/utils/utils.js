@@ -1,3 +1,5 @@
+import xxhash from 'xxhash-wasm'
+
 const NODE_ENV = typeof process !== 'undefined' && process.env && process.env.NODE_ENV
 export const isNode = typeof process !== 'undefined' && process.toString() === '[object process]'
 export const isProduction = NODE_ENV === 'production'
@@ -173,4 +175,18 @@ export function removeAbortListener(signal, handler) {
       }
     }
   }
+}
+
+const HASHER = await xxhash()
+
+export function h64(str) {
+  return HASHER.h64(str)
+}
+
+export function h64ToString(str) {
+  return HASHER.h64ToString(str)
+}
+
+export function h64Raw(str) {
+  return HASHER.h64Raw(str)
 }

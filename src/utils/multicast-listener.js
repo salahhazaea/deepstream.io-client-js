@@ -1,5 +1,6 @@
+import * as rxjs from 'rxjs'
 import * as C from '../constants/constants.js'
-import rxjs from 'rxjs'
+import { h64ToString } from '../utils/utils.js'
 
 export default class Listener {
   constructor(topic, pattern, callback, handler, { recursive = false, stringify = null } = {}) {
@@ -151,7 +152,7 @@ export default class Listener {
             }
 
             const body = typeof value !== 'string' ? this._stringify(value) : value
-            const hash = this._connection.hasher.h64ToString(body)
+            const hash = h64ToString(body)
             const version = `INF-${hash}`
 
             if (provider.version !== version) {
