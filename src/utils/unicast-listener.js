@@ -1,6 +1,6 @@
 import * as rxjs from 'rxjs'
 import * as C from '../constants/constants.js'
-import { h64ToString } from '../utils/utils.js'
+import { h64, h64ToString } from '../utils/utils.js'
 
 const valuePipe = rxjs.pipe(
   rxjs.map((value) => {
@@ -55,8 +55,12 @@ export default class Listener {
   _$onMessage(message) {
     const name = message.data[1]
 
+    // TODO (fix): Validate name
+
+    const key = h64(name)
+
     if (message.action === C.ACTIONS.LISTEN_ACCEPT) {
-      if (this._subscriptions.has(name)) {
+      if (this._subscriptions.has(key)) {
         this._error(name, 'invalid accept: listener exists')
         return
       }
@@ -72,29 +76,29 @@ export default class Listener {
         const subscription = value$.pipe(valuePipe).subscribe({
           next: (data) => {
             if (data == null) {
-              this._connection.sendMsg(this._topic, C.ACTIONS.LISTEN_REJECT, [this._pattern, name])
-              this._subscriptions.delete(name)
+              this._connection.sendMsg(this._topic, C.ACTIONS.LISTEN_REJECT, [this._pattern, key])
+              this._subscriptions.delete(key)
               subscription.unsubscribe()
             } else {
               const version = `INF-${h64ToString(data)}`
-              this._connection.sendMsg(this._topic, C.ACTIONS.UPDATE, [name, version, data])
+              this._connection.sendMsg(this._topic, C.ACTIONS.UPDATE, [key, version, data])
             }
           },
           error: (err) => {
             this._error(name, err)
-            this._connection.sendMsg(this._topic, C.ACTIONS.LISTEN_REJECT, [this._pattern, name])
-            this._subscriptions.delete(name)
+            this._connection.sendMsg(this._topic, C.ACTIONS.LISTEN_REJECT, [this._pattern, key])
+            this._subscriptions.delete(key)
           },
         })
-        this._subscriptions.set(name, subscription)
+        this._subscriptions.set(key, subscription)
       } else {
-        this._connection.sendMsg(this._topic, C.ACTIONS.LISTEN_REJECT, [this._pattern, name])
+        this._connection.sendMsg(this._topic, C.ACTIONS.LISTEN_REJECT, [this._pattern, key])
       }
     } else if (message.action === C.ACTIONS.LISTEN_REJECT) {
-      const subscription = this._subscriptions.get(name)
+      const subscription = this._subscriptions.get(key)
 
       if (subscription) {
-        this._subscriptions.delete(name)
+        this._subscriptions.delete(key)
         subscription.unsubscribe()
       } else {
         this._error(name, 'invalid remove: listener missing')
