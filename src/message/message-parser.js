@@ -1,10 +1,12 @@
 import * as C from '../constants/constants.js'
 
-const MessageParser = function () {
-  this._actions = this._getActions()
+const actions = {}
+
+for (const key in C.ACTIONS) {
+  actions[C.ACTIONS[key]] = key
 }
 
-MessageParser.prototype.convertTyped = function (value, client) {
+export function convertTyped(value, client) {
   const type = value.charAt(0)
 
   if (type === C.TYPES.STRING) {
@@ -45,17 +47,7 @@ MessageParser.prototype.convertTyped = function (value, client) {
   return undefined
 }
 
-MessageParser.prototype._getActions = function () {
-  const actions = {}
-
-  for (const key in C.ACTIONS) {
-    actions[C.ACTIONS[key]] = key
-  }
-
-  return actions
-}
-
-MessageParser.prototype.parseMessage = function (message, client, result) {
+export function parseMessage(message, client, result) {
   const parts = message.split(C.MESSAGE_PART_SEPERATOR)
 
   if (parts.length < 2) {
@@ -72,7 +64,7 @@ MessageParser.prototype.parseMessage = function (message, client, result) {
     return null
   }
 
-  if (this._actions[parts[1]] === undefined) {
+  if (actions[parts[1]] === undefined) {
     client._$onError(
       C.TOPIC.ERROR,
       C.EVENT.MESSAGE_PARSE_ERROR,
@@ -87,5 +79,3 @@ MessageParser.prototype.parseMessage = function (message, client, result) {
   result.action = parts[1]
   result.data = parts.splice(2)
 }
-
-export default new MessageParser()

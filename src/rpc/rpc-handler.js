@@ -1,6 +1,6 @@
 import * as C from '../constants/constants.js'
 import RpcResponse from './rpc-response.js'
-import messageParser from '../message/message-parser.js'
+import * as messageParser from '../message/message-parser.js'
 import * as messageBuilder from '../message/message-builder.js'
 import xuid from 'xuid'
 

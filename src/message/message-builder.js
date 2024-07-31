@@ -1,16 +1,18 @@
 import * as C from '../constants/constants.js'
-import varint from 'varint'
 import * as utils from '../utils/utils.js'
+import varint from 'varint'
 
 const poolEncoder = new globalThis.TextEncoder()
 
-let poolSize
+// TODO (fix): Don't assume maxMesageSize is 1MB
+const maxMessageSize = 1024 * 1024
+const poolSize = maxMessageSize * 4
+
 let poolBuffer
 let poolView
 let poolOffset
 
-function allocPool(size) {
-  poolSize = size || poolSize || 1024 * 1024
+function reallocPool() {
   poolBuffer = utils.isNode
     ? globalThis.Buffer.allocUnsafe(poolSize)
     : new Uint8Array(new ArrayBuffer(poolSize))
@@ -40,8 +42,8 @@ export function getMsg(topic, action, data) {
     throw new Error('data must be an array')
   }
 
-  if (!poolSize || poolOffset + poolSize / 16 >= poolSize) {
-    allocPool()
+  if (!poolBuffer || poolOffset + maxMessageSize > poolSize) {
+    reallocPool()
   } else {
     alignPool()
   }
@@ -84,12 +86,11 @@ export function getMsg(topic, action, data) {
       varint.encode(len + 1, poolBuffer, headerPos)
       headerPos += varint.encode.bytes
       if (headerPos - start >= headerSize) {
-        throw new Error(`header too large: ${headerPos - start} ${headerSize}`)
+        throw new Error('header too large')
       }
 
-      if (poolOffset >= poolBuffer.length) {
-        allocPool(start === 0 ? poolSize * 2 : poolSize)
-        return getMsg(topic, action, data)
+      if (poolOffset >= poolSize) {
+        throw new Error('message too large')
       }
     }
   }

@@ -1,7 +1,3 @@
-import xxhash from 'xxhash-wasm'
-
-const HASHER = await xxhash()
-
 const NODE_ENV = typeof process !== 'undefined' && process.env && process.env.NODE_ENV
 export const isNode = typeof process !== 'undefined' && process.toString() === '[object process]'
 export const isProduction = NODE_ENV === 'production'
@@ -83,7 +79,7 @@ export function setTimeout(callback, timeoutDuration) {
 
 export function setInterval(callback, intervalDuration) {
   if (intervalDuration !== null) {
-    return globalThis.setInterval(callback, intervalDuration)
+    return setInterval(callback, intervalDuration)
   } else {
     return -1
   }
@@ -177,12 +173,4 @@ export function removeAbortListener(signal, handler) {
       }
     }
   }
-}
-
-export function h64(name) {
-  return HASHER.h64(name)
-}
-
-export function h64ToString(name) {
-  return HASHER.h64ToString(name)
 }

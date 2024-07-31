@@ -127,12 +127,10 @@ Client.prototype._getOptions = function (options) {
   return mergedOptions
 }
 
-function createDeepstream(url, options) {
+export default function createDeepstream(url, options) {
   return new Client(url, options)
 }
 
 Client.prototype.isSameOrNewer = utils.isSameOrNewer
 Client.prototype.CONSTANTS = C
 createDeepstream.CONSTANTS = C
-
-export default createDeepstream

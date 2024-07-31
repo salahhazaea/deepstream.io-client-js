@@ -1,8 +1,7 @@
 import * as C from '../constants/constants.js'
-import * as rxjs from 'rxjs'
-import * as utils from '../utils/utils.js'
+import rxjs from 'rxjs'
 
-class Listener {
+export default class Listener {
   constructor(topic, pattern, callback, handler, { recursive = false, stringify = null } = {}) {
     this._topic = topic
     this._pattern = pattern
@@ -48,15 +47,8 @@ class Listener {
 
     const name = message.data[1]
 
-    if (!name?.length) {
-      this._error(name, 'invalid message')
-      return
-    }
-
-    const key = utils.h64(name)
-
     if (message.action === C.ACTIONS.SUBSCRIPTION_FOR_PATTERN_FOUND) {
-      if (this._subscriptions.has(key)) {
+      if (this._subscriptions.has(name)) {
         this._error(name, 'invalid add: listener exists')
         return
       }
@@ -64,7 +56,6 @@ class Listener {
       // TODO (refactor): Move to class
       const provider = {
         name,
-        key,
         value$: null,
         sending: false,
         accepted: false,
@@ -77,7 +68,7 @@ class Listener {
         if (this.connected && provider.accepted) {
           this._connection.sendMsg(this._topic, C.ACTIONS.LISTEN_REJECT, [
             this._pattern,
-            provider.key,
+            provider.name,
           ])
         }
 
@@ -86,7 +77,7 @@ class Listener {
         provider.accepted = false
         provider.sending = false
 
-        globalThis.clearTimeout(provider.timeout)
+        clearTimeout(provider.timeout)
         provider.timeout = null
 
         provider.patternSubscription?.unsubscribe()
@@ -110,7 +101,7 @@ class Listener {
         this._connection.sendMsg(
           this._topic,
           accepted ? C.ACTIONS.LISTEN_ACCEPT : C.ACTIONS.LISTEN_REJECT,
-          [this._pattern, provider.key],
+          [this._pattern, provider.name],
         )
 
         provider.version = null
@@ -160,13 +151,13 @@ class Listener {
             }
 
             const body = typeof value !== 'string' ? this._stringify(value) : value
-            const hash = utils.h64ToString(body)
+            const hash = this._connection.hasher.h64ToString(body)
             const version = `INF-${hash}`
 
             if (provider.version !== version) {
               provider.version = version
               this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.UPDATE, [
-                provider.key,
+                provider.name,
                 version,
                 body,
               ])
@@ -190,9 +181,9 @@ class Listener {
 
       provider.start()
 
-      this._subscriptions.set(provider.key, provider)
+      this._subscriptions.set(provider.name, provider)
     } else if (message.action === C.ACTIONS.LISTEN_ACCEPT) {
-      const provider = this._subscriptions.get(key)
+      const provider = this._subscriptions.get(name)
       if (!provider?.value$) {
         return
       }
@@ -204,13 +195,13 @@ class Listener {
         provider.valueSubscription = provider.value$.subscribe(provider.observer)
       }
     } else if (message.action === C.ACTIONS.SUBSCRIPTION_FOR_PATTERN_REMOVED) {
-      const provider = this._subscriptions.get(key)
+      const provider = this._subscriptions.get(name)
 
       if (!provider) {
         this._error(name, 'invalid remove: listener missing')
       } else {
         provider.stop()
-        this._subscriptions.delete(provider.key)
+        this._subscriptions.delete(provider.name)
       }
     } else {
       return false
@@ -237,5 +228,3 @@ class Listener {
     this._subscriptions.clear()
   }
 }
-
-export default Listener
