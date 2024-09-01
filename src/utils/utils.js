@@ -129,7 +129,7 @@ function defaultSchedule(fn) {
   setTimeout(fn, 0)
 }
 
-export const schedule = isNode ? defaultSchedule : window.requestIdleCallback
+export const schedule = isNode ? defaultSchedule : globalThis.requestIdleCallback
 
 const abortSignals = new WeakMap()
 const onAbort = function () {
@@ -177,16 +177,11 @@ export function removeAbortListener(signal, handler) {
   }
 }
 
-const HASHER = await xxhash()
-
-export function h64(str) {
-  return HASHER.h64(str)
-}
+// This is a hack to avoid top-level await
+// const HASHER = await xxhash()
+let HASHER
+xxhash().then((hasher) => (HASHER = hasher))
 
 export function h64ToString(str) {
   return HASHER.h64ToString(str)
-}
-
-export function h64Raw(str) {
-  return HASHER.h64Raw(str)
 }

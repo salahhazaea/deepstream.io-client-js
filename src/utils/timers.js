@@ -1,10 +1,11 @@
-let fastNow = Date.now()
+const fastNowInterval = 1e3
+let fastNow = 0
 let fastNowTimeout
 
 const fastTimers = []
 
 function onTimeout() {
-  fastNow = Date.now()
+  fastNow += fastNowInterval
 
   let len = fastTimers.length
   let idx = 0
@@ -41,7 +42,7 @@ function refreshTimeout() {
     fastNowTimeout.refresh()
   } else {
     globalThis.clearTimeout(fastNowTimeout)
-    fastNowTimeout = globalThis.setTimeout(onTimeout, 1e3)
+    fastNowTimeout = globalThis.setTimeout(onTimeout, fastNowInterval)
     if (fastNowTimeout.unref) {
       fastNowTimeout.unref()
     }
@@ -80,7 +81,7 @@ class Timeout {
 }
 
 export function setTimeout(callback, delay, opaque) {
-  return delay < 1e3
+  return delay < fastNowInterval
     ? globalThis.setTimeout(callback, delay, opaque)
     : new Timeout(callback, delay, opaque)
 }

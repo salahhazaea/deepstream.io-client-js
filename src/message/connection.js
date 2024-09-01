@@ -4,8 +4,9 @@ import * as messageBuilder from './message-builder.js'
 import * as C from '../constants/constants.js'
 import FixedQueue from '../utils/fixed-queue.js'
 import Emitter from 'component-emitter2'
+import pkg from '../../package.json' with { type: 'json' }
+import NodeWebSocket from 'ws'
 
-const NodeWebSocket = utils.isNode ? await import('ws').then((x) => x.default) : null
 const BrowserWebSocket = globalThis.WebSocket || globalThis.MozWebSocket
 
 export default function Connection(client, url, options) {
@@ -26,6 +27,7 @@ export default function Connection(client, url, options) {
     action: null,
     data: null,
   }
+  this._decoder = new globalThis.TextDecoder()
   this._recvQueue = new FixedQueue()
   this._reconnectTimeout = null
   this._reconnectionAttempt = 0
@@ -88,19 +90,23 @@ Connection.prototype.close = function () {
 }
 
 Connection.prototype._createEndpoint = function () {
-  this._endpoint = NodeWebSocket
-    ? new NodeWebSocket(this._url, {
-        generateMask() {},
-      })
-    : new BrowserWebSocket(this._url)
+  if (utils.isNode) {
+    this._endpoint = new NodeWebSocket(this._url, {
+      generateMask() {},
+    })
+    this._endpoint.binaryType = 'nodebuffer'
+  } else {
+    this._endpoint = new BrowserWebSocket(this._url)
+    this._endpoint.binaryType = 'arraybuffer'
+  }
+
   this._corked = false
 
   this._endpoint.onopen = this._onOpen.bind(this)
   this._endpoint.onerror = this._onError.bind(this)
   this._endpoint.onclose = this._onClose.bind(this)
-  this._endpoint.onmessage = BrowserWebSocket
-    ? ({ data }) => this._onMessage(typeof data === 'string' ? data : Buffer.from(data).toString())
-    : ({ data }) => this._onMessage(typeof data === 'string' ? data : data.toString())
+  this._endpoint.onmessage = ({ data }) =>
+    this._onMessage(typeof data === 'string' ? data : this._decoder.decode(data))
 }
 
 Connection.prototype.send = function (message) {
@@ -114,6 +120,10 @@ Connection.prototype.send = function (message) {
       err,
       message.split(C.MESSAGE_PART_SEPERATOR).map((x) => x.slice(0, 256)),
     )
+    return false
+  }
+
+  if (!this._endpoint) {
     return false
   }
 
@@ -134,6 +144,7 @@ Connection.prototype.send = function (message) {
   }
 
   this.emit('send', message)
+
   this._endpoint.send(message)
 
   return true
@@ -146,7 +157,7 @@ Connection.prototype._submit = function (message) {
     const err = new Error(`Packet to big: ${message.length} > ${maxPacketSize}`)
     this._client._$onError(C.TOPIC.CONNECTION, C.EVENT.CONNECTION_ERROR, err)
     return false
-  } else if (this._endpoint.readyState === this._endpoint.OPEN) {
+  } else if (this._endpoint != null && this._endpoint.readyState === this._endpoint.OPEN) {
     this.emit('send', message)
     this._endpoint.send(message)
     return true
@@ -161,7 +172,7 @@ Connection.prototype._sendAuthParams = function () {
   this._setState(C.CONNECTION_STATE.AUTHENTICATING)
   const authMessage = messageBuilder.getMsg(C.TOPIC.AUTH, C.ACTIONS.REQUEST, [
     this._authParams,
-    '27.0.0',
+    pkg.version,
     utils.isNode
       ? `Node/${process.version}`
       : globalThis.navigator && globalThis.navigator.userAgent,
@@ -222,7 +233,6 @@ Connection.prototype._onMessage = function (data) {
 Connection.prototype._recvMessages = function (deadline) {
   for (
     let n = 0;
-    // eslint-disable-next-line no-unmodified-loop-condition
     deadline ? deadline.didTimeout || deadline.timeRemaining() : n < this._batchSize;
     ++n
   ) {
