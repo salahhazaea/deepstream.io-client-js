@@ -1,6 +1,5 @@
 import * as C from '../constants/constants.js'
 import * as utils from '../utils/utils.js'
-import varint from 'varint'
 
 const poolEncoder = new globalThis.TextEncoder()
 
@@ -9,14 +8,12 @@ const maxMessageSize = 1024 * 1024
 const poolSize = maxMessageSize * 8
 
 let poolBuffer
-let poolView
 let poolOffset
 
 function reallocPool() {
   poolBuffer = utils.isNode
     ? globalThis.Buffer.allocUnsafe(poolSize)
     : new Uint8Array(new ArrayBuffer(poolSize))
-  poolView = new DataView(poolBuffer.buffer)
   poolOffset = 0
 }
 
@@ -50,14 +47,6 @@ export function getMsg(topic, action, data) {
 
   const start = poolOffset
 
-  const headerSize = 8
-  for (let n = 0; n < headerSize; n++) {
-    poolBuffer[poolOffset++] = 0
-  }
-
-  let headerPos = start
-  poolBuffer[headerPos++] = 128 + headerSize
-
   poolBuffer[poolOffset++] = topic.charCodeAt(0)
   poolBuffer[poolOffset++] = 31
   for (let n = 0; n < action.length; n++) {
@@ -67,29 +56,17 @@ export function getMsg(topic, action, data) {
   if (data) {
     for (let i = 0; i < data.length; i++) {
       const type = typeof data[i]
-      let len
       if (data[i] == null) {
         poolBuffer[poolOffset++] = 31
-        len = 0
+        poolOffset += 0
       } else if (type === 'object') {
         poolBuffer[poolOffset++] = 31
-        len = writeString(poolBuffer, JSON.stringify(data[i]), poolOffset)
-      } else if (type === 'bigint') {
-        poolBuffer[poolOffset++] = 31
-        poolView.setBigUint64(poolOffset, data[i], false)
-        len = 8
+        poolOffset += writeString(poolBuffer, JSON.stringify(data[i]), poolOffset)
       } else if (type === 'string') {
         poolBuffer[poolOffset++] = 31
-        len = writeString(poolBuffer, data[i], poolOffset)
+        poolOffset += writeString(poolBuffer, data[i], poolOffset)
       } else {
         throw new Error('invalid data')
-      }
-      poolOffset += len
-
-      varint.encode(len + 1, poolBuffer, headerPos)
-      headerPos += varint.encode.bytes
-      if (headerPos - start >= headerSize) {
-        throw new Error('header too large')
       }
 
       if (poolOffset >= poolSize) {
