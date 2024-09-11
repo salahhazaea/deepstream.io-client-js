@@ -1,81 +1,25 @@
 import * as C from '../constants/constants.js'
-import * as utils from '../utils/utils.js'
 
-const poolEncoder = new globalThis.TextEncoder()
-
-// TODO (fix): Don't assume maxMesageSize is 1MB
-const maxMessageSize = 1024 * 1024
-const poolSize = maxMessageSize * 8
-
-let poolBuffer
-let poolOffset
-
-function reallocPool() {
-  poolBuffer = utils.isNode
-    ? globalThis.Buffer.allocUnsafe(poolSize)
-    : new Uint8Array(new ArrayBuffer(poolSize))
-  poolOffset = 0
-}
-
-function alignPool() {
-  // Ensure aligned slices
-  if (poolOffset & 0x7) {
-    poolOffset |= 0x7
-    poolOffset++
-  }
-}
-
-function writeString(dst, str, offset) {
-  if (utils.isNode) {
-    return dst.write(str, offset)
-  } else {
-    const res = poolEncoder.encodeInto(str, new Uint8Array(dst.buffer, offset))
-    return res.written
-  }
-}
+const SEP = C.MESSAGE_PART_SEPERATOR
 
 export function getMsg(topic, action, data) {
   if (data && !(data instanceof Array)) {
     throw new Error('data must be an array')
   }
 
-  if (!poolBuffer || poolOffset + maxMessageSize > poolSize) {
-    reallocPool()
-  } else {
-    alignPool()
-  }
-
-  const start = poolOffset
-
-  poolBuffer[poolOffset++] = topic.charCodeAt(0)
-  poolBuffer[poolOffset++] = 31
-  for (let n = 0; n < action.length; n++) {
-    poolBuffer[poolOffset++] = action.charCodeAt(n)
-  }
+  const sendData = [topic, action]
 
   if (data) {
     for (let i = 0; i < data.length; i++) {
-      const type = typeof data[i]
-      if (data[i] == null) {
-        poolBuffer[poolOffset++] = 31
-        poolOffset += 0
-      } else if (type === 'object') {
-        poolBuffer[poolOffset++] = 31
-        poolOffset += writeString(poolBuffer, JSON.stringify(data[i]), poolOffset)
-      } else if (type === 'string') {
-        poolBuffer[poolOffset++] = 31
-        poolOffset += writeString(poolBuffer, data[i], poolOffset)
+      if (typeof data[i] === 'object') {
+        sendData.push(JSON.stringify(data[i]))
       } else {
-        throw new Error('invalid data')
-      }
-
-      if (poolOffset >= poolSize) {
-        throw new Error('message too large')
+        sendData.push(data[i])
       }
     }
   }
 
-  return new Uint8Array(poolBuffer.buffer, start, poolOffset - start)
+  return sendData.join(SEP)
 }
 
 export function typed(value) {
