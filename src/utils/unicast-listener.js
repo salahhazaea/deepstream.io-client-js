@@ -1,9 +1,17 @@
-import * as rxjs from 'rxjs'
 import * as C from '../constants/constants.js'
 import { h64ToString } from '../utils/utils.js'
 
-const PIPE = rxjs.pipe(
-  rxjs.map((value) => {
+class Observer {
+  #name
+  #listener
+  #version = ''
+
+  constructor(name, listener) {
+    this.#name = name
+    this.#listener = listener
+  }
+
+  next(value) {
     let data
     if (value && typeof value === 'string') {
       if (value.charAt(0) !== '{' && value.charAt(0) !== '[') {
@@ -16,10 +24,34 @@ const PIPE = rxjs.pipe(
       throw new Error(`invalid value: ${value}`)
     }
 
-    return data
-  }),
-  rxjs.distinctUntilChanged(),
-)
+    const version = data ? `INF-${h64ToString(data)}` : ''
+    if (this.#version === version) {
+      return
+    }
+
+    if (version) {
+      this.#listener._connection.sendMsg(this.#listener._topic, C.ACTIONS.UPDATE, [
+        this.#name,
+        version,
+        data,
+      ])
+    } else {
+      this.#listener._connection.sendMsg(this.#listener._topic, C.ACTIONS.LISTEN_REJECT, [
+        this.#listener._pattern,
+        this.#name,
+      ])
+    }
+
+    this.#version = version
+  }
+  error(err) {
+    this.#listener._error(this.#name, err)
+    this.#listener._connection.sendMsg(this.#listener._topic, C.ACTIONS.LISTEN_REJECT, [
+      this.#listener._pattern,
+      this.#name,
+    ])
+  }
+}
 
 export default class Listener {
   constructor(topic, pattern, callback, handler, opts) {
@@ -65,28 +97,11 @@ export default class Listener {
       try {
         value$ = this._callback(name)
       } catch (err) {
-        value$ = rxjs.throwError(() => err)
+        this._error(name, err)
       }
 
       if (value$) {
-        const subscription = value$.pipe(PIPE).subscribe({
-          next: (data) => {
-            if (data == null) {
-              this._connection.sendMsg(this._topic, C.ACTIONS.LISTEN_REJECT, [this._pattern, name])
-              this._subscriptions.delete(name)
-              subscription.unsubscribe()
-            } else {
-              const version = `INF-${h64ToString(data)}`
-              this._connection.sendMsg(this._topic, C.ACTIONS.UPDATE, [name, version, data])
-            }
-          },
-          error: (err) => {
-            this._error(name, err)
-            this._connection.sendMsg(this._topic, C.ACTIONS.LISTEN_REJECT, [this._pattern, name])
-            this._subscriptions.delete(name)
-          },
-        })
-        this._subscriptions.set(name, subscription)
+        this._subscriptions.set(name, value$.subscribe(new Observer(name, this)))
       } else {
         this._connection.sendMsg(this._topic, C.ACTIONS.LISTEN_REJECT, [this._pattern, name])
       }

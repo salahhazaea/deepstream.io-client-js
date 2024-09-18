@@ -227,8 +227,13 @@ export default class Listener {
     } else if (message.action === C.ACTIONS.LISTEN_REJECT) {
       this._subscriptions.get(name)?.reject()
     } else if (message.action === C.ACTIONS.SUBSCRIPTION_FOR_PATTERN_REMOVED) {
-      this._subscriptions.get(name)?.dispose()
-      this._subscriptions.delete(name)
+      const provider = this._subscriptions.get(name)
+      if (provider) {
+        provider.dispose()
+        this._subscriptions.delete(name)
+      } else {
+        this._error(name, 'invalid remove: listener missing')
+      }
     } else {
       return false
     }
