@@ -3,6 +3,173 @@ import * as C from '../constants/constants.js'
 import { h64ToString } from '../utils/utils.js'
 import * as timers from '../utils/timers.js'
 
+class Provider {
+  #sending = false
+  #accepted = false
+  #value$ = null
+  #name
+  #version
+  #timeout
+  #valueSubscription
+  #patternSubscription
+  #observer
+  #listener
+
+  constructor(name, listener) {
+    this.#name = name
+    this.#listener = listener
+    this.#observer = {
+      next: (value) => {
+        if (value == null) {
+          this.next(null) // TODO (fix): This is weird...
+          return
+        }
+
+        if (this.#listener._topic === C.TOPIC.EVENT) {
+          this.#listener._handler.emit(this.#name, value)
+        } else if (this.#listener._topic === C.TOPIC.RECORD) {
+          if (typeof value !== 'object' && typeof value !== 'string') {
+            this.#listener._error(this.#name, 'invalid value')
+            return
+          }
+
+          const body = typeof value !== 'string' ? this.#listener._stringify(value) : value
+          const hash = h64ToString(body)
+          const version = `INF-${hash}`
+
+          if (this.#version !== version) {
+            this.#version = version
+            this.#listener._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.UPDATE, [
+              this.#name,
+              version,
+              body,
+            ])
+          }
+        }
+      },
+      error: (err) => {
+        this.error(err)
+      },
+    }
+
+    this.#start()
+  }
+
+  dispose() {
+    this.#stop()
+  }
+
+  accept() {
+    if (!this.#value$) {
+      return
+    }
+
+    if (this.#valueSubscription) {
+      this.#listener._error(this.#name, 'invalid accept: listener started')
+    } else {
+      // TODO (fix): provider.version = message.data[2]
+      this.#valueSubscription = this.#value$.subscribe(this.#observer)
+    }
+  }
+
+  reject() {
+    this.#listener._error(this.#name, 'invalid reject: not implemented')
+  }
+
+  next(value$) {
+    if (!value$) {
+      value$ = null
+    } else if (typeof value$.subscribe !== 'function') {
+      value$ = rxjs.of(value$) // Compat for recursive with value
+    }
+
+    if (Boolean(this.#value$) !== Boolean(value$) && !this.#sending) {
+      this.#sending = true
+      // TODO (fix): Why async?
+      queueMicrotask(() => {
+        this.#sending = false
+
+        if (!this.#patternSubscription) {
+          return
+        }
+
+        const accepted = Boolean(this.#value$)
+        if (this.#accepted === accepted) {
+          return
+        }
+
+        this.#listener._connection.sendMsg(
+          this.#listener._topic,
+          accepted ? C.ACTIONS.LISTEN_ACCEPT : C.ACTIONS.LISTEN_REJECT,
+          [this.#listener._pattern, this.#name],
+        )
+
+        this.#version = null
+        this.#accepted = accepted
+      })
+    }
+
+    this.#value$ = value$
+
+    if (this.#valueSubscription) {
+      this.#valueSubscription.unsubscribe()
+      this.#valueSubscription = this.#value$?.subscribe(this.#observer)
+    }
+  }
+
+  error(err) {
+    this.#stop()
+    // TODO (feat): backoff retryCount * delay?
+    // TODO (feat): backoff option?
+    this.#timeout = timers.setTimeout(
+      (provider) => {
+        provider.start()
+      },
+      10e3,
+      this,
+    )
+    this.#listener._error(this.#name, err)
+  }
+
+  #start() {
+    try {
+      const ret$ = this.#listener._callback(this.#name)
+      if (this.#listener._recursive && typeof ret$?.subscribe === 'function') {
+        this.patternSubscription = ret$.subscribe(this)
+      } else {
+        this.patternSubscription = rxjs.of(ret$).subscribe(this)
+      }
+    } catch (err) {
+      this.#listener._error(this.#name, err)
+    }
+  }
+
+  #stop() {
+    if (this.#listener.connected && this.#accepted) {
+      this.#listener._connection.sendMsg(this.#listener._topic, C.ACTIONS.LISTEN_REJECT, [
+        this.#listener._pattern,
+        this.#name,
+      ])
+    }
+
+    this.#value$ = null
+    this.#version = null
+    this.#accepted = false
+    this.#sending = false
+
+    if (this.#timeout) {
+      timers.clearTimeout(this.#timeout)
+      this.#timeout = null
+    }
+
+    this.#patternSubscription?.unsubscribe()
+    this.#patternSubscription = null
+
+    this.#valueSubscription?.unsubscribe()
+    this.#valueSubscription = null
+  }
+}
+
 export default class Listener {
   constructor(topic, pattern, callback, handler, { recursive = false, stringify = null } = {}) {
     this._topic = topic
@@ -52,165 +219,16 @@ export default class Listener {
     if (message.action === C.ACTIONS.SUBSCRIPTION_FOR_PATTERN_FOUND) {
       if (this._subscriptions.has(name)) {
         this._error(name, 'invalid add: listener exists')
-        return
+      } else {
+        this._subscriptions.set(name, new Provider(name, this))
       }
-
-      // TODO (refactor): Move to class
-      const provider = {
-        name,
-        value$: null,
-        sending: false,
-        accepted: false,
-        version: null,
-        timeout: null,
-        patternSubscription: null,
-        valueSubscription: null,
-      }
-      provider.stop = () => {
-        if (this.connected && provider.accepted) {
-          this._connection.sendMsg(this._topic, C.ACTIONS.LISTEN_REJECT, [
-            this._pattern,
-            provider.name,
-          ])
-        }
-
-        provider.value$ = null
-        provider.version = null
-        provider.accepted = false
-        provider.sending = false
-
-        if (provider.timeout) {
-          timers.clearTimeout(provider.timeout)
-          provider.timeout = null
-        }
-
-        provider.patternSubscription?.unsubscribe()
-        provider.patternSubscription = null
-
-        provider.valueSubscription?.unsubscribe()
-        provider.valueSubscription = null
-      }
-      provider.send = () => {
-        provider.sending = false
-
-        if (!provider.patternSubscription) {
-          return
-        }
-
-        const accepted = Boolean(provider.value$)
-        if (provider.accepted === accepted) {
-          return
-        }
-
-        this._connection.sendMsg(
-          this._topic,
-          accepted ? C.ACTIONS.LISTEN_ACCEPT : C.ACTIONS.LISTEN_REJECT,
-          [this._pattern, provider.name],
-        )
-
-        provider.version = null
-        provider.accepted = accepted
-      }
-      provider.next = (value$) => {
-        if (!value$) {
-          value$ = null
-        } else if (typeof value$.subscribe !== 'function') {
-          value$ = rxjs.of(value$) // Compat for recursive with value
-        }
-
-        if (Boolean(provider.value$) !== Boolean(value$) && !provider.sending) {
-          provider.sending = true
-          queueMicrotask(provider.send)
-        }
-
-        provider.value$ = value$
-
-        if (provider.valueSubscription) {
-          provider.valueSubscription.unsubscribe()
-          provider.valueSubscription = provider.value$?.subscribe(provider.observer)
-        }
-      }
-      provider.error = (err) => {
-        provider.stop()
-        // TODO (feat): backoff retryCount * delay?
-        // TODO (feat): backoff option?
-        provider.timeout = timers.setTimeout(
-          (provider) => {
-            provider.start()
-          },
-          10e3,
-          provider,
-        )
-        this._error(provider.name, err)
-      }
-      provider.observer = {
-        next: (value) => {
-          if (value == null) {
-            provider.next(null) // TODO (fix): This is weird...
-            return
-          }
-
-          if (this._topic === C.TOPIC.EVENT) {
-            this._handler.emit(provider.name, value)
-          } else if (this._topic === C.TOPIC.RECORD) {
-            if (typeof value !== 'object' && typeof value !== 'string') {
-              this._error(provider.name, 'invalid value')
-              return
-            }
-
-            const body = typeof value !== 'string' ? this._stringify(value) : value
-            const hash = h64ToString(body)
-            const version = `INF-${hash}`
-
-            if (provider.version !== version) {
-              provider.version = version
-              this._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.UPDATE, [
-                provider.name,
-                version,
-                body,
-              ])
-            }
-          }
-        },
-        error: provider.error,
-      }
-      provider.start = () => {
-        try {
-          const ret$ = this._callback(name)
-          if (this._recursive && typeof ret$?.subscribe === 'function') {
-            provider.patternSubscription = ret$.subscribe(provider)
-          } else {
-            provider.patternSubscription = rxjs.of(ret$).subscribe(provider)
-          }
-        } catch (err) {
-          this._error(provider.name, err)
-        }
-      }
-
-      provider.start()
-
-      this._subscriptions.set(name, provider)
     } else if (message.action === C.ACTIONS.LISTEN_ACCEPT) {
-      const provider = this._subscriptions.get(name)
-      if (!provider?.value$) {
-        return
-      }
-
-      if (provider.valueSubscription) {
-        this._error(name, 'invalid accept: listener started')
-      } else {
-        // TODO (fix): provider.version = message.data[2]
-        provider.valueSubscription = provider.value$.subscribe(provider.observer)
-      }
+      this._subscriptions.get(name)?.accept()
+    } else if (message.action === C.ACTIONS.LISTEN_REJECT) {
+      this._subscriptions.get(name)?.reject()
     } else if (message.action === C.ACTIONS.SUBSCRIPTION_FOR_PATTERN_REMOVED) {
-      const provider = this._subscriptions.get(name)
-
-      if (!provider) {
-        this._error(name, 'invalid remove: listener missing')
-      } else {
-        provider.stop()
-        this._subscriptions.delete(name)
-      }
+      this._subscriptions.get(name)?.dispose()
+      this._subscriptions.delete(name)
     } else {
       return false
     }
