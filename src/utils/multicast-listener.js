@@ -189,7 +189,7 @@ export default class Listener {
 
       provider.start()
 
-      this._subscriptions.set(provider.name, provider)
+      this._subscriptions.set(name, provider)
     } else if (message.action === C.ACTIONS.LISTEN_ACCEPT) {
       const provider = this._subscriptions.get(name)
       if (!provider?.value$) {
@@ -209,7 +209,7 @@ export default class Listener {
         this._error(name, 'invalid remove: listener missing')
       } else {
         provider.stop()
-        this._subscriptions.delete(provider.name)
+        this._subscriptions.delete(name)
       }
     } else {
       return false
