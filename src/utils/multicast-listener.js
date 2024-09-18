@@ -8,6 +8,7 @@ class Provider {
   #accepted = false
   #value$ = null
   #name
+  #key
   #version
   #timeout
   #valueSubscription
@@ -17,6 +18,7 @@ class Provider {
 
   constructor(name, listener) {
     this.#name = name
+    this.#key = h64ToString(name)
     this.#listener = listener
     this.#observer = {
       next: (value) => {
@@ -40,7 +42,7 @@ class Provider {
           if (this.#version !== version) {
             this.#version = version
             this.#listener._connection.sendMsg(C.TOPIC.RECORD, C.ACTIONS.UPDATE, [
-              this.#name,
+              this.#key,
               version,
               body,
             ])
@@ -101,7 +103,7 @@ class Provider {
         this.#listener._connection.sendMsg(
           this.#listener._topic,
           accepted ? C.ACTIONS.LISTEN_ACCEPT : C.ACTIONS.LISTEN_REJECT,
-          [this.#listener._pattern, this.#name],
+          [this.#listener._pattern, this.#key],
         )
 
         this.#version = null
@@ -148,7 +150,7 @@ class Provider {
     if (this.#listener.connected && this.#accepted) {
       this.#listener._connection.sendMsg(this.#listener._topic, C.ACTIONS.LISTEN_REJECT, [
         this.#listener._pattern,
-        this.#name,
+        this.#key,
       ])
     }
 

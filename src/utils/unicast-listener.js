@@ -3,11 +3,13 @@ import { h64ToString } from '../utils/utils.js'
 
 class Observer {
   #name
+  #key
   #listener
   #version = ''
 
   constructor(name, listener) {
     this.#name = name
+    this.#key = h64ToString(name)
     this.#listener = listener
   }
 
@@ -31,14 +33,14 @@ class Observer {
 
     if (version) {
       this.#listener._connection.sendMsg(this.#listener._topic, C.ACTIONS.UPDATE, [
-        this.#name,
+        this.#key,
         version,
         data,
       ])
     } else {
       this.#listener._connection.sendMsg(this.#listener._topic, C.ACTIONS.LISTEN_REJECT, [
         this.#listener._pattern,
-        this.#name,
+        this.#key,
       ])
     }
 
@@ -48,7 +50,7 @@ class Observer {
     this.#listener._error(this.#name, err)
     this.#listener._connection.sendMsg(this.#listener._topic, C.ACTIONS.LISTEN_REJECT, [
       this.#listener._pattern,
-      this.#name,
+      this.#key,
     ])
   }
 }

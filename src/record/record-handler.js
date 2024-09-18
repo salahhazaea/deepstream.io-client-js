@@ -95,7 +95,8 @@ class RecordHandler {
     this._options = options
     this._connection = connection
     this._client = client
-    this._records = new Map()
+    this._recordsByName = new Map()
+    this._recordsByKey = new Map()
     this._listeners = new Map()
     this._pruning = new Set()
     this._patching = new Map()
@@ -132,7 +133,7 @@ class RecordHandler {
 
       for (const rec of pruning) {
         rec._$dispose()
-        this._records.delete(rec.name)
+        this._recordsByName.delete(rec.name)
       }
 
       this._stats.pruning -= pruning.size
@@ -215,13 +216,14 @@ class RecordHandler {
       `invalid name ${name}`,
     )
 
-    let record = this._records.get(name)
+    let record = this._recordsByName.get(name)
 
     if (!record) {
       record = new Record(name, this)
       this._stats.records += 1
       this._stats.created += 1
-      this._records.set(name, record)
+      this._recordsByName.set(record.name, record)
+      this._recordsByKey.set(record.name, record)
     }
 
     return record.ref()
@@ -617,11 +619,11 @@ class RecordHandler {
   }
 
   _$handle(message) {
-    let name
+    let key
     if (message.action === C.ACTIONS.ERROR) {
-      name = message.data[1]
+      key = message.data[1]
     } else {
-      name = message.data[0]
+      key = message.data[0]
     }
 
     if (message.action === C.ACTIONS.SYNC) {
@@ -629,12 +631,12 @@ class RecordHandler {
       return true
     }
 
-    const listener = this._listeners.get(name)
+    const listener = this._listeners.get(key)
     if (listener && listener._$onMessage(message)) {
       return true
     }
 
-    const record = this._records.get(name)
+    const record = this._recordsByKey.get(key)
     if (record && record._$onMessage(message)) {
       return true
     }
@@ -647,7 +649,7 @@ class RecordHandler {
       listener._$onConnectionStateChange(connected)
     }
 
-    for (const record of this._records.values()) {
+    for (const record of this._recordsByName.values()) {
       record._$onConnectionStateChange(connected)
     }
 
