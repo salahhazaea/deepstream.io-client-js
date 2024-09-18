@@ -1,6 +1,7 @@
 import * as rxjs from 'rxjs'
 import * as C from '../constants/constants.js'
 import { h64ToString } from '../utils/utils.js'
+import * as timers from '../utils/timers.js'
 
 export default class Listener {
   constructor(topic, pattern, callback, handler, { recursive = false, stringify = null } = {}) {
@@ -78,8 +79,10 @@ export default class Listener {
         provider.accepted = false
         provider.sending = false
 
-        clearTimeout(provider.timeout)
-        provider.timeout = null
+        if (provider.timeout) {
+          timers.clearTimeout(provider.timeout)
+          provider.timeout = null
+        }
 
         provider.patternSubscription?.unsubscribe()
         provider.patternSubscription = null
@@ -131,9 +134,13 @@ export default class Listener {
         provider.stop()
         // TODO (feat): backoff retryCount * delay?
         // TODO (feat): backoff option?
-        provider.timeout = setTimeout(() => {
-          provider.start()
-        }, 10e3)
+        provider.timeout = timers.setTimeout(
+          (provider) => {
+            provider.start()
+          },
+          10e3,
+          provider,
+        )
         this._error(provider.name, err)
       }
       provider.observer = {
