@@ -46,6 +46,7 @@ class Observer {
 
     this.#version = version
   }
+
   error(err) {
     this.#listener._error(this.#name, err)
     this.#listener._connection.sendMsg(this.#listener._topic, C.ACTIONS.LISTEN_REJECT, [
