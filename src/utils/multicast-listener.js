@@ -256,7 +256,7 @@ export default class Listener {
 
   _reset() {
     for (const provider of this._subscriptions.values()) {
-      provider.stop()
+      provider.dispose()
     }
     this._subscriptions.clear()
   }
