@@ -199,7 +199,7 @@ Connection.prototype._onError = function (err) {
   }
 
   if (err.code === 'ECONNRESET' || err.code === 'ECONNREFUSED') {
-    err.message = "Can't t! Deepstream server unreachable on " + this._url
+    err.message = "Can't connect! Deepstream server unreachable on " + this._url
   }
 
   this._client._$onError(C.TOPIC.CONNECTION, C.EVENT.CONNECTION_ERROR, err)
